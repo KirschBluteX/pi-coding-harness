@@ -4,10 +4,10 @@
     "version":  "1.2.1",
     "authority_schema":  19,
     "status":  "PASS",
-    "state_generation":  46,
+    "state_generation":  47,
     "current_phase":  "P11",
     "current_stage":  "RELEASE_VERIFIED",
-    "updated_at":  "2026-07-28T23:35:44.3390854+08:00",
+    "updated_at":  "2026-07-29T00:07:15.4915267+08:00",
     "goal":  "Release-verify the repaired real Pi user path on Node 24.18.0: one-transaction blocking preflight dispatch, authorization and canonical-workspace fencing across takeover, durable reconciliation, clarification recovery, strict Host protocol, and all lifecycle/arbitrary-cwd gates without weakening FULL durability.",
     "completed_receipts":  [
                                {
@@ -214,6 +214,11 @@
                                    "id":  "PCH-P11-FINAL-RELEASE-VERIFIED-20260728",
                                    "result":  "PASS",
                                    "evidence":  "Node 24.18.0 complete release aggregate passed performance, compile, lint, runtime build, 489 tests with 6 conditional skips, SQLite 3.53.1 schema 19 integrity, JSON, Markdown, state-update, lifecycle, arbitrary-cwd import and self-contained gates with 0 additional model/provider requests. Aggregate SHA-256 A7FDD0D756D1D227397FE1D985ED59D1A59BFB86BB2F2587DC1DA58850C7AC30; performance SHA-256 4E3E591249E922B4CA6C864B2B7932C0EC92BA31DE4791FB2F83C20C595B96FB; installed-Pi probe SHA-256 5B19BAC410A28431CD99361102148DAFA8760052FD6B41B4A285B7FCEB7AC8FD; architecture report SHA-256 345A808C4B643380A47180ED69ED1F1F1ABED13F9F9CAD0C103A65DD8676189C."
+                               },
+                               {
+                                   "id":  "PCH-DOC-PUBLIC-ARCHITECTURE-20260728",
+                                   "result":  "PASS",
+                                   "evidence":  "Added an English-first reader architecture projection at docs/ARCHITECTURE.md plus a README architecture-at-a-glance. The projection covers process ownership, Module topology, Goal/Route/WorkCell/Operation Task Flow, Single and Multi execution, SQLite/CAS authority, recovery, security, efficiency, reproducible release evidence and explicit evidence limits while preserving docs/PI-CODING-HARNESS-BLUEPRINT.md as the only normative authority. Markdown validation passed with all Mermaid diagrams parsed and no failures."
                                }
                            ],
     "authoritative_artifacts":  [

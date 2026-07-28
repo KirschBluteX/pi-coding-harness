@@ -3,6 +3,10 @@
 Pi Coding Harness (PCH) 是一个显式启用的 Pi Coding Agent 外层执行框架。它把普通 Pi
 会话转换为面向软件工程的、可恢复、可审计的执行环境，同时保留未启用时的原生 Pi 体验。
 
+**Architecture:** [visual system overview](docs/ARCHITECTURE.md) ·
+**Specification:** [normative implementation blueprint](docs/PI-CODING-HARNESS-BLUEPRINT.md) ·
+**Usage:** [用户指南](docs/USER-GUIDE.md)
+
 ## 核心行为
 
 - 只有用户运行 `/coding` 后才启动独立 Host、SQLite、CAS、上下文投影和工作流工具。
@@ -17,6 +21,33 @@ Pi Coding Harness (PCH) 是一个显式启用的 Pi Coding Agent 外层执行框
 唯一权威设计是 [docs/PI-CODING-HARNESS-BLUEPRINT.md](docs/PI-CODING-HARNESS-BLUEPRINT.md)。
 实施顺序见 [docs/IMPLEMENTATION-PLAYBOOK.md](docs/IMPLEMENTATION-PLAYBOOK.md)，用户命令见
 [docs/USER-GUIDE.md](docs/USER-GUIDE.md)。
+
+## 架构概览 / Architecture at a glance
+
+```mermaid
+flowchart LR
+  U["User in Pi"] --> B["Passive Bridge"]
+  B -->|"/coding"| H["Lazy PCH Host"]
+  H --> T["Task Flow"]
+  H --> A["SQLite WAL and CAS authority"]
+  T --> S["Single native execution"]
+  T --> M["Multi scoped Workers"]
+  M --> I["Serial verified integration"]
+  S --> A
+  I --> A
+```
+
+Single 直接复用当前 Pi Agent 与真实工作区；Multi 只把 hash-bound TaskPacket 交给隔离 Worker，
+Worker 输出经过 preimage、scope、lease、fencing token 和 fresh oracle 校验后才串行集成。
+[完整英文架构说明](docs/ARCHITECTURE.md) 展示 Task Flow、模块拓扑、Single/Multi、持久权威、恢复路径、
+安全模型和已验证性能证据。
+
+| Release evidence | Result |
+|---|---|
+| Runtime | Node `24.18.0`, SQLite `3.53.1`, authority schema `19` |
+| Aggregate | `489` passed, `6` conditional skips, `0` failures |
+| Inactive path | `0` Host / SQLite / RPC / prompt / additional model-provider requests |
+| Lifecycle | install, upgrade, uninstall, arbitrary-cwd and self-contained PASS |
 
 ## 环境
 
