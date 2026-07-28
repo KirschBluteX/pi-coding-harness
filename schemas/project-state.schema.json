@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/project-state.schema.json",
+  "title": "Pi Coding Harness development state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "product", "version", "authority_schema", "status", "state_generation",
+    "current_phase", "current_stage", "updated_at", "goal", "completed_receipts",
+    "authoritative_artifacts", "decisions", "latest_correction", "failed_routes", "do_not_repeat",
+    "open_risks", "blockers", "next_action", "verification"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "product": { "const": "Pi Coding Harness" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "authority_schema": { "const": 19 },
+    "status": { "enum": ["IMPLEMENTING", "VERIFYING", "PASS", "FAIL", "BLOCKED"] },
+    "state_generation": { "type": "integer", "minimum": 1 },
+    "current_phase": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "current_stage": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "goal": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "completed_receipts": { "type": "array", "items": { "$ref": "#/$defs/receipt" } },
+    "authoritative_artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } },
+    "decisions": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 2048 } },
+    "latest_correction": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "object", "additionalProperties": false, "required": ["id", "summary"], "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "summary": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        } }
+      ]
+    },
+    "failed_routes": { "type": "array", "items": { "type": "object", "additionalProperties": false,
+      "required": ["fingerprint", "reason"], "properties": {
+        "fingerprint": { "$ref": "#/$defs/sha" }, "reason": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      } }
+    },
+    "do_not_repeat": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 4096 } },
+    "open_risks": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 4096 } },
+    "blockers": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 4096 } },
+    "next_action": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "verification": { "type": "object", "additionalProperties": false,
+      "required": ["result", "commands", "tests_passed", "tests_skipped", "report_sha256"], "properties": {
+        "result": { "enum": ["NOT_RUN", "PASS", "FAIL"] },
+        "commands": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 1024 } },
+        "tests_passed": { "type": "integer", "minimum": 0 },
+        "tests_skipped": { "type": "integer", "minimum": 0 },
+        "report_sha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha" }] }
+      }
+    }
+  },
+  "$defs": {
+    "sha": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "receipt": { "type": "object", "additionalProperties": false, "required": ["id", "result", "evidence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "result": { "enum": ["PASS", "FAIL", "EXTERNAL_LIMIT"] },
+        "evidence": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      }
+    },
+    "artifact": { "type": "object", "additionalProperties": false, "required": ["path", "sha256", "role"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "sha256": { "$ref": "#/$defs/sha" },
+        "role": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    }
+  }
+}

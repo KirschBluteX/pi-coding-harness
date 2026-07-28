@@ -1,0 +1,482 @@
+{
+    "schema_version":  1,
+    "product":  "Pi Coding Harness",
+    "version":  "1.2.1",
+    "authority_schema":  19,
+    "status":  "PASS",
+    "state_generation":  46,
+    "current_phase":  "P11",
+    "current_stage":  "RELEASE_VERIFIED",
+    "updated_at":  "2026-07-28T23:35:44.3390854+08:00",
+    "goal":  "Release-verify the repaired real Pi user path on Node 24.18.0: one-transaction blocking preflight dispatch, authorization and canonical-workspace fencing across takeover, durable reconciliation, clarification recovery, strict Host protocol, and all lifecycle/arbitrary-cwd gates without weakening FULL durability.",
+    "completed_receipts":  [
+                               {
+                                   "id":  "PCH-REC-CODE-BASELINE",
+                                   "result":  "PASS",
+                                   "evidence":  "Current source compiled and linted; 65 test files and 363 tests passed with 5 conditional skips after control/context negative tests were added."
+                               },
+                               {
+                                   "id":  "PCH-REC-DESIGN-AUDIT",
+                                   "result":  "PASS",
+                                   "evidence":  "Every active capability was rechecked and the final decisions are recorded as PCH-AUD-001 through PCH-AUD-020 in the sole blueprint."
+                               },
+                               {
+                                   "id":  "PCH-REC-SCHEMA-GATE",
+                                   "result":  "PASS",
+                                   "evidence":  "48 Draft 2020-12 schemas compiled strictly and 22 project instances validated; migration coverage, byte counts and SHA-256 were checked."
+                               },
+                               {
+                                   "id":  "PCH-REC-MEMORY-CORPUS",
+                                   "result":  "PASS",
+                                   "evidence":  "The frozen zh-CN Memory capture corpus expanded to 1,225 unique cases and passed with zero disallowed ACTIVE captures."
+                               },
+                               {
+                                   "id":  "PCH-REC-RELEASE-GATE",
+                                   "result":  "PASS",
+                                   "evidence":  "All 13 clean-root release steps passed in 124850 ms; 363 tests passed and 5 environment-gated tests skipped."
+                               },
+                               {
+                                   "id":  "PCH-REC-MIGRATION",
+                                   "result":  "PASS",
+                                   "evidence":  "357 migration dispositions and 349 target hashes produced a 352-file self-contained release with zero hash mismatch, forbidden file or reparse point."
+                               },
+                               {
+                                   "id":  "PCH-REC-LIVE-INSTALL",
+                                   "result":  "PASS",
+                                   "evidence":  "Pi 0.82.1 installed X:\\Pi Coding Harness, doctor passed from an unrelated cwd, and pi list showed only the new Harness path."
+                               },
+                               {
+                                   "id":  "PCH-REC-GIT-SURFACE",
+                                   "result":  "PASS",
+                                   "evidence":  "Root-anchored ignore rules preserve all three src/artifacts files while excluding root runtime/dependency/report trees; affected state, JSON and self-contained gates passed."
+                               },
+                               {
+                                   "id":  "PCH-REC-CACHE-C1-ACTIVATION",
+                                   "result":  "PASS",
+                                   "evidence":  "Cache C1 is enabled only for the exact geekspace/openai-completions/base-URL contract; frozen membership contains 200 responses across 11 sessions, 138 positive cacheRead reports and 20,424,704 cache-read tokens. Normalized zero remains UNOBSERVABLE and unsupported runtimes fall back to C0."
+                               },
+                               {
+                                   "id":  "PCH-REC-PERFORMANCE-1.1.0",
+                                   "result":  "PASS",
+                                   "evidence":  "Four local performance suites passed with zero extra model/provider requests. Lease renewal was removed from the per-mutation hot path while every authority transaction retains lease and fencing validation."
+                               },
+                               {
+                                   "id":  "PCH-REC-RELEASE-1.1.0",
+                                   "result":  "PASS",
+                                   "evidence":  "All 13 release steps passed in 134,992 ms; 375 tests passed and 6 environment-gated tests skipped; 363 migration dispositions and 355 source hashes produced zero self-contained mismatches."
+                               },
+                               {
+                                   "id":  "PCH-REC-LIVE-INSTALL-1.1.0",
+                                   "result":  "PASS",
+                                   "evidence":  "Pi 0.82.1 installed X:\\Pi Coding Harness; doctor and unrelated-cwd local command probes passed; pi list contains only the new package name and path."
+                               },
+                               {
+                                   "id":  "PCH-REC-ACYCLIC-RELEASE-1.1.0",
+                                   "result":  "PASS",
+                                   "evidence":  "All 13 release steps passed in 118,575 ms; 376 tests passed and 6 environment-gated tests skipped; 364 migration dispositions and 356 source hashes validate with zero self-contained mismatches; live install, doctor and unrelated-cwd command probes passed."
+                               },
+                               {
+                                   "id":  "PCH-REC-SMOKE-PRD01-003",
+                                   "result":  "PASS",
+                                   "evidence":  "Hidden quality passed 26/26 and PCH authority closed with integrity ok; the 1,400,746 ms, 80-request run was audited in RUN-REVIEW.md with SHA-256 58958057134388D0054734D58FC9DF2C710483AE0B52C1CBC1343CB638134D7D."
+                               },
+                               {
+                                   "id":  "PCH-REC-FORMAL-003",
+                                   "result":  "FAIL",
+                                   "evidence":  "The single post-compaction formal run completed all eight frozen tasks in 3,075,533 ms with 6/8 hidden quality, 4,534,239 total tokens, 144 provider requests and 91.99% token-weighted cache read share; its raw score is immutable. BENCHMARK-REPORT.json SHA-256 is 87BEDAA5BF0A725BA4362EAC3BD364AE9E1B480E7EBCE416C1AC170FAF0A1C7F."
+                               },
+                               {
+                                   "id":  "PCH-REC-FORMAL-003-OVERHEAD",
+                                   "result":  "PASS",
+                                   "evidence":  "The post-run audit counted 251 tool calls, 24 flow calls, 7 rejected flow calls, 4 status-only calls, 6 environment probes and 14 adjacent duplicate Widget updates. Only evidence-backed redundancy was removed; changed-source rereads and fresh post-mutation validations remain correctness work. Audit SHA-256 is 129464FAB7C6F937D02FDF23416E6387B495BE9AC729E1B904415DDEB3E50BDB."
+                               },
+                               {
+                                   "id":  "PCH-REC-POST-FORMAL-REMEDIATION",
+                                   "result":  "PASS",
+                                   "evidence":  "Admission classification, PRD routing, acceptance-facet minimums, mutation-required closure, route repair, proposal guidance, transition-status reuse and Widget deduplication have deterministic regressions. The bounded-worker release verifier passed 399 tests with 6 conditional skips and zero failures in 125,083 ms without model/provider requests."
+                               },
+                               {
+                                   "id":  "PCH-REC-RELEASE-1.2.0",
+                                   "result":  "PASS",
+                                   "evidence":  "All 13 release steps passed in 118,065 ms; 423 tests passed with 6 conditional skips; SQL 001-019, JSON, Markdown, performance, lifecycle, arbitrary-cwd import and self-contained checks passed with zero model/provider requests."
+                               },
+                               {
+                                   "id":  "PCH-REC-LIVE-UPGRADE-1.2.0",
+                                   "result":  "PASS",
+                                   "evidence":  "Pi local package registration was refreshed to X:\\Pi Coding Harness; doctor passed at authority schema 19 and pi list from an unrelated cwd showed one Harness registration."
+                               },
+                               {
+                                   "id":  "PCH-REC-RELEASE-1.2.1",
+                                   "result":  "PASS",
+                                   "evidence":  "All 13 release steps passed in 132,520 ms; 426 tests passed with 6 conditional skips; performance, compile, lint, build, SQL, JSON, Markdown, state, lifecycle, arbitrary-cwd import and self-contained checks passed with zero model/provider requests."
+                               },
+                               {
+                                   "id":  "PCH-REC-LIVE-UPGRADE-1.2.1",
+                                   "result":  "PASS",
+                                   "evidence":  "Pi local package registration was refreshed to X:\\Pi Coding Harness; doctor passed at authority schema 19 with no lifecycle failures."
+                               },
+                               {
+                                   "id":  "PCH-REC-SMOKE-PRD01-006-DIAGNOSTIC",
+                                   "result":  "FAIL",
+                                   "evidence":  "Fail-fast stopped the run after 69,048 ms at the first PCH_STALE_CONTROL_FRAME; one Contract transition succeeded, one Route transition was rejected, no repository files changed, and the run is diagnostic-only."
+                               },
+                               {
+                                   "id":  "PCH-REC-ACTIVE-RUN-LEASE-HEARTBEAT",
+                                   "result":  "PASS",
+                                   "evidence":  "A local Host heartbeat preserves the same lease generation and fencing token throughout an active Agent run and stops at generation_settled/close/failure. The 45-second virtual-clock regression and 27 focused Host/Bridge tests passed without an extra model/provider request."
+                               },
+                               {
+                                   "id":  "PCH-REC-SMOKE-PRD01-008-DIAGNOSTIC",
+                                   "result":  "FAIL",
+                                   "evidence":  "Diagnostic-only SINGLE run pch-smoke-prd01-008 exercised the heartbeat for about 23 minutes with zero stale ControlFrame, froze Contract and Route revisions, then fail-fast stopped at the second equivalent unsupported-oracle rejection. It is not scoring eligible and must not be resumed."
+                               },
+                               {
+                                   "id":  "PCH-REC-ORACLE-POLICY-REMEDIATION",
+                                   "result":  "PASS",
+                                   "evidence":  "Oracle classification now identifies shell composition, npm exec, long-running modes and unsupported commands separately; rejection text includes the bounded offending command and explains that commands[] does not widen the allowlist. Terminating local esbuild/microbundle commands are accepted, npm exec and out-of-workspace build outputs remain denied. Two focused unit files passed 21 tests, Host/Bridge passed 27 tests, compile/lint/build:runtime passed."
+                               },
+                               {
+                                   "id":  "PCH-REC-STRESS-CONTROLLER-QUALIFICATION",
+                                   "result":  "PASS",
+                                   "evidence":  "No-model qualification prepared a clean remote-free Terraform workspace at the frozen fixture tree and verified Go 1.22.5; evaluator self-test extracted 8 production changes and passed all 35 frozen tests with zero JSON parse errors. Stress manifest SHA-256 B97C1EE6CCE60A0940D6593578037D9090C7C8DE60E10475362371DE5BC0474D; qualification hashes 0F8D640B87C812178C26993A4CF433C3FF5002AA90324E8E92F423E6A8AB720D and 6A21675E80E8E8B6C7141C2D06F2512A692B66981A6704AFF5B2E1222B8EB56C."
+                               },
+                               {
+                                   "id":  "PCH-REC-PRD01-FINAL-CONTROLLER-QUALIFICATION",
+                                   "result":  "PASS",
+                                   "evidence":  "No-model prepare-only qualification passed for PRD-01 with the current PCH candidate source, clean remote-free fixture and frozen isolation controls. Full benchmark manifest SHA-256 2A88DA799F3A7D89981F8E0FFFF70E52EB1941AD1CA20F560FC49B619F4CCB1B; qualification SHA-256 64B885301925FAC9DC95640C9CB09B72BA37ABC61554DCA87A152E9C4FE7CA4E."
+                               },
+                               {
+                                   "id":  "PCH-REC-STRESS-ROUTE-CONTRACT-QUALIFICATION",
+                                   "result":  "PASS",
+                                   "evidence":  "Corrected catalog SHA-256 823E7653755819A4E2DBB9C037FC928C4E27E0FE88C60329B92DED446EAD306E binds benchmark class STRESS_FULL to legal PCH route PRD/profile PRD/depth FULL. Manifest SHA-256 D0898707D79BB72E6E4E83D38F40898BCA46631FA4977B3B6EE40DCF92CDD744; prepare-only and 35-case evaluator qualification hashes 813D74A7D7AA7F4F2C38143898A24C499429C539632D8E44EFCB66E23127931C and A08573694FDBD67AFD88E620C1CAEF2BCE0C1655E898A138325E8F4FEEC311F7."
+                               },
+                               {
+                                   "id":  "PCH-REC-STRESS-INTAKE-CALIBRATION",
+                                   "result":  "PASS",
+                                   "evidence":  "41 focused classifier tests, compile, affected ESLint and runtime build passed. Exact frozen stress input produced PRD/PRD/FULL and the bounded negative remained TASK_SPEC. Candidate source epoch 7D41AB0A92D8203FD0F19FB8E8DB7E581BF4A630DA1D3AFAAEA0462AA497D100 is bound by PRD and stress qualification hashes 6869FA6F99AE40DF11C99FFDA81AA01182EA9BB76F3AD268E07759A20AA99A52 and 1933FAD399B1A5F363893B9AE0D9A35E4654A53D02615161EC9A241D67D2C811; 35-case evaluator hash FA42289A9C938807DE6574E483EC81DC76CAD366FEAAD3902C367946F66760D4."
+                               },
+                               {
+                                   "id":  "PCH-REC-PRD01-RUNNER-RESILIENCE",
+                                   "result":  "PASS",
+                                   "evidence":  "Five focused Node tests passed; PRD-01 and Terraform stress preflights passed with runtime source SHA-256 413166F57F6D5229B87B05962580D4929345C34541FD4DEA4475BD4F6B8B5FEA. Mutable PROJECT-STATE evidence no longer participates in that hash."
+                               },
+                               {
+                                   "id":  "PCH-REC-PRD01-CANDIDATE-003",
+                                   "result":  "PASS",
+                                   "evidence":  "PRD-01 hidden/focused tests passed 26/26; Goal GOAL-8290ED91-A12D-49BA-827A-3A757CFF6976 is SUCCEEDED with SQLite integrity ok, zero foreign-key violations, zero uncommitted operations and all 5 MUST obligations attested. BENCHMARK-REPORT SHA-256 5E49C499B23DB1612DFA2A93A93A8C2EF0E19B6CB908143E62B1C3B770B91316."
+                               },
+                               {
+                                   "id":  "PCH-REC-PROVIDER-INTERRUPTION-RECOVERY",
+                                   "result":  "PASS",
+                                   "evidence":  "Two recovery launches preserved workspace signature EC902297791562270491AE7752EF0FB96DD6C005EA82C63DA37CC9383661661E and the same authority Goal/Route. Pi performed three bounded provider retries in the failed middle segment; the final segment completed without provider retry."
+                               },
+                               {
+                                   "id":  "PCH-REC-PRD01-POST-RUN-OVERHEAD-REPAIR",
+                                   "result":  "PASS",
+                                   "evidence":  "Five PRD-01 overhead findings and one effective-route no-op edge were repaired. Compile and affected ESLint passed; five focused files passed 79 tests; Markdown checked 12 files and parsed 3 Mermaid diagrams. Review SHA-256 A2317C16A7C1CEEF36CFC7AFC83F0AAC41F7DB59CA1CF56DCC82FB81EB6D0FBC."
+                               },
+                               {
+                                   "id":  "PCH-REC-RELEASE-1.2.1-POST-UPDATE",
+                                   "result":  "PASS",
+                                   "evidence":  "Composite release receipt binds clean dependency installation, local P50/P95 performance, 440 passing tests with 6 conditional skips, SQL/JSON/Markdown/lifecycle/self-contained gates, and unrelated-cwd Pi install/doctor evidence."
+                               },
+                               {
+                                   "id":  "PCH-REC-ARCHITECTURE-DEEPENING-AFFECTED",
+                                   "result":  "PASS",
+                                   "evidence":  "Authority, Task Flow, Host protocol, Foundation dependency and Memory build-surface checks passed. Compile and ESLint pass; the 84-test affected closure passes by the original 67 unaffected tests plus a fresh 17-test Host repair receipt; clean runtime build emits 150 JS files / 1683380 bytes and zero legacy Memory v2 outputs."
+                               },
+                               {
+                                   "id":  "PCH-REC-ARCHITECTURE-DEEPENING-RELEASE",
+                                   "result":  "PASS",
+                                   "evidence":  "All five architecture candidates are integrated. Aggregate verification passed local performance, compile, ESLint, build, 447 tests with 6 conditional skips, SQL, JSON, Markdown, state update, lifecycle and arbitrary-cwd import. The sole self-contained failure was obsolete comparison text in development state; after atomic correction, self-contained and state-update gates passed. Composite receipt SHA-256 BDE929DD4F836C63617A22D20826DEA553F7B714BF7F27649145453C6BDEEB8B; additional model/provider requests 0."
+                               },
+                               {
+                                   "id":  "PCH-REC-P11-REAL-PI-FENCING-AFFECTED",
+                                   "result":  "PASS",
+                                   "evidence":  "On Node 24.18.0 / SQLite 3.53.1, compile and affected ESLint passed; 87 Bridge/Host/Task Flow tests plus 15 lease/PatchTransaction/Input Context/Memory tests passed. The real-order Host test observes DISPATCHED at blocking preflight return, takeover cannot continue a stale authorization, a durable unresolved Operation blocks new mutation, recovery readback succeeds under a new owner, and a mid-recovery takeover stops the next canonical write and leaves the PatchTransaction open. Task Flow local performance remains PASS with 0 added model/provider requests; report SHA-256 AF08DF7DD70228711D33534F44D218ABC79663C033751A412BD091282E5ED484."
+                               },
+                               {
+                                   "id":  "PCH-P11-FUNCTIONAL-RELEASE-GATE-20260728",
+                                   "result":  "PASS",
+                                   "evidence":  "Safe Node 24.18.0 performance-skipped aggregate passed compile, lint, runtime build, 486 tests with 6 conditional skips, SQLite 3.53.1 schema/integrity, JSON, Markdown, state update, lifecycle, arbitrary-cwd import and self-contained checks. reports/verification-summary.json SHA-256 50622203F01884A3C0097E97C6540622DC9276B354F8BBC852990F7941C1F2DF."
+                               },
+                               {
+                                   "id":  "PCH-REC-P11-DEPLOYMENT-VOLUME-PERFORMANCE",
+                                   "result":  "PASS",
+                                   "evidence":  "Node 24.18.0 full local performance gate passed all four suites on the default C: deployment data-root volume while keeping SQLite WAL synchronous=FULL and all budgets unchanged. Phase 1 P95: event commit 5.67 ms, 1 MiB CAS put 23.80 ms, snapshot read 2.72 ms, lease renew 0.03 ms. reports/performance-summary.json SHA-256 FDA5FA18DC80F64A499EBFFC6CA882AC74410250A54BAB44952B7C58F393192A; additional model/provider requests 0."
+                               },
+                               {
+                                   "id":  "PCH-REC-P11-RECOVERY-FIRST-CLARIFICATION-AFFECTED",
+                                   "result":  "PASS",
+                                   "evidence":  "Failing-first tests proved recovered headless entry previously sent the objective before choice and interactive entry did not present the durable question. After repair, 29 Bridge/Host clarification tests pass; compile and affected ESLint pass. Headless and interactive recovery start no provider turn before explicit choice, cancellation remains pending, one productive continuation follows resolution, and submission failure closes the Host and removes Harness tools."
+                               },
+                               {
+                                   "id":  "PCH-P11-FINAL-RELEASE-VERIFIED-20260728",
+                                   "result":  "PASS",
+                                   "evidence":  "Node 24.18.0 complete release aggregate passed performance, compile, lint, runtime build, 489 tests with 6 conditional skips, SQLite 3.53.1 schema 19 integrity, JSON, Markdown, state-update, lifecycle, arbitrary-cwd import and self-contained gates with 0 additional model/provider requests. Aggregate SHA-256 A7FDD0D756D1D227397FE1D985ED59D1A59BFB86BB2F2587DC1DA58850C7AC30; performance SHA-256 4E3E591249E922B4CA6C864B2B7932C0EC92BA31DE4791FB2F83C20C595B96FB; installed-Pi probe SHA-256 5B19BAC410A28431CD99361102148DAFA8760052FD6B41B4A285B7FCEB7AC8FD; architecture report SHA-256 345A808C4B643380A47180ED69ED1F1F1ABED13F9F9CAD0C103A65DD8676189C."
+                               }
+                           ],
+    "authoritative_artifacts":  [
+                                    {
+                                        "path":  "docs/PI-CODING-HARNESS-BLUEPRINT.md",
+                                        "sha256":  "61D5A538E50E76BB434F92D3D042A423F0AEE4F24DE8559B15011E1EA96804DE",
+                                        "role":  "sole architecture authority"
+                                    },
+                                    {
+                                        "path":  "manifests/ACCEPTANCE-CONTRACT.json",
+                                        "sha256":  "B4FF584379955C02F6AFFF7BBC793A909C64234F1B66DFC7651CE3285DAD7DE7",
+                                        "role":  "release acceptance contract"
+                                    },
+                                    {
+                                        "path":  "manifests/CACHE-PROVIDER-EVIDENCE.json",
+                                        "sha256":  "F29A6D3BED61ADAEE02F61BB8109BC6ED6C9AE99D84C06079D875181EA254893",
+                                        "role":  "frozen provider-specific Cache C1 evidence"
+                                    },
+                                    {
+                                        "path":  "manifests/MIGRATION-MANIFEST.json",
+                                        "sha256":  "34E9B0471FB362BDBD08EF21FC1A47E2FAD3553706A036BD9E055839BE29E09E",
+                                        "role":  "377-entry migration provenance"
+                                    },
+                                    {
+                                        "path":  "manifests/SOURCE-HASHES.json",
+                                        "sha256":  "299236702E8473ECFD2ED0AB405BCEC5C0F2F518BE6344B86016B384C1D4F7BC",
+                                        "role":  "369-file release source integrity"
+                                    },
+                                    {
+                                        "path":  "fixtures/memory-v3-capture-corpus.valid.json",
+                                        "sha256":  "51AE01F18F2CCD79AA622AD98EE1695E26581D84B4F24A54244664DF81D2822F",
+                                        "role":  "frozen Chinese Memory capture corpus"
+                                    },
+                                    {
+                                        "path":  "reports/PRD01-POST-RUN-OVERHEAD-REVIEW.json",
+                                        "sha256":  "A2317C16A7C1CEEF36CFC7AFC83F0AAC41F7DB59CA1CF56DCC82FB81EB6D0FBC",
+                                        "role":  "PRD-01 overhead findings, remediation mapping and targeted verification"
+                                    },
+                                    {
+                                        "path":  "reports/release-verification-receipt.json",
+                                        "sha256":  "ECAF58C0FFC60C7309E3540B17D04817BB73E48817B407DE4FB100D616E8D953",
+                                        "role":  "final composite release verification receipt"
+                                    },
+                                    {
+                                        "path":  "reports/performance-summary.json",
+                                        "sha256":  "91D0DED8114640743FBFE348161DC7B2DED9FF06A2C3E00E32DD89A973F6C0AD",
+                                        "role":  "final local performance gate"
+                                    },
+                                    {
+                                        "path":  "reports/verification-summary-final.json",
+                                        "sha256":  "A62A4C3D240F7BDD8A78859EC50EC490018DA709009EC75333903530E862F249",
+                                        "role":  "final correctness and lifecycle gate"
+                                    },
+                                    {
+                                        "path":  "reports/self-contained.json",
+                                        "sha256":  "BCE4BCBAE70E7976FBDFFADB23FCC59EBFBCEC06CED95E3220FF2939C0B66A7A",
+                                        "role":  "self-contained release evidence"
+                                    },
+                                    {
+                                        "path":  "reports/release-install.json",
+                                        "sha256":  "05665710D76D874ECB51484C32FF2C925819DC4DDAD5E4BD4C0D92E92759D41B",
+                                        "role":  "unrelated-cwd local Pi installation receipt"
+                                    },
+                                    {
+                                        "path":  "reports/release-doctor.json",
+                                        "sha256":  "5D52AB67FA94AF4CF7B7A9BA4D426F3CFE0D33207B7D24F3C684613D550A63F2",
+                                        "role":  "installed package doctor receipt"
+                                    },
+                                    {
+                                        "path":  "reports/npm-audit-bundled-runtime-release.json",
+                                        "sha256":  "67F3CDE81F48AAFAD585B0CFEFD0B2E723D2B91A4FDACC0B5F9151D371CC92D8",
+                                        "role":  "bundled runtime dependency audit"
+                                    },
+                                    {
+                                        "path":  "reports/upgrade-live-1.2.1.json",
+                                        "sha256":  "850C03CA8C061ED964744FAED787913A0DE74CE65F0B6A5273AA378667834698",
+                                        "role":  "prior local Pi upgrade receipt"
+                                    },
+                                    {
+                                        "path":  "reports/doctor-live-1.2.1.json",
+                                        "sha256":  "CC16478EDA9124E1F2ED76C7DF6C8165F8788EEF2D37D8E351D4566005300066",
+                                        "role":  "prior installed package doctor receipt"
+                                    },
+                                    {
+                                        "path":  "reports/architecture-release-verification.json",
+                                        "sha256":  "BDE929DD4F836C63617A22D20826DEA553F7B714BF7F27649145453C6BDEEB8B",
+                                        "role":  "five-slice architecture composite release receipt"
+                                    }
+                                ],
+    "decisions":  [
+                      "PCH is an explicit opt-in harness outside Pi, with zero runtime work before /coding.",
+                      "Single and Multi share Goal and acceptance authority but use topology-specific execution.",
+                      "Old public names, aliases, blueprints, phase reports and activation commands are removed.",
+                      "Cache remains C0 until a concrete provider integration passes live evidence gates.",
+                      "All release JSON instances are validated by Ajv 2020; syntax-only parsing is insufficient evidence.",
+                      "Release manifest generators skip dependency and report trees before recursion to avoid unnecessary work.",
+                      "Memory capture regression coverage is Chinese-only and expands deterministically from a schema-bound frozen corpus.",
+                      "Only X:\\Pi Coding Harness may remain registered as this package source in Pi.",
+                      "Runtime-directory gitignore patterns are root-anchored; source Module directories with the same name must remain trackable.",
+                      "Cache C1 is a provider-specific non-mutating observation integration; it does not claim a provider-neutral adapter or a guaranteed 90% hit rate.",
+                      "A positive provider cacheRead value proves HIT; zero or missing normalized usage is UNOBSERVABLE rather than MISS.",
+                      "Live leases are reused above half of configured TTL and renewed near expiry; every authority mutation still validates lease generation and fencing in its transaction.",
+                      "Provider, model, thinking level and context window continue to come only from the user\u0027s active Pi configuration.",
+                      "Development recovery state and its Markdown projection are schema-validated REWRITTEN artifacts but intentionally carry no migration source or destination hash because they reference final manifest hashes.",
+                      "Only manifests/PROJECT-STATE.json and PROJECT-STATUS.md may be hashless REWRITTEN RUN_ARTIFACT entries; both hashes must be null, while every other REWRITTEN entry retains a source hash.",
+                      "Do not rerun pch-smoke-prd01-003; use deterministic regressions for its discovered PCH defects and proceed to the single formal eight-task source epoch.",
+                      "Exclude pch-formal-002 from quality, latency, token and compaction scoring because its model-backed requests were rejected before execution with zero tokens.",
+                      "The pch-formal-003 raw score remains 6/8; post-run code fixes are deterministic remediation evidence, not retroactive benchmark credit.",
+                      "Vitest file workers are hard-capped at two so SQLite-heavy release suites remain stable on memory-constrained hosts; this does not constrain PCH product execution.",
+                      "Repeated reads after a source mutation and repeated validation after changed code or a failed oracle are retained; unchanged status polling, environment probes and duplicate UI projections are removed.",
+                      "No natural compaction occurred in pch-formal-003, so this run supplies no live compaction efficacy claim.",
+                      "Single executes authorized WorkCells directly; new Single WorkShards, TaskPackets and WorkerRuns are forbidden.",
+                      "GoalContract freeze atomically binds exact bounded intake to an immutable AcceptanceLedger.",
+                      "H3, H4 and H5 are authority state transitions; an invalid route cannot retain write authorization.",
+                      "Multi canonical apply uses a CAS-backed PatchTransaction journal and preserves external post-prepare edits for reconciliation.",
+                      "GenerationGovernor is a local repeated-route guard and does not claim to cancel provider reasoning or reduce already generated tokens.",
+                      "Model-visible transition output carries only the business delta and missing next/health/blocker hints; full status remains a deduplicated Widget projection.",
+                      "Every authority-changing same-turn Host response must carry a compact fresh ControlFrame receipt that Bridge installs before the next managed action.",
+                      "GoalContract and Route proposals reject unknown root and nested fields; exact optional Route shapes replace field-name guessing and silent data loss.",
+                      "Development validation is batched by related defect cluster: focused tests, affected lint/compile and necessary adjacent integration tests run during repair; full release, manifest/hash regeneration, installation refresh and model benchmark run once at the release-candidate boundary.",
+                      "Benchmark credentials use only participant-specific controller variables; ambient provider variables are not scoring authority.",
+                      "Every scored stress run binds the full stress manifest hash, including controller, guard, evaluator and materiality thresholds; catalog hash alone is insufficient.",
+                      "The frozen stress comparison remains Single Agent with max thinking for both participants; Codex cannot run before the PCH FIRST_PASS report is hash-sealed and cannot be resumed or allocated a second run.",
+                      "The final PRD-01 candidate remains Single Agent at xhigh; only the harder Terraform stress task uses max thinking.",
+                      "The final PRD-01 run starts directly from the qualified release-candidate source without a preceding release gate, and its run index binds the complete benchmark manifest SHA-256.",
+                      "STRESS_FULL is a benchmark difficulty class only; PCH authority continues to use the existing PRD specification route with PRD requirement profile and FULL planning depth.",
+                      "Complex engineering intake is promoted to PRD/FULL only from the conjunction of at least three technical domains and at least two regression-boundary signals; objective length and one keyword never suffice.",
+                      "A zero-token provider error is not terminal while Pi declares willRetry=true; the runner permits Pi\u0027s built-in retry up to a fixed three-attempt ceiling and records retry telemetry.",
+                      "runtime_source_sha256 binds only the normalized runtime code/build closure and package version; mutable release/development qualification metadata is bound separately by qualification_evidence_sha256.",
+                      "pch-candidate-prd01-002 is an invalid infrastructure run and must never be scored or resumed.",
+                      "PRD-01 candidate 003 is the final PRD-01 execution; do not run another PRD-01 model test.",
+                      "PRD-01 quality and authority-flow results are scoreable PASS, while token and latency comparison is unranked because two user-reported network interruptions forced three process segments.",
+                      "Pause after PRD-01 per user instruction; do not start the Terraform stress task, Codex reference, or release gate until the user resumes.",
+                      "RouteRevision transports replacement current/near WorkCells plus changed metadata; Host reconstruction and full finalization remain authoritative, and an unchanged effective execution projection is rejected before persistence.",
+                      "Provider usage settles from the first complete assistant message exposed by message_end or recovery turn_end; duplicate completion signals are idempotent and missing evidence remains OUTCOME_UNKNOWN.",
+                      "Single Supervisor reads span the frozen Route while writes remain current-WorkCell scoped; bounded exact edit preimages may replace a separate fresh-read model turn only when uniqueness and non-overlap are proven locally.",
+                      "PRD-01 repair benefits are deterministic implementation evidence only until a different future model-backed task measures token, route and latency effects.",
+                      "Final release evidence composes a standalone performance PASS receipt with a full -SkipPerformance project gate so an already-verified hard performance metric is not repeatedly exposed to unrelated disk jitter.",
+                      "PCH-DEC-ARCH-ROOT: architecture refactoring targets the verified X:\\Pi Coding Harness 1.2.1 root, not the stale rebuild root.",
+                      "PCH-DEC-ARCH-SEQUENCE: deepen behavior Modules behind existing authority semantics first; move foundation imports after disjoint slices integrate; run provider-free deterministic performance evidence only.",
+                      "PCH-DEC-AUTHORITY-KERNEL: idempotency, version CAS, BEGIN IMMEDIATE, immutable event/outbox/receipt and fault ordering are owned by one AuthorityTransactionKernel used by core, Task Flow and Harness commands.",
+                      "PCH-DEC-TASK-FLOW-OPERATION-MODULE: TaskFlowOperationLifecycle owns prepare/dispatch/observe/finish/reconcile/attestation/performance transitions behind a minimal Session Adapter.",
+                      "PCH-DEC-HOST-APPLICATION-PROTOCOL: one frozen 34-method catalog binds typed params/results and fail-closed client/server validation; authority-bound semantics stay after governance registration.",
+                      "PCH-DEC-FOUNDATION-LAYER: stable clock, crypto, errors, IDs and validation live in the lowest-level Foundation Module; dependency tests forbid legacy primitive seams and repository-to-orchestration imports.",
+                      "PCH-DEC-MEMORY-V2-BUILD-SURFACE: production-unreachable Memory v2 engine/drainer/ranking/retrieval/telemetry remain ordinary-test sources but are excluded from runtime emit.",
+                      "Provider-turn request and STARTED attempt are one atomic begin transaction; response settlement remains one atomic completion transaction.",
+                      "Existing CAS objects take a full-hash verified fast path and never use size or mtime as authority.",
+                      "Model-visible coding_flow cannot cancel; irreversible cancel and Memory purge require an explicit user confirmation receipt or non-interactive --confirm syntax.",
+                      "Current-schema lifecycle upgrade skips backup and migration execution only after full semantic authority verification passes.",
+                      "A startup integrity receipt is bound to SQLite PRAGMA data_version; same-connection recovery reuses it, while any external commit forces full core and Task Flow verification before recovery.",
+                      "Headless material clarification records OPEN authority first and only resolves through an explicit /coding clarify question_id=option_id command.",
+                      "Host-projected UI configuration controls footer/widget rendering and debounce without delaying ControlFrame updates.",
+                      "Canonical test authorities may clone a process-local verified empty migration template; custom fault migrations and performance-root fixtures always execute their original path.",
+                      "SQLite WAL authority is fail-closed on known vulnerable embedded SQLite releases; supported Node ranges must carry SQLite 3.51.3 or a fixed backport/newer release and the check runs only after explicit /coding entry or lifecycle verification.",
+                      "A material headless clarification persists a bounded hash-bound envelope with its OPEN decision; Host status may project verified open choices so Bridge restart recovery does not require a new model request.",
+                      "Timed-out Host RPC tombstones are accepted only until their recorded expiry and are checked at response receipt even when no later timeout triggers cleanup.",
+                      "Blocking tool preflight, not tool_execution_start, is the authority seam before actual Pi tool mutation; it must return allow only after the OperationAttempt is durably PREPARED and DISPATCHED under the current lease.",
+                      "A takeover owner cannot continue a prior generation OperationAttempt through an ordinary transition; stale attempts must be terminated through explicit reconciliation before any new mutation is prepared.",
+                      "The unused worker_wait Host method will be removed because the supported Bridge uses locally cancellable worker_poll and Host request dispatch is serial.",
+                      "Managed Pi mutation preflight uses one PREPARE_AND_DISPATCH_OPERATION authority transaction; tool_execution_start, tool_start and startToolOperation are not authority seams and the obsolete tool_start/worker_wait protocol methods are deleted.",
+                      "Canonical PatchTransaction apply, compensation and recovery writes execute inside AuthorityStore.withLeaseFence, which holds SQLite IMMEDIATE ownership across the actual synchronous filesystem mutation and rechecks before each next file.",
+                      "Release performance evidence is authoritative only for the declared/default deployment data-root volume; process TEMP is test scratch and cannot silently replace that volume.",
+                      "An OPEN durable clarification is a local recovery gate: no model/provider turn starts before explicit selection, and exactly one productive continuation is sent after all recovered choices resolve."
+                  ],
+    "latest_correction":  {
+                              "id":  "PCH-COR-RECOVERY-FIRST-CLARIFICATION",
+                              "summary":  "Bridge recovery no longer starts a model/provider turn while an OPEN clarification is unresolved. Interactive users resolve the durable choices locally before one productive continuation turn; headless users receive the exact slash-command choices, and clarification submission failure fully deactivates the half-entered Bridge."
+                          },
+    "failed_routes":  [
+                          {
+                              "fingerprint":  "7d4492d667d9c879138729377d83ef27f229b1550a600786ea12b37ec1eecd5b",
+                              "reason":  "Do not delete a test fixture while a current release test still depends on its contract, and do not retain assertions against removed verifier step names."
+                          },
+                          {
+                              "fingerprint":  "04eb23e063e753accb62a1f155daa88797786402e85bd5ca2269f3b3933f37a9",
+                              "reason":  "Do not register both the migration source path and the renamed release path in Pi; duplicate extension loading is invalid."
+                          },
+                          {
+                              "fingerprint":  "6b0092716af1a1e5eeae64f08d686ed24b322709db180adc080e56d70b444db4",
+                              "reason":  "Do not rely on action receipts alone to keep a 30-second lease alive during long provider/tool-free intervals; an active Agent run needs a local heartbeat before lease expiry."
+                          }
+                      ],
+    "do_not_repeat":  [
+                          "Do not rerun a full architecture review after context compaction when its input closure is unchanged.",
+                          "Do not restore phase-specific activation and dogfood scripts as release dependencies.",
+                          "Do not infer provider cache misses or benefits from unknown usage fields.",
+                          "Do not remove a frozen fixture without first updating every current consumer and its replacement evidence.",
+                          "Do not leave both old and renamed local package paths registered in Pi.",
+                          "Do not add an unanchored artifacts/, reports/, telemetry/ or other runtime-directory rule that can hide a source Module.",
+                          "Do not classify normalized zero cached_tokens as a provider Cache miss.",
+                          "Do not renew a healthy live Goal lease on every mutation; retain threshold renewal and in-transaction fencing validation.",
+                          "Do not combine Cache prepare and settle latency claims with provider latency or claim observed historical shares as a guaranteed future hit rate.",
+                          "Do not add PROJECT-STATE.json or PROJECT-STATUS.md hashes to migration/source closure while those files reference final manifest hashes.",
+                          "Do not rerun pch-smoke-prd01-003 after its hidden quality, authority closure, root-cause audit and deterministic regressions all passed.",
+                          "Do not resume or score pch-formal-002; its inherited GEEKSPACE_API_KEY was unauthorized and its six model-backed tasks performed zero model work.",
+                          "Do not rerun pch-formal-003 or rewrite its raw 6/8 score; any user-authorized retest must use a new run ID and frozen source epoch.",
+                          "Do not remove changed-source rereads or post-mutation fresh validation merely because an audit reports repeated targets or commands.",
+                          "Do not restore fake SUPERVISOR WorkShards in Single topology for accounting symmetry.",
+                          "Do not present message_end rewriting, UI hiding or GenerationGovernor as savings for provider tokens already generated.",
+                          "Do not reuse one turn-start ControlFrame after a same-turn authority mutation; consume the Host frame receipt before the next managed action.",
+                          "Do not silently discard unknown Contract or Route proposal fields or ask the model to infer optional field shapes.",
+                          "Do not resume or score pch-smoke-prd01-005; it was intentionally terminated after exposing same-turn ControlFrame and Route proposal contract defects, and exists only as diagnostic evidence.",
+                          "Do not resume or score pch-smoke-prd01-006; it intentionally stopped at the first stale-frame signal and is bound to the pre-heartbeat 1.2.1 source epoch.",
+                          "Do not rerun full release verification, regenerate release closure, refresh the Pi installation or restart a model benchmark after each small repair; aggregate a stable defect cluster first.",
+                          "Do not resume or score pch-smoke-prd01-007; it loaded stale dist and exists only as execution-closure diagnostic evidence.",
+                          "Do not resume or score pch-smoke-prd01-008; it proved heartbeat continuity and exposed the oracle diagnostic defect before fail-fast termination.",
+                          "Do not start a model-backed benchmark from an ambient GEEKSPACE_API_KEY or presence-only credential check; require the participant-specific variable and a successful zero-token /v1/models preflight.",
+                          "Do not treat catalog_sha256 as the complete stress freeze identity; bind and verify the full manifest SHA-256.",
+                          "Do not run or resume Codex on the frozen stress task before a hash-valid PCH FIRST_PASS seal, or after a Codex stress run index already exists.",
+                          "Do not run a release gate before the final PRD-01 candidate and do not add a second formal PRD-01 after it; score the next provider-authenticated run directly.",
+                          "Do not add a STRESS_FULL product route solely to mirror a benchmark class; compare the class through the legal PRD/FULL PCH contract.",
+                          "Do not force the frozen stress route in the benchmark prompt or manifest when the live deterministic classifier disagrees; fix and regression-test the general intake evidence rule before running the model.",
+                          "Do not resume or score pch-candidate-prd01-002; the controller interrupted Pi after willRetry=true, so its partial token, latency and quality data are diagnostic only.",
+                          "Do not terminate a Pi run on the first zero-token provider error while agent_end declares willRetry=true; wait for bounded retry recovery or exhaustion.",
+                          "Do not rerun PRD-01 after pch-candidate-prd01-003; it completed 26/26 hidden/focused quality and authority closure.",
+                          "Do not rank the pch-candidate-prd01-003 cumulative latency or token delta against formal-003 Codex as a win or loss; the PCH path contains two external network interruptions and three process sessions.",
+                          "Do not start STRESS-01, the one permitted Codex stress execution, or a full release gate until the user explicitly resumes after PRD-01 review.",
+                          "Do not submit a complete Route when next=SUBMIT_ROUTE and a prior Route exists; use submit_route_revision with the changed horizon and changed metadata.",
+                          "Do not reject a finite model validation timeout solely because it exceeds 900 seconds; clamp it to the authority ceiling without widening that ceiling.",
+                          "Do not treat the PRD-01 post-run repair as measured token or latency improvement; no new model-backed run was performed.",
+                          "Do not patch dependency-owned node_modules or claim the Pi 0.82.1 shrinkwrap advisory is a bundled PCH runtime vulnerability; keep the peer boundary explicit and re-probe when a newer Pi release exists.",
+                          "Do not move authority-bound managed Host payload semantics ahead of ControlFrame binding and GenerationGovernor route registration; invalid repeated routes must remain observable to deterministic governance.",
+                          "Do not retain obsolete product identities even as negative comparison text in active development state; self-contained release scanning treats the whole active artifact as public surface.",
+                          "Do not terminate Task Flow separately from its ManagedRun; use the atomic Task Flow/Harness application transaction and preserve rollback coverage.",
+                          "Do not bind a new objective or intent to a recovered Goal after Host restart.",
+                          "Do not let slash commands replace the default Memory recall query.",
+                          "Do not pair a stable Cache partition or family ID with a per-request created_at_ms identity hash.",
+                          "Do not use Host-side long polling on the Bridge execution lane when cancellation or shutdown must remain prompt.",
+                          "Do not treat an authenticated response for a bounded timed-out request as an unknown-response attack; match it against a TTL-bounded tombstone.",
+                          "Do not repeat full authority and Task Flow scans within one unchanged SQLite data_version generation.",
+                          "Do not open or migrate SQLite WAL authority with embedded SQLite 3.51.2 or another runtime in the documented WAL-reset vulnerable range.",
+                          "Do not keep the only copy of an OPEN clarification question or its options in Bridge process memory.",
+                          "Do not accept an authenticated late Host response solely because a tombstone exists; enforce its expiry at receipt time.",
+                          "Do not model Pi tool_call as occurring before tool_execution_start; Pi 0.82.1 emits tool_execution_start first and invokes blocking tool_call immediately before actual execution.",
+                          "Do not infer NOT_DISPATCHED from PREPARED state alone after restart or takeover when a real tool could already have mutated the workspace.",
+                          "Do not let a current lease token continue an OperationAttempt authorized under an older lease generation or fencing token.",
+                          "Do not split managed PREPARED and DISPATCHED across two Host RPCs or two FULL-durability authority commits.",
+                          "Do not perform PatchTransaction canonical writes after a one-time lease check; hold the lease fence across each actual filesystem mutation and recheck before the next file.",
+                          "Do not restore worker_wait or tool_start to the closed Host protocol; worker_poll and atomic tool_preflight are the supported seams.",
+                          "Do not treat process TEMP placement as deployment-volume performance evidence; fingerprint and benchmark the actual declared/default data-root volume.",
+                          "Do not unconditionally send the entry objective after Host recovery when open clarifications remain; project and resolve the durable choices locally first."
+                      ],
+    "open_risks":  [
+                       "Geekspace normalized zero Cache usage remains unobservable, so request miss rate cannot be derived from current Pi 0.82.1 usage objects.",
+                       "Provider/API/base-URL combinations without a verified integration intentionally fall back to C0.",
+                       "Pi versions beyond the tested peer range require a fresh compatibility probe.",
+                       "PRD-01 did not naturally trigger compaction; only deterministic compaction and recovery tests currently pass.",
+                       "The post-PRD-01 overhead repairs have deterministic evidence but no new provider-backed measurement of token, output, RouteRevision or latency reduction.",
+                       "The provider exposed no monetary cost in Pi usage objects; token and latency evidence cannot be converted to an audited currency cost.",
+                       "The tested Pi Coding Agent 0.82.1 peer/dev package shrinkwrap contains brace-expansion 5.0.7 (high DoS advisory); bundled PCH runtime dependencies audit clean, project overrides cannot replace the dependency-owned shrinkwrap, and no newer tested Pi release is available.",
+                       "WAL remains auto-checkpoint-disabled and can grow during a long Host lifetime; synchronous same-thread PASSIVE checkpoint is rejected until measured or moved behind a proven off-main-thread maintenance Module."
+                   ],
+    "blockers":  [
+
+                 ],
+    "next_action":  "Optional only: prototype and measure an off-main-thread WalMaintenance Module under steady-state, concurrent, shutdown, and crash workloads before considering any WAL checkpoint policy change.",
+    "verification":  {
+                         "result":  "PASS",
+                         "commands":  [
+                                          "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-project.ps1"
+                                      ],
+                         "tests_passed":  489,
+                         "tests_skipped":  6,
+                         "report_sha256":  "A7FDD0D756D1D227397FE1D985ED59D1A59BFB86BB2F2587DC1DA58850C7AC30"
+                     }
+}

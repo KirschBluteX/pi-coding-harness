@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/prompt-generation.schema.json",
+  "title": "PCH provider-visible PromptGeneration epoch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "prompt_generation_id",
+    "parent_prompt_generation_id",
+    "logical_session_hmac_sha256",
+    "transport_epoch_hmac_sha256",
+    "cache_lineage_hmac_sha256",
+    "lineage_action",
+    "prefix_generation",
+    "generation_action",
+    "boundary_reason",
+    "boundary_policy",
+    "coalesced_change_count",
+    "history_policy",
+    "stable_contract_prefix_hmac_sha256",
+    "provider_prompt_contract_prefix_hmac_sha256",
+    "prefix_segment_manifest_sha256",
+    "stable_policy_tokens",
+    "tool_schema_tokens",
+    "dynamic_suffix_order",
+    "contains_prompt_content",
+    "recorded_at"
+  ],
+  "properties": {
+    "schema_version": { "const": 3 },
+    "prompt_generation_id": { "$ref": "#/$defs/id" },
+    "parent_prompt_generation_id": {
+      "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+    },
+    "logical_session_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "transport_epoch_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "cache_lineage_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "lineage_action": { "enum": ["CREATE", "CONTINUE", "ROTATE"] },
+    "prefix_generation": { "type": "integer", "minimum": 1 },
+    "generation_action": { "enum": ["START", "INCREMENT"] },
+    "boundary_reason": {
+      "enum": [
+        "INITIAL",
+        "PROVIDER_CHANGED",
+        "MODEL_CHANGED",
+        "BASE_URL_OR_API_CHANGED",
+        "TENANT_OR_SECURITY_EPOCH_CHANGED",
+        "CACHE_NAMESPACE_CHANGED",
+        "INSTRUCTION_PRECEDENCE_CHANGED",
+        "TOOL_SURFACE_CHANGED",
+        "PLAN_BUILD_SURFACE_CHANGED",
+        "PROMPT_CONTRACT_CHANGED",
+        "COMPACTION_REBASE",
+        "CONTEXT_REPAIR"
+      ]
+    },
+    "boundary_policy": { "enum": ["IMMEDIATE_REQUIRED", "STAGE_BOUNDARY_COALESCED", "NATURAL_COMPACTION"] },
+    "coalesced_change_count": { "type": "integer", "minimum": 1 },
+    "history_policy": { "const": "APPEND_ONLY_WITHIN_GENERATION" },
+    "stable_contract_prefix_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "provider_prompt_contract_prefix_hmac_sha256": {
+      "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+    },
+    "prefix_segment_manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "stable_policy_tokens": { "type": "integer", "minimum": 0 },
+    "tool_schema_tokens": { "type": "integer", "minimum": 0 },
+    "dynamic_suffix_order": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "PROTECTED_STATE" },
+        { "const": "MEMORY" },
+        { "const": "TOOL_EVIDENCE" },
+        { "const": "RESPONSE_DIRECTIVE" }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "contains_prompt_content": { "const": false },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "lineage_action": { "enum": ["CREATE", "ROTATE"] } }, "required": ["lineage_action"] },
+      "then": {
+        "properties": {
+          "prefix_generation": { "const": 1 },
+          "generation_action": { "const": "START" },
+          "boundary_reason": {
+            "enum": ["INITIAL", "PROVIDER_CHANGED", "MODEL_CHANGED", "BASE_URL_OR_API_CHANGED", "TENANT_OR_SECURITY_EPOCH_CHANGED", "CACHE_NAMESPACE_CHANGED"]
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "lineage_action": { "const": "CONTINUE" } }, "required": ["lineage_action"] },
+      "then": {
+        "properties": {
+          "generation_action": { "const": "INCREMENT" },
+          "boundary_reason": {
+            "enum": ["INSTRUCTION_PRECEDENCE_CHANGED", "TOOL_SURFACE_CHANGED", "PLAN_BUILD_SURFACE_CHANGED", "PROMPT_CONTRACT_CHANGED", "COMPACTION_REBASE", "CONTEXT_REPAIR"]
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "lineage_action": { "const": "CREATE" } }, "required": ["lineage_action"] },
+      "then": {
+        "properties": {
+          "parent_prompt_generation_id": { "type": "null" },
+          "boundary_reason": { "const": "INITIAL" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "lineage_action": { "enum": ["CONTINUE", "ROTATE"] } }, "required": ["lineage_action"] },
+      "then": { "properties": { "parent_prompt_generation_id": { "$ref": "#/$defs/id" } } }
+    },
+    {
+      "if": {
+        "properties": {
+          "boundary_reason": {
+            "enum": ["INITIAL", "PROVIDER_CHANGED", "MODEL_CHANGED", "BASE_URL_OR_API_CHANGED", "TENANT_OR_SECURITY_EPOCH_CHANGED", "CACHE_NAMESPACE_CHANGED", "INSTRUCTION_PRECEDENCE_CHANGED", "TOOL_SURFACE_CHANGED", "PLAN_BUILD_SURFACE_CHANGED", "CONTEXT_REPAIR"]
+          }
+        },
+        "required": ["boundary_reason"]
+      },
+      "then": { "properties": { "boundary_policy": { "const": "IMMEDIATE_REQUIRED" } } }
+    },
+    {
+      "if": { "properties": { "boundary_policy": { "const": "STAGE_BOUNDARY_COALESCED" } }, "required": ["boundary_policy"] },
+      "then": {
+        "properties": {
+          "boundary_reason": { "const": "PROMPT_CONTRACT_CHANGED" },
+          "coalesced_change_count": { "type": "integer", "minimum": 2 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "boundary_policy": { "const": "NATURAL_COMPACTION" } }, "required": ["boundary_policy"] },
+      "then": { "properties": { "boundary_reason": { "const": "COMPACTION_REBASE" } } }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

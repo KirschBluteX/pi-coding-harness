@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/cache-observation.schema.json",
+  "title": "PCH provider prompt-cache observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "prompt_generation_id",
+    "prompt_request_id",
+    "epoch_id",
+    "request_sequence",
+    "provider_fingerprint_hmac_sha256",
+    "model_fingerprint_hmac_sha256",
+    "cache_lineage_hmac_sha256",
+    "prefix_generation",
+    "stable_contract_prefix_hmac_sha256",
+    "provider_prompt_reusable_prefix_hmac_sha256",
+    "fingerprint_method",
+    "transport_contract_sha256",
+    "state",
+    "eligibility",
+    "retention",
+    "usage_contract",
+    "usage",
+    "diagnostic_rates",
+    "miss_attribution",
+    "latency_ms",
+    "quality_gate",
+    "contains_prompt_content",
+    "recorded_at"
+  ],
+  "properties": {
+    "schema_version": { "const": 3 },
+    "observation_id": { "$ref": "#/$defs/id" },
+    "prompt_generation_id": { "$ref": "#/$defs/id" },
+    "prompt_request_id": { "$ref": "#/$defs/id" },
+    "epoch_id": { "$ref": "#/$defs/id" },
+    "request_sequence": { "type": "integer", "minimum": 0 },
+    "provider_fingerprint_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "model_fingerprint_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "cache_lineage_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "prefix_generation": { "type": "integer", "minimum": 1 },
+    "stable_contract_prefix_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "provider_prompt_reusable_prefix_hmac_sha256": {
+      "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+    },
+    "fingerprint_method": { "const": "HMAC_SHA256_INSTALL_SCOPED" },
+    "transport_contract_sha256": { "$ref": "#/$defs/sha256" },
+    "state": { "enum": ["INELIGIBLE", "COLD_START", "HIT", "MISS", "UNOBSERVABLE", "ERROR"] },
+    "eligibility": { "$ref": "#/$defs/eligibility" },
+    "retention": { "$ref": "#/$defs/retention" },
+    "usage_contract": { "$ref": "#/$defs/usageContract" },
+    "usage": { "$ref": "#/$defs/usage" },
+    "diagnostic_rates": { "$ref": "#/$defs/diagnosticRates" },
+    "miss_attribution": { "enum": ["NOT_APPLICABLE", "PROVIDER_EVICTION_OR_CAPACITY", "AFFINITY_OR_ROUTING", "PROVIDER_POLICY", "UNKNOWN"] },
+    "latency_ms": { "type": ["number", "null"], "minimum": 0 },
+    "quality_gate": { "enum": ["PASS", "FAIL", "NOT_EVALUATED"] },
+    "contains_prompt_content": { "const": false },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "state": { "const": "MISS" } }, "required": ["state"] },
+      "then": { "properties": { "miss_attribution": { "not": { "const": "NOT_APPLICABLE" } } } }
+    },
+    {
+      "if": { "properties": { "state": { "enum": ["INELIGIBLE", "COLD_START", "HIT", "UNOBSERVABLE", "ERROR"] } }, "required": ["state"] },
+      "then": { "properties": { "miss_attribution": { "const": "NOT_APPLICABLE" } } }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eligible", "reason", "append_only_verified", "total_input_tokens", "provider_prompt_lcp_tokens", "eligible_cacheable_prefix_tokens", "provider_minimum_tokens", "provider_granularity_tokens", "denominator_method"],
+      "properties": {
+        "eligible": { "type": "boolean" },
+        "reason": { "enum": ["SUPPORTED_WARM", "FIRST_GENERATION_REQUEST", "PROVIDER_UNSUPPORTED", "MODEL_UNSUPPORTED", "BELOW_MINIMUM", "REQUEST_TYPE", "TRANSPORT_RETRY", "PREFIX_CHANGED", "RETENTION_EXPIRED", "AFFINITY_UNPROVEN", "USAGE_UNPROVEN", "TRANSPORT_UNOBSERVABLE"] },
+        "append_only_verified": { "type": "boolean" },
+        "total_input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "provider_prompt_lcp_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "eligible_cacheable_prefix_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "provider_minimum_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "provider_granularity_tokens": { "type": ["integer", "null"], "minimum": 1 },
+        "denominator_method": { "enum": ["PROVIDER_PROMPT_SEQUENCE_LCP_QUANTIZED", "PROVIDER_DECLARED_EQUIVALENT", "UNOBSERVABLE"] }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_receipt_sha256", "mode", "verified_min_ttl_ms", "inter_request_gap_ms", "within_verified_window"],
+      "properties": {
+        "contract_receipt_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "mode": { "enum": ["UNKNOWN", "PROVIDER_EPHEMERAL", "VERIFIED_TTL", "VERIFIED_SESSION"] },
+        "verified_min_ttl_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "inter_request_gap_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "within_verified_window": { "type": ["boolean", "null"] }
+      }
+    },
+    "usageContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt_sha256", "total_input_definition", "cache_read_scope"],
+      "properties": {
+        "receipt_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "total_input_definition": { "enum": ["INCLUDES_CACHE_READ", "UNCACHED_PLUS_CACHE_READ_AND_WRITE", "UNKNOWN"] },
+        "cache_read_scope": { "enum": ["PROVIDER_PROMPT_REUSABLE_PREFIX", "UNKNOWN"] }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "observable", "uncached_input_tokens", "cache_read_tokens", "cache_write_tokens", "output_tokens", "reasoning_tokens"],
+      "properties": {
+        "source": { "enum": ["PROVIDER_USAGE", "PI_NORMALIZED_USAGE", "NONE"] },
+        "observable": { "type": "boolean" },
+        "uncached_input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "cache_read_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "cache_write_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "reasoning_tokens": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "diagnosticRates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pi_compatible_latest_hit_rate", "pi_formula", "warm_eligible_token_hit_rate"],
+      "properties": {
+        "pi_compatible_latest_hit_rate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "pi_formula": { "const": "CACHE_READ_OVER_UNCACHED_PLUS_READ_PLUS_WRITE" },
+        "warm_eligible_token_hit_rate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

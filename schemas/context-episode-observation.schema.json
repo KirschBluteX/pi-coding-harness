@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/context-episode-observation.schema.json",
+  "title": "PCH Input Context v1 episode observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "observation_id", "epoch_id", "subject", "prompt_request_id", "arm", "quality_gate", "acceptance_gate", "accounting_completeness", "provider_requests", "physical_attempts", "input_tokens", "output_tokens", "ordinary_reads", "context_batch_reads", "rereads", "follow_ups", "reopens", "rework_events", "wall_time_ms", "contains_prompt_content", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "observation_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "epoch_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "subject": { "$ref": "input-context-common.schema.json#/$defs/executionSubjectRef" },
+    "prompt_request_id": { "$ref": "input-context-common.schema.json#/$defs/nullableId" },
+    "arm": { "enum": ["BASELINE", "OBSERVE", "CANDIDATE"] },
+    "quality_gate": { "enum": ["PASS", "FAIL", "UNOBSERVABLE"] },
+    "acceptance_gate": { "enum": ["PASS", "FAIL", "UNOBSERVABLE"] },
+    "accounting_completeness": { "enum": ["COMPLETE", "PARTIAL", "UNOBSERVABLE"] },
+    "provider_requests": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "physical_attempts": { "type": ["integer", "null"], "minimum": 0, "maximum": 1000000 },
+    "input_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "output_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "ordinary_reads": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "context_batch_reads": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "rereads": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "follow_ups": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "reopens": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "rework_events": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "wall_time_ms": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+    "contains_prompt_content": { "const": false },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "schema_version": 3,
+  "contract_id": "PERF-DEMO-001",
+  "mode": "AUTO_GUARDED",
+  "activation_basis": "REQUIREMENT_ACCEPTANCE",
+  "opportunity_policy": "PROFILE_WHEN_JUSTIFIED",
+  "opportunity_admission": {
+    "allowed_sources": ["USER_REQUIREMENT", "OBSERVED_REGRESSION", "EXISTING_PROFILE", "STATIC_EVIDENCE", "REPRODUCIBLE_TOOL_EVIDENCE"],
+    "scan_scope": "FROZEN_INCLUDE_ONLY",
+    "require_measured_or_bounded_hotspot": true,
+    "minimum_hotspot_fraction": 0.05,
+    "minimum_theoretical_speedup_pct": 3,
+    "end_to_end_metric_required": true,
+    "unknown_action": "ADVICE_ONLY"
+  },
+  "project_scope": {
+    "include": ["src/runtime/**"],
+    "exclude": ["**/*.generated.*"],
+    "sensitive_path_policy": "EXCLUDE_UNLESS_EXPLICITLY_AUTHORIZED"
+  },
+  "workloads": [
+    {
+      "id": "WORKLOAD-DEMO-001",
+      "role": "PRIMARY",
+      "scenario": "Recover the next executable action after restart.",
+      "dataset_or_fixture": "A fixed 10k-event fixture database.",
+      "scale": "10000 events and 1000 receipts",
+      "temperature": "BOTH",
+      "provenance": "The recovery acceptance fixture and Phase 1 benchmark corpus.",
+      "representativeness": "Represents a long local PCH Goal restart; it does not represent remote or network filesystems.",
+      "acceptance_ids": ["AC-DEMO-001"]
+    },
+    {
+      "id": "WORKLOAD-DEMO-REGRESSION-001",
+      "role": "REGRESSION",
+      "scenario": "Recover a small Goal without duplicating completed work.",
+      "dataset_or_fixture": "A fixed 100-event regression fixture database.",
+      "scale": "100 events and 20 receipts",
+      "temperature": "BOTH",
+      "provenance": "The deterministic recovery regression fixture.",
+      "representativeness": "Protects the common small recovery path; it is not a throughput benchmark.",
+      "acceptance_ids": ["AC-DEMO-001"]
+    },
+    {
+      "id": "WORKLOAD-DEMO-HOLDOUT-001",
+      "role": "HOLDOUT",
+      "scenario": "Recover an unseen mixed-size Goal after restart.",
+      "dataset_or_fixture": "A frozen holdout fixture excluded from profiling and candidate selection.",
+      "scale": "2500 events and 250 receipts",
+      "temperature": "BOTH",
+      "provenance": "A separately generated deterministic recovery fixture frozen before the trial epoch.",
+      "representativeness": "Detects overfitting to the primary and small regression recovery corpora.",
+      "acceptance_ids": ["AC-DEMO-001"]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "METRIC-DEMO-001",
+      "role": "PRIMARY_GATE",
+      "name": "Recovery latency",
+      "unit": "ms",
+      "direction": "LOWER",
+      "aggregation": "P95",
+      "target": {
+        "kind": "BASELINE_NON_REGRESSION",
+        "value": null,
+        "relative_improvement_pct": null,
+        "tolerance": 0.05
+      },
+      "workload_ids": ["WORKLOAD-DEMO-001", "WORKLOAD-DEMO-REGRESSION-001", "WORKLOAD-DEMO-HOLDOUT-001"],
+      "measurement_protocol": "Run paired baseline and candidate epochs with the same runtime fingerprint."
+    }
+  ],
+  "correctness_acceptance_ids": ["AC-DEMO-001"],
+  "experiment_budget": {
+    "max_trials": 3,
+    "max_wall_time_ms": 300000,
+    "max_user_blocking_ms": 1000,
+    "allow_background": true
+  },
+  "trial_protocol": {
+    "min_pairs": 30,
+    "max_pairs": 100,
+    "order_policy": "RANDOMIZED_INTERLEAVED",
+    "warmup_policy": "PROJECT_NATIVE",
+    "confidence_method": "PAIRED_BOOTSTRAP",
+    "confidence_level": 0.95,
+    "confidence_bound_required": true,
+    "bootstrap_resamples": 5000,
+    "random_seed": 1729,
+    "minimum_practical_improvement_pct": 3,
+    "max_coefficient_of_variation": 0.15,
+    "stopping_rule": "FIXED_PAIRS",
+    "outlier_policy": "KEEP_AND_REPORT",
+    "environment_drift_action": "NEW_EPOCH",
+    "multiple_candidate_policy": "ONE_AT_A_TIME",
+    "candidate_family_size": 1,
+    "holdout_policy": "REQUIRED",
+    "holdout_justification": null,
+    "holdout_waiver_promotion": "USER_DECISION_ONLY",
+    "analysis_population": "ALL_PREDECLARED_VALID_PAIRS",
+    "pair_exclusion_policy": "PREDECLARED_ONLY",
+    "environment_fingerprint_fields": ["runtime", "operating_system", "cpu_and_power_mode", "dependency_lock", "dataset_hash"],
+    "automatic_benefit_horizon": {
+      "required": true,
+      "payback_metric_id": "METRIC-DEMO-001",
+      "max_payback_executions": 100,
+      "estimated_payback_executions": 40,
+      "basis": "Recovery is expected to recur across long-running Goals; otherwise retain the finding without automatic patching."
+    }
+  },
+  "regression_policy": {
+    "correctness_first": true,
+    "baseline_required_for_performance_affecting_stage": true,
+    "paired_benchmark_required_for_optimization": true,
+    "confidence_bound_required_for_promotion": true,
+    "max_relative_regression_pct": 5,
+    "noisy_result_action": "NEED_MORE_EVIDENCE"
+  },
+  "user_decision_id": null
+}

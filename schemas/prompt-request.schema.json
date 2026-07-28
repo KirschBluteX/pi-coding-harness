@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/prompt-request.schema.json",
+  "title": "PCH provider-visible PromptRequest projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "prompt_request_id",
+    "prompt_generation_id",
+    "previous_prompt_request_id",
+    "request_sequence",
+    "history_action",
+    "append_only_verification",
+    "logical_request_hmac_sha256",
+    "logical_reusable_prefix_hmac_sha256",
+    "provider_prompt_hmac_sha256",
+    "provider_prompt_reusable_prefix_hmac_sha256",
+    "provider_prompt_contract_sha256",
+    "provider_prompt_observability",
+    "reusable_prefix_method",
+    "token_counts",
+    "response_contract_id",
+    "directive_profile",
+    "contains_prompt_content",
+    "recorded_at"
+  ],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "prompt_request_id": { "$ref": "#/$defs/id" },
+    "prompt_generation_id": { "$ref": "#/$defs/id" },
+    "previous_prompt_request_id": {
+      "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+    },
+    "request_sequence": { "type": "integer", "minimum": 0 },
+    "history_action": { "enum": ["FIRST", "APPEND", "RETRY_EQUIVALENT"] },
+    "append_only_verification": { "enum": ["VERIFIED", "UNOBSERVABLE", "FAILED"] },
+    "logical_request_hmac_sha256": { "$ref": "#/$defs/sha256" },
+    "logical_reusable_prefix_hmac_sha256": {
+      "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+    },
+    "provider_prompt_hmac_sha256": {
+      "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+    },
+    "provider_prompt_reusable_prefix_hmac_sha256": {
+      "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+    },
+    "provider_prompt_contract_sha256": { "$ref": "#/$defs/sha256" },
+    "provider_prompt_observability": { "enum": ["EXACT_AFTER_HOOK", "PROVIDER_DECLARED", "UNOBSERVABLE"] },
+    "reusable_prefix_method": { "enum": ["EXACT_PROVIDER_PROMPT_SEQUENCE_LCP", "PROVIDER_DECLARED_EQUIVALENT", "UNOBSERVABLE"] },
+    "token_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total_input_tokens", "provider_prompt_tokens", "stable_contract_prefix_tokens", "provider_prompt_lcp_tokens", "dynamic_suffix_tokens", "response_directive_input_tokens", "tokenizer_source"],
+      "properties": {
+        "total_input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "provider_prompt_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "stable_contract_prefix_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "provider_prompt_lcp_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "dynamic_suffix_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "response_directive_input_tokens": { "type": "integer", "minimum": 0 },
+        "tokenizer_source": { "enum": ["PROVIDER", "PI_NORMALIZED", "LOCAL_ESTIMATE", "UNOBSERVABLE"] }
+      }
+    },
+    "response_contract_id": {
+      "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+    },
+    "directive_profile": { "enum": ["STABLE_POLICY_ONLY", "COMPACT_SUFFIX", "USER_FORMAT"] },
+    "contains_prompt_content": { "const": false },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "history_action": { "const": "FIRST" } }, "required": ["history_action"] },
+      "then": {
+        "properties": {
+          "previous_prompt_request_id": { "type": "null" },
+          "logical_reusable_prefix_hmac_sha256": { "type": "null" },
+          "provider_prompt_reusable_prefix_hmac_sha256": { "type": "null" },
+          "token_counts": { "type": "object", "properties": { "provider_prompt_lcp_tokens": { "type": ["integer", "null"], "maximum": 0 } } }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "history_action": { "enum": ["APPEND", "RETRY_EQUIVALENT"] } }, "required": ["history_action"] },
+      "then": { "properties": { "previous_prompt_request_id": { "$ref": "#/$defs/id" } } }
+    },
+    {
+      "if": { "properties": { "history_action": { "const": "RETRY_EQUIVALENT" } }, "required": ["history_action"] },
+      "then": { "properties": { "append_only_verification": { "const": "VERIFIED" } } }
+    },
+    {
+      "if": { "properties": { "append_only_verification": { "const": "VERIFIED" } }, "required": ["append_only_verification"] },
+      "then": {
+        "properties": {
+          "logical_reusable_prefix_hmac_sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "reusable_prefix_method": { "const": "EXACT_PROVIDER_PROMPT_SEQUENCE_LCP" } }, "required": ["reusable_prefix_method"] },
+      "then": {
+        "properties": {
+          "provider_prompt_observability": { "const": "EXACT_AFTER_HOOK" },
+          "provider_prompt_hmac_sha256": { "$ref": "#/$defs/sha256" },
+          "provider_prompt_reusable_prefix_hmac_sha256": { "$ref": "#/$defs/sha256" },
+          "token_counts": { "type": "object", "properties": { "tokenizer_source": { "not": { "const": "UNOBSERVABLE" } } } }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

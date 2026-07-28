@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/input-context-common.schema.json",
+  "title": "PCH Input Context v1 common contracts",
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "nullableId": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "nullableSha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "executionSubjectRef": { "$ref": "execution-subject-ref.schema.json" },
+    "nonNegativeInteger": { "type": "integer", "minimum": 0 },
+    "contextProfile": { "enum": ["PASS_THROUGH", "RETAINED_DELTA", "TARGETED_EVIDENCE", "STRUCTURAL_DISCOVERY", "RECOVERY"] },
+    "contextFitDisposition": { "enum": ["FIT", "FIT_WITH_ON_DEMAND", "BASELINE_FALLBACK", "RECOVERY_REQUIRED"] },
+    "sourceKind": { "enum": ["AUTHORITY", "FILE_RANGE", "QUERY", "TOOL_RESULT", "ARTIFACT", "MEMORY", "STRUCTURAL_MAP", "OUTPUT_DIRECTIVE"] },
+    "contentFreshness": { "enum": ["HASH_CURRENT", "CHANGE_WITNESS_CURRENT", "STALE", "UNKNOWN", "NOT_APPLICABLE"] },
+    "scopeAuthorization": { "enum": ["AUTHORIZED", "DENIED", "UNKNOWN"] },
+    "semanticApplicability": { "enum": ["CURRENT", "SUPERSEDED", "UNKNOWN", "NOT_APPLICABLE"] },
+    "representationFidelity": { "enum": ["EXACT_RAW", "EXACT_DECODED", "TYPED_EXTRACT", "LOSSY_EXCERPT", "OPAQUE", "UNKNOWN"] },
+    "classification": { "enum": ["PUBLIC", "INTERNAL", "SENSITIVE"] },
+    "boundedIds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "maxItems": 128,
+      "uniqueItems": true
+    },
+    "evidenceObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["obligation_id", "role", "confidence", "source_refs", "must_be_current", "must_be_exact", "authorization_scope_sha256", "semantic_scope_sha256"],
+      "properties": {
+        "obligation_id": { "$ref": "#/$defs/id" },
+        "role": { "enum": ["CONTROL", "NEXT_ACTION", "WRITE_TARGET", "VALIDATION", "FAILURE", "ACCEPTANCE", "DISCOVERY"] },
+        "confidence": { "enum": ["PROVEN_REQUIRED", "LIKELY_RELEVANT", "UNKNOWN_DISCOVERY"] },
+        "source_refs": { "type": "array", "items": { "$ref": "#/$defs/id" }, "maxItems": 64, "uniqueItems": true },
+        "must_be_current": { "type": "boolean" },
+        "must_be_exact": { "type": "boolean" },
+        "authorization_scope_sha256": { "$ref": "#/$defs/sha256" },
+        "semantic_scope_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "contextIrItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "obligation_ids", "evidence_sha256", "disposition", "reason_code", "ordinal_class", "content_identity_hmac", "retained_entry_id", "source_version_handle_hmac", "projected_tokens"],
+      "properties": {
+        "candidate_id": { "$ref": "#/$defs/id" },
+        "obligation_ids": { "$ref": "#/$defs/boundedIds" },
+        "evidence_sha256": { "$ref": "#/$defs/sha256" },
+        "disposition": { "enum": ["MANDATORY_INLINE", "ALREADY_RETAINED", "INLINE_EXACT", "INLINE_TYPED_EXTRACT", "ON_DEMAND", "REREAD_REQUIRED", "HISTORICAL_ONLY", "OMIT_CLOSED", "OMIT_UNAUTHORIZED", "OMIT_BUDGET_OPTIONAL"] },
+        "reason_code": { "type": "string", "minLength": 1, "maxLength": 96 },
+        "ordinal_class": { "enum": ["STABLE_POLICY", "CONTROL", "EVIDENCE", "DIRECTIVE"] },
+        "content_identity_hmac": { "$ref": "#/$defs/sha256" },
+        "retained_entry_id": { "$ref": "#/$defs/nullableId" },
+        "source_version_handle_hmac": { "$ref": "#/$defs/nullableSha256" },
+        "projected_tokens": { "type": "integer", "minimum": 0, "maximum": 10000000 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "disposition": { "const": "ALREADY_RETAINED" } }, "required": ["disposition"] },
+          "then": { "properties": { "retained_entry_id": { "$ref": "#/$defs/id" } } }
+        }
+      ]
+    },
+    "layoutEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["segment_type", "ordinal", "lifecycle", "source_binding_sha256", "semantic_version", "byte_length", "estimated_tokens", "content_identity_hmac", "predecessor_hmac", "contains_user_content"],
+      "properties": {
+        "segment_type": { "type": "string", "minLength": 1, "maxLength": 96 },
+        "ordinal": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "lifecycle": { "enum": ["LINEAGE_STABLE", "GENERATION_STABLE", "APPEND_ONLY_DELTA"] },
+        "source_binding_sha256": { "$ref": "#/$defs/sha256" },
+        "semantic_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" },
+        "byte_length": { "type": "integer", "minimum": 0, "maximum": 100000000 },
+        "estimated_tokens": { "type": "integer", "minimum": 0, "maximum": 10000000 },
+        "content_identity_hmac": { "$ref": "#/$defs/sha256" },
+        "predecessor_hmac": { "$ref": "#/$defs/nullableSha256" },
+        "contains_user_content": { "type": "boolean" }
+      }
+    },
+    "providerContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contribution_id", "owner", "input_surface", "output_surface", "segment_identity_hmac", "logical_bytes", "tokens", "evidence", "included", "duplicate_of"],
+      "properties": {
+        "contribution_id": { "$ref": "#/$defs/id" },
+        "owner": { "enum": ["PI", "INPUT_CONTEXT", "MEMORY", "OUTPUT", "COMPACTION", "USER", "PROVIDER"] },
+        "input_surface": {
+          "oneOf": [
+            { "enum": ["PI_BASE_SYSTEM", "PCH_STABLE_POLICY", "PCH_WORKFLOW_CONTROL", "PCH_PROTECTED_AUTHORITY", "PCH_MEMORY", "PCH_EVIDENCE", "PCH_TOOL_RESULT", "PCH_RESPONSE_DIRECTIVE", "PCH_RECOVERY_CAPSULE", "PI_NATIVE_COMPACTION_SUMMARY", "USER_HISTORY", "ASSISTANT_HISTORY", "TOOL_SCHEMAS", "PROVIDER_FRAMING", "UNATTRIBUTED_INPUT"] },
+            { "type": "null" }
+          ]
+        },
+        "output_surface": {
+          "oneOf": [
+            { "enum": ["ASSISTANT_TEXT", "TOOL_CALL_ARGUMENTS", "REASONING", "NATIVE_COMPACTION_SUMMARY", "CUSTOM_COMPACTION_SUMMARY", "UNATTRIBUTED_OUTPUT"] },
+            { "type": "null" }
+          ]
+        },
+        "segment_identity_hmac": { "$ref": "#/$defs/nullableSha256" },
+        "logical_bytes": { "type": ["integer", "null"], "minimum": 0, "maximum": 1000000000 },
+        "tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+        "evidence": { "enum": ["PROVIDER_REPORTED", "SERIALIZER_PROVEN", "TOKENIZER_PROVEN", "LOCAL_ESTIMATE", "UNOBSERVABLE"] },
+        "included": { "type": "boolean" },
+        "duplicate_of": { "$ref": "#/$defs/nullableId" }
+      },
+      "oneOf": [
+        { "properties": { "input_surface": { "not": { "type": "null" } }, "output_surface": { "type": "null" } } },
+        { "properties": { "input_surface": { "type": "null" }, "output_surface": { "not": { "type": "null" } } } }
+      ],
+      "allOf": [
+        {
+          "if": { "properties": { "duplicate_of": { "not": { "type": "null" } } }, "required": ["duplicate_of"] },
+          "then": { "properties": { "included": { "const": false } } }
+        },
+        {
+          "if": { "properties": { "evidence": { "const": "UNOBSERVABLE" } }, "required": ["evidence"] },
+          "then": { "properties": { "tokens": { "type": "null" } } }
+        }
+      ]
+    }
+  }
+}

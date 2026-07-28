@@ -1,0 +1,35 @@
+# Dependencies and build output
+/node_modules/
+/dist/
+/coverage/
+/.cache/
+*.tsbuildinfo
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+
+# Pi Coding Harness operational state
+/.coding-harness/
+*.sqlite
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+/artifacts/
+/telemetry/
+/reports/
+
+# Test and editor residue
+/.tmp/
+/tmp/
+*.log
+*.bak
+*.swp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

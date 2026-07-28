@@ -1,0 +1,69 @@
+{
+    "$schema":  "../schemas/cache-provider-evidence.schema.json",
+    "schema_version":  1,
+    "evidence_id":  "PCH-CACHE-EVIDENCE-GEEKSPACE-001",
+    "generated_at":  "2026-07-27T11:30:08.2918982+08:00",
+    "source":  {
+                   "kind":  "PREEXISTING_PI_SESSION_NORMALIZED_USAGE",
+                   "pi_version":  "0.82.1",
+                   "provider":  "geekspace",
+                   "api":  "openai-completions",
+                   "base_url":  "https://geekspace.cloud/v1",
+                   "content_retained":  false,
+                   "credentials_accessed":  false
+               },
+    "window":  {
+                   "policy":  "LATEST_PREEXISTING_PROVIDER_USAGE",
+                   "requested_samples":  200,
+                   "selected_samples":  200,
+                   "session_count":  11,
+                   "first_at":  "2026-07-21T06:53:46.3410000+00:00",
+                   "last_at":  "2026-07-26T13:58:51.2270000+00:00",
+                   "membership_sha256":  "c909bebc0ba0f2a2366c828882e280a0dad719ad305bb62a685a83f927f07fb6",
+                   "fixed_before_activation":  true
+               },
+    "usage":  {
+                  "positive_cache_read_samples":  138,
+                  "zero_cache_read_samples":  62,
+                  "uncached_input_tokens":  6208452,
+                  "cache_read_tokens":  20424704,
+                  "cache_write_tokens":  0,
+                  "effective_input_tokens":  26633156,
+                  "positive_provider_report_share":  0.69,
+                  "token_read_share":  0.76689011245982264
+              },
+    "models_observed":  [
+                            {
+                                "model":  "gpt-5.4",
+                                "samples":  1
+                            },
+                            {
+                                "model":  "gpt-5.5",
+                                "samples":  1
+                            },
+                            {
+                                "model":  "gpt-5.6-sol",
+                                "samples":  198
+                            }
+                        ],
+    "semantics":  {
+                      "positive_cache_read":  "PROVIDER_REPORTED_HIT",
+                      "zero_cache_read":  "UNOBSERVABLE",
+                      "pi_normalization":  "MISSING_CACHED_TOKENS_DEFAULTS_TO_ZERO",
+                      "request_hit_rate_claim":  "PROHIBITED"
+                  },
+    "decision":  {
+                     "result":  "ACTIVATE",
+                     "arm":  "C1_PREFIX",
+                     "provider_integration":  "geekspace-openai-completions-positive-usage-v1",
+                     "allow_payload_mutation":  false,
+                     "allow_live_canary":  false,
+                     "fallback":  "C0",
+                     "reason":  "The frozen pre-activation window contains 200 valid samples and 138 positive provider-reported Cache reads."
+                 },
+    "limitations":  [
+                        "Pi 0.82.1 maps an absent cached_tokens field to zero, so zero cannot prove a Cache miss.",
+                        "This evidence authorizes non-mutating C1 observation only; it does not authorize provider payload fields or headers.",
+                        "Positive provider-report share and token-read share are descriptive diagnostics, not a guaranteed future hit rate."
+                    ]
+}

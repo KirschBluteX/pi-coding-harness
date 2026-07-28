@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/user-function-release-gate.schema.json",
+  "title": "PCH user-function release gate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "gate_id", "expected_domain_count", "test_files", "domains"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "gate_id": { "type": "string", "minLength": 1 },
+    "expected_domain_count": { "const": 20 },
+    "test_files": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^tests/.*\\.test\\.ts$" }
+    },
+    "domains": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "assertions"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^UF-(START|EXEC|CTRL|EFF|TRUST)-[0-9]{2}$" },
+          "name": { "type": "string", "minLength": 1 },
+          "assertions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 8 }
+          }
+        }
+      }
+    }
+  }
+}

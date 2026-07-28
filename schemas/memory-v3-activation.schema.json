@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/memory-v3-activation.schema.json",
+  "title": "PCH Memory v3.1 experimental guarded-auto activation report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "report_type", "status", "verdict", "activation_level",
+    "capture_mode", "capture_epoch", "generated_at", "baseline_config_sha256",
+    "runtime", "inputs", "sources", "checks", "boundaries"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "report_type": { "const": "PCH_MEMORY_V31_ACTIVATION" },
+    "status": { "const": "PASS" },
+    "verdict": { "const": "ACTIVATE_GUARDED_AUTO" },
+    "activation_level": { "const": "EXPERIMENTAL" },
+    "capture_mode": { "const": "GUARDED_AUTO" },
+    "capture_epoch": { "const": "MEMORY-V3.1-GUARDED-AUTO-001" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "baseline_config_sha256": { "$ref": "#/$defs/sha256" },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pi_version", "node_version", "platform", "provider_model_dependency"],
+      "properties": {
+        "pi_version": { "type": "string", "minLength": 1 },
+        "node_version": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string", "minLength": 1 },
+        "provider_model_dependency": { "const": "NONE_FOR_DETERMINISTIC_CAPTURE; RECALL_REMAINS_SEPARATELY_FINGERPRINT_GATED" }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context_probe", "projection", "chinese", "trajectories",
+        "request_ledger", "contract", "performance", "recall_activation"
+      ],
+      "properties": {
+        "context_probe": { "$ref": "#/$defs/fileBinding" },
+        "projection": { "$ref": "#/$defs/fileBinding" },
+        "chinese": { "$ref": "#/$defs/fileBinding" },
+        "trajectories": { "$ref": "#/$defs/fileBinding" },
+        "request_ledger": { "$ref": "#/$defs/fileBinding" },
+        "contract": { "$ref": "#/$defs/fileBinding" },
+        "performance": { "$ref": "#/$defs/fileBinding" },
+        "recall_activation": { "$ref": "#/$defs/fileBinding" }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 47,
+      "maxItems": 47,
+      "items": { "$ref": "#/$defs/fileBinding" }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_guarded_auto_choice_recorded", "chinese_only_corpus_pass",
+        "grammar_60000_and_curated_2400_pass", "secret_10000_zero_persistable_pass",
+        "trajectory_600_pass", "active_false_capture_count_zero",
+        "additional_model_provider_requests_zero", "compact_projection_budget_pass",
+        "provider_context_non_persistent", "request_ledger_complete",
+        "contract_and_performance_pass", "recall_activation_epoch_pass",
+        "source_and_report_closure_current", "manual_capture_rollback_available",
+        "experimental_not_stable"
+      ],
+      "properties": {
+        "user_guarded_auto_choice_recorded": { "const": true },
+        "chinese_only_corpus_pass": { "const": true },
+        "grammar_60000_and_curated_2400_pass": { "const": true },
+        "secret_10000_zero_persistable_pass": { "const": true },
+        "trajectory_600_pass": { "const": true },
+        "active_false_capture_count_zero": { "const": true },
+        "additional_model_provider_requests_zero": { "const": true },
+        "compact_projection_budget_pass": { "const": true },
+        "provider_context_non_persistent": { "const": true },
+        "request_ledger_complete": { "const": true },
+        "contract_and_performance_pass": { "const": true },
+        "recall_activation_epoch_pass": { "const": true },
+        "source_and_report_closure_current": { "const": true },
+        "manual_capture_rollback_available": { "const": true },
+        "experimental_not_stable": { "const": true }
+      }
+    },
+    "boundaries": {
+      "type": "array",
+      "minItems": 4,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:|/|\\\\|.*(?:^|/)\\.\\.(?:/|$)).+$" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

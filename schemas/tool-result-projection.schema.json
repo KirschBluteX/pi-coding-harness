@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/tool-result-projection.schema.json",
+  "title": "PCH legacy tool-result capture record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "projection_id", "goal_id", "tool_call_id", "tool_result_receipt_id", "classification", "evidence_liveness", "source_bytes", "estimated_source_tokens", "strategy", "candidate_strategy", "application_status", "projected_tokens", "avoided_tokens", "artifact_id", "artifact_sha256", "retained_evidence_ids", "rehydration_policy", "readback_verified", "contains_secret", "quality_gate", "recorded_at"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "projection_id": { "$ref": "#/$defs/id" },
+    "goal_id": { "$ref": "#/$defs/id" },
+    "tool_call_id": { "$ref": "#/$defs/id" },
+    "tool_result_receipt_id": { "$ref": "#/$defs/id" },
+    "classification": { "enum": ["AUTHORITATIVE_REQUIRED", "REQUERYABLE", "BULK_EVIDENCE", "ERROR", "UNKNOWN"] },
+    "evidence_liveness": { "enum": ["LIVE", "CLOSED", "UNKNOWN"] },
+    "source_bytes": { "type": "integer", "minimum": 0 },
+    "estimated_source_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "strategy": { "const": "INLINE_FULL" },
+    "candidate_strategy": { "enum": ["INLINE_FULL", "INLINE_BOUNDED_WITH_CAS", "CAS_POINTER", "REQUERY_POINTER"] },
+    "application_status": { "const": "CAPTURE_ONLY" },
+    "projected_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "avoided_tokens": { "const": 0 },
+    "artifact_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "artifact_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "retained_evidence_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "rehydration_policy": { "const": "NOT_NEEDED" },
+    "readback_verified": { "type": "boolean" },
+    "contains_secret": { "const": false },
+    "quality_gate": { "enum": ["PASS", "FAIL", "NOT_EVALUATED"] },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [{
+    "if": { "properties": { "evidence_liveness": { "enum": ["LIVE", "UNKNOWN"] } }, "required": ["evidence_liveness"] },
+    "then": { "properties": { "candidate_strategy": { "not": { "const": "REQUERY_POINTER" } }, "retained_evidence_ids": { "type": "array", "minItems": 1 } } }
+  }],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

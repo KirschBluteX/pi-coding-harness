@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/context-envelope.schema.json",
+  "title": "PCH Input Context v1 ContextEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "envelope_id", "subject", "profile", "prompt_generation_id", "retained_root_sha256", "source_closure_root_sha256", "acceptance_closure_root_sha256", "mandatory_coverage_root_sha256", "context_demand_root_sha256", "items", "estimated_projected_tokens", "fit_disposition", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "envelope_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "subject": { "$ref": "input-context-common.schema.json#/$defs/executionSubjectRef" },
+    "profile": { "$ref": "input-context-common.schema.json#/$defs/contextProfile" },
+    "prompt_generation_id": { "$ref": "input-context-common.schema.json#/$defs/nullableId" },
+    "retained_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "source_closure_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "acceptance_closure_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "mandatory_coverage_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "context_demand_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "items": { "type": "array", "items": { "$ref": "input-context-common.schema.json#/$defs/contextIrItem" }, "maxItems": 4096 },
+    "estimated_projected_tokens": { "type": "integer", "minimum": 0, "maximum": 10000000 },
+    "fit_disposition": { "$ref": "input-context-common.schema.json#/$defs/contextFitDisposition" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  }
+}

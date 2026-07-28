@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/tool-surface-plan.schema.json",
+  "title": "PCH Input Context v1 tool-surface plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "tool_surface_plan_id", "context_envelope_sha256", "strategy", "user_tool_configuration_sha256", "active_tool_manifest_sha256", "deferred_tool_manifest_sha256", "capability_epoch_sha256", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "tool_surface_plan_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "context_envelope_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "strategy": { "enum": ["PRESERVE_USER_FULL", "PCH_CORE_DEFERRED", "ADDITIVE_TASK_DISCOVERY", "TASK_SCOPED_REPLACEMENT"] },
+    "user_tool_configuration_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "active_tool_manifest_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "deferred_tool_manifest_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "capability_epoch_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "strategy": { "const": "PRESERVE_USER_FULL" } }, "required": ["strategy"] },
+      "then": { "properties": { "deferred_tool_manifest_sha256": { "type": "null" } } }
+    }
+  ]
+}

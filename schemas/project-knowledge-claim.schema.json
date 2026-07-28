@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/project-knowledge-claim.schema.json",
+  "title": "PCH Input Context v1 project knowledge claim",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "claim_id", "manifest_id", "source_id", "subject", "semantic_key", "statement_sha256", "source_range_sha256", "evidence_sha256", "trust", "content_freshness", "scope_authorization", "semantic_applicability", "representation_fidelity", "authority_status", "frozen_goal_contract_sha256", "created_at_ms", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "claim_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "manifest_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "source_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "subject": { "$ref": "input-context-common.schema.json#/$defs/executionSubjectRef" },
+    "semantic_key": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "statement_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "source_range_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "evidence_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "trust": { "enum": ["AUTHORITY", "VERIFIED_EVIDENCE", "UNTRUSTED_CONTEXT"] },
+    "content_freshness": { "$ref": "input-context-common.schema.json#/$defs/contentFreshness" },
+    "scope_authorization": { "$ref": "input-context-common.schema.json#/$defs/scopeAuthorization" },
+    "semantic_applicability": { "$ref": "input-context-common.schema.json#/$defs/semanticApplicability" },
+    "representation_fidelity": { "$ref": "input-context-common.schema.json#/$defs/representationFidelity" },
+    "authority_status": { "enum": ["EVIDENCE_ONLY", "FROZEN_IN_GOAL_CONTRACT"] },
+    "frozen_goal_contract_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "created_at_ms": { "$ref": "input-context-common.schema.json#/$defs/nonNegativeInteger" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "authority_status": { "const": "EVIDENCE_ONLY" } } },
+      "then": { "properties": { "frozen_goal_contract_sha256": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "authority_status": { "const": "FROZEN_IN_GOAL_CONTRACT" } } },
+      "then": { "properties": { "frozen_goal_contract_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" } } }
+    }
+  ]
+}

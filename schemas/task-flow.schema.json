@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/task-flow.schema.json",
+  "title": "Pi Coding Harness Task Flow records",
+  "oneOf": [
+    { "$ref": "#/$defs/goalContract" },
+    { "$ref": "#/$defs/routeSkeleton" },
+    { "$ref": "#/$defs/workspaceBaseline" },
+    { "$ref": "#/$defs/executionAuthorization" },
+    { "$ref": "#/$defs/operationAttempt" },
+    { "$ref": "#/$defs/operationReconcileLocator" },
+    { "$ref": "#/$defs/operationTransition" },
+    { "$ref": "#/$defs/evidenceAttestation" },
+    { "$ref": "#/$defs/routeHealth" },
+    { "$ref": "#/$defs/taskDecisionEntry" },
+    { "$ref": "#/$defs/deliverableManifest" }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9_:-]{0,159}$" },
+    "sha": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "authorizationCeiling": { "enum": ["READ_ONLY", "LOCAL_REVERSIBLE", "EXTERNAL_IDEMPOTENT", "IRREVERSIBLE_REQUIRES_USER"] },
+    "obligation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["obligation_id", "contract_id", "goal_id", "semantic_key", "priority", "statement", "oracle", "dependencies", "ordinal", "record_sha256"],
+      "properties": {
+        "obligation_id": { "$ref": "#/$defs/id" }, "contract_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" },
+        "semantic_key": { "type": "string", "minLength": 1, "maxLength": 160 }, "priority": { "enum": ["MUST", "SHOULD", "MAY"] },
+        "statement": { "type": "string", "minLength": 1, "maxLength": 32768 }, "oracle": { "type": "object" },
+        "dependencies": { "type": "array", "maxItems": 4096, "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
+        "ordinal": { "type": "integer", "minimum": 0, "maximum": 4095 }, "record_sha256": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "goalContract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "contract_id", "goal_id", "version", "parent_contract_id", "intent", "lane", "objective", "user_outcomes", "scope", "non_goals", "constraints", "assumption_refs", "decision_refs", "obligations", "acceptance_policy", "authorization_ceiling", "source_intake_sha256", "created_at_ms", "record_sha256"],
+      "properties": {
+        "schema_version": { "const": 1 }, "contract_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" },
+        "version": { "type": "integer", "minimum": 1 }, "parent_contract_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+        "intent": { "enum": ["PLAN", "BUILD"] }, "lane": { "enum": ["DIRECT_CELL", "ADAPTIVE_ROUTE"] },
+        "objective": { "type": "string", "minLength": 1, "maxLength": 32768 },
+        "user_outcomes": { "$ref": "#/$defs/textArray" }, "scope": { "$ref": "#/$defs/textArray" }, "non_goals": { "$ref": "#/$defs/textArray" },
+        "constraints": { "$ref": "#/$defs/textArray" }, "assumption_refs": { "$ref": "#/$defs/textArray" }, "decision_refs": { "$ref": "#/$defs/textArray" },
+        "obligations": { "type": "array", "minItems": 1, "maxItems": 4096, "items": { "$ref": "#/$defs/obligation" } },
+        "acceptance_policy": { "type": "object" }, "authorization_ceiling": { "$ref": "#/$defs/authorizationCeiling" },
+        "source_intake_sha256": { "$ref": "#/$defs/sha" }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "textArray": { "type": "array", "maxItems": 4096, "items": { "type": "string", "minLength": 1, "maxLength": 4096 } },
+    "workCell": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "work_cell_id", "goal_id", "contract_id", "route_id", "logical_key", "ordinal", "horizon", "outcome", "obligation_ids", "dependencies", "read_roots", "write_roots", "effect_classes", "oracle", "risk", "reversible", "budget", "spec_sha256"],
+      "properties": {
+        "schema_version": { "const": 1 }, "work_cell_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "contract_id": { "$ref": "#/$defs/id" }, "route_id": { "$ref": "#/$defs/id" },
+        "logical_key": { "type": "string", "minLength": 1, "maxLength": 160 }, "ordinal": { "type": "integer", "minimum": 0, "maximum": 4095 },
+        "horizon": { "enum": ["CURRENT", "NEAR", "LATER"] }, "outcome": { "type": "string", "minLength": 1, "maxLength": 32768 },
+        "obligation_ids": { "$ref": "#/$defs/idArray" }, "dependencies": { "$ref": "#/$defs/idArray" }, "read_roots": { "$ref": "#/$defs/textArray" }, "write_roots": { "$ref": "#/$defs/textArray" },
+        "effect_classes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/authorizationCeiling" }, "uniqueItems": true },
+        "oracle": { "type": "object" }, "risk": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] }, "reversible": { "type": "boolean" }, "budget": { "type": "object" }, "spec_sha256": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "idArray": { "type": "array", "maxItems": 4096, "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
+    "routeSkeleton": { "oneOf": [{ "$ref": "#/$defs/routeSkeletonV1" }, { "$ref": "#/$defs/routeSkeletonV2" }] },
+    "routeSkeletonV1": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "route_id", "goal_id", "contract_id", "revision", "parent_route_id", "lane", "outcomes", "assumptions", "risks", "alternatives", "acceptance_coverage", "work_cells", "near_horizon", "created_at_ms", "record_sha256"],
+      "properties": {
+        "schema_version": { "const": 1 }, "route_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "contract_id": { "$ref": "#/$defs/id" },
+        "revision": { "type": "integer", "minimum": 1 }, "parent_route_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "lane": { "enum": ["DIRECT_CELL", "ADAPTIVE_ROUTE"] },
+        "outcomes": { "$ref": "#/$defs/textArray" }, "assumptions": { "type": "array", "maxItems": 4096, "items": { "type": "object" } }, "risks": { "type": "array", "maxItems": 4096, "items": { "type": "object" } }, "alternatives": { "type": "array", "maxItems": 4096, "items": { "type": "object" } },
+        "acceptance_coverage": { "type": "object", "additionalProperties": { "$ref": "#/$defs/idArray" } },
+        "work_cells": { "type": "array", "minItems": 1, "maxItems": 4096, "items": { "$ref": "#/$defs/workCell" } }, "near_horizon": { "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
+        "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "routeQualification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "qualification_id", "goal_id", "contract_id", "contract_sha256", "proposal_sha256", "admission_lane_hint", "requested_lane", "selected_lane", "bounded_scope", "oracle_known", "reversible", "material_decision_open", "migration_or_external_effect", "evidence_refs", "reason_codes", "created_at_ms", "record_sha256"],
+      "properties": {
+        "schema_version": { "const": 1 }, "qualification_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "contract_id": { "$ref": "#/$defs/id" },
+        "contract_sha256": { "$ref": "#/$defs/sha" }, "proposal_sha256": { "$ref": "#/$defs/sha" },
+        "admission_lane_hint": { "enum": ["DIRECT_CELL", "ADAPTIVE_ROUTE"] }, "requested_lane": { "enum": ["DIRECT_CELL", "ADAPTIVE_ROUTE"] }, "selected_lane": { "enum": ["DIRECT_CELL", "ADAPTIVE_ROUTE"] },
+        "bounded_scope": { "type": "boolean" }, "oracle_known": { "type": "boolean" }, "reversible": { "type": "boolean" }, "material_decision_open": { "type": "boolean" }, "migration_or_external_effect": { "type": "boolean" },
+        "evidence_refs": { "$ref": "#/$defs/textArray" }, "reason_codes": { "$ref": "#/$defs/textArray" }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "routeAssumption": {
+      "type": "object", "additionalProperties": false,
+      "required": ["assumption_id", "key", "statement", "evidence_refs", "status", "record_sha256"],
+      "properties": { "assumption_id": { "$ref": "#/$defs/id" }, "key": { "type": "string", "minLength": 1, "maxLength": 160 }, "statement": { "type": "string", "minLength": 1, "maxLength": 32768 }, "evidence_refs": { "$ref": "#/$defs/textArray" }, "status": { "enum": ["SUPPORTED", "OPEN", "INVALIDATED"] }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "routeRisk": {
+      "type": "object", "additionalProperties": false,
+      "required": ["risk_id", "key", "statement", "likelihood", "impact", "mitigation", "evidence_refs", "record_sha256"],
+      "properties": { "risk_id": { "$ref": "#/$defs/id" }, "key": { "type": "string", "minLength": 1, "maxLength": 160 }, "statement": { "type": "string", "minLength": 1, "maxLength": 32768 }, "likelihood": { "enum": ["LOW", "MEDIUM", "HIGH"] }, "impact": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] }, "mitigation": { "type": "string", "minLength": 1, "maxLength": 32768 }, "evidence_refs": { "$ref": "#/$defs/textArray" }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "routeAlternative": {
+      "type": "object", "additionalProperties": false,
+      "required": ["alternative_id", "key", "summary", "disposition", "reason", "evidence_refs", "record_sha256"],
+      "properties": { "alternative_id": { "$ref": "#/$defs/id" }, "key": { "type": "string", "minLength": 1, "maxLength": 160 }, "summary": { "type": "string", "minLength": 1, "maxLength": 32768 }, "disposition": { "enum": ["SELECTED", "RESERVE", "REJECTED"] }, "reason": { "type": "string", "minLength": 1, "maxLength": 32768 }, "evidence_refs": { "$ref": "#/$defs/textArray" }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "deferredOutcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deferred_outcome_id", "key", "outcome", "obligation_ids", "dependencies", "expansion_trigger", "commitment", "evidence_refs", "record_sha256"],
+      "properties": { "deferred_outcome_id": { "$ref": "#/$defs/id" }, "key": { "type": "string", "minLength": 1, "maxLength": 160 }, "outcome": { "type": "string", "minLength": 1, "maxLength": 32768 }, "obligation_ids": { "$ref": "#/$defs/idArray" }, "dependencies": { "$ref": "#/$defs/idArray" }, "expansion_trigger": { "enum": ["WORK_CELL_CLOSED", "EVIDENCE_CHANGED", "DECISION_RESOLVED"] }, "commitment": { "enum": ["REVERSIBLE", "EXPENSIVE_TO_REVERSE", "USER_AUTHORITY_REQUIRED"] }, "evidence_refs": { "$ref": "#/$defs/textArray" }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "routeSkeletonV2": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "route_id", "goal_id", "contract_id", "revision", "parent_route_id", "lane", "outcomes", "assumptions", "risks", "alternatives", "acceptance_coverage", "work_cells", "near_horizon", "qualification", "deferred_outcomes", "created_at_ms", "record_sha256"],
+      "properties": {
+        "schema_version": { "const": 2 }, "route_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "contract_id": { "$ref": "#/$defs/id" },
+        "revision": { "type": "integer", "minimum": 1 }, "parent_route_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "lane": { "enum": ["DIRECT_CELL", "ADAPTIVE_ROUTE"] },
+        "outcomes": { "$ref": "#/$defs/textArray" }, "assumptions": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/routeAssumption" } }, "risks": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/routeRisk" } }, "alternatives": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/routeAlternative" } },
+        "acceptance_coverage": { "type": "object", "additionalProperties": { "$ref": "#/$defs/idArray" } },
+        "work_cells": { "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/$defs/workCell" } }, "near_horizon": { "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
+        "qualification": { "$ref": "#/$defs/routeQualification" }, "deferred_outcomes": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/deferredOutcome" } },
+        "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "workspaceBaseline": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "baseline_id", "workspace_id", "goal_id", "filesystem_identity_hmac", "content_root_sha256", "environment_sha256", "oracle_set_sha256", "scope_manifest", "created_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "baseline_id": { "$ref": "#/$defs/id" }, "workspace_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "filesystem_identity_hmac": { "$ref": "#/$defs/sha" }, "content_root_sha256": { "$ref": "#/$defs/sha" }, "environment_sha256": { "$ref": "#/$defs/sha" }, "oracle_set_sha256": { "$ref": "#/$defs/sha" }, "scope_manifest": { "type": "array", "maxItems": 4096, "items": { "type": "object" } }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "executionAuthorization": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "authorization_id", "goal_id", "contract_id", "route_id", "work_cell_id", "baseline_id", "lease_generation", "fencing_token", "effect_ceiling", "decision_closure_sha256", "allowed_scope_sha256", "expires_at_ms", "created_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "authorization_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "contract_id": { "$ref": "#/$defs/id" }, "route_id": { "$ref": "#/$defs/id" }, "work_cell_id": { "$ref": "#/$defs/id" }, "baseline_id": { "$ref": "#/$defs/id" }, "lease_generation": { "type": "integer", "minimum": 1 }, "fencing_token": { "type": "integer", "minimum": 1 }, "effect_ceiling": { "$ref": "#/$defs/authorizationCeiling" }, "decision_closure_sha256": { "$ref": "#/$defs/sha" }, "allowed_scope_sha256": { "$ref": "#/$defs/sha" }, "expires_at_ms": { "type": "integer", "minimum": 0 }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "operationAttempt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "attempt_id", "operation_id", "goal_id", "work_cell_id", "authorization_id", "attempt_number", "operation_kind", "normalized_target_hmac", "normalized_payload_sha256", "execution_fingerprint_sha256", "baseline_sha256", "environment_sha256", "oracle_sha256", "idempotency_key_hmac", "created_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "attempt_id": { "$ref": "#/$defs/id" }, "operation_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "work_cell_id": { "$ref": "#/$defs/id" }, "authorization_id": { "$ref": "#/$defs/id" }, "attempt_number": { "type": "integer", "minimum": 1 }, "operation_kind": { "enum": ["READ", "WRITE", "EDIT", "DELETE", "MOVE", "COMMAND", "VALIDATION", "EXTERNAL"] }, "normalized_target_hmac": { "$ref": "#/$defs/sha" }, "normalized_payload_sha256": { "$ref": "#/$defs/sha" }, "execution_fingerprint_sha256": { "$ref": "#/$defs/sha" }, "baseline_sha256": { "$ref": "#/$defs/sha" }, "environment_sha256": { "$ref": "#/$defs/sha" }, "oracle_sha256": { "$ref": "#/$defs/sha" }, "idempotency_key_hmac": { "$ref": "#/$defs/sha" }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "operationReconcileLocator": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "locator_id", "attempt_id", "goal_id", "target_relative", "preimage_sha256", "expected_postimage_sha256", "created_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "locator_id": { "$ref": "#/$defs/id" }, "attempt_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "target_relative": { "type": "string", "minLength": 1, "maxLength": 4096, "pattern": "^(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$" }, "preimage_sha256": { "$ref": "#/$defs/sha" }, "expected_postimage_sha256": { "$ref": "#/$defs/nullableSha" }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "operationTransition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "transition_id", "attempt_id", "ordinal", "state", "output_sha256", "readback_sha256", "failure_signature_sha256", "postcondition", "predecessor_sha256", "created_at_ms", "transition_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "transition_id": { "$ref": "#/$defs/id" }, "attempt_id": { "$ref": "#/$defs/id" }, "ordinal": { "type": "integer", "minimum": 0, "maximum": 32 }, "state": { "enum": ["PREPARED", "DISPATCHED", "OBSERVED", "COMMITTED", "FAILED", "OUTCOME_UNKNOWN", "RECONCILED"] }, "output_sha256": { "$ref": "#/$defs/nullableSha" }, "readback_sha256": { "$ref": "#/$defs/nullableSha" }, "failure_signature_sha256": { "$ref": "#/$defs/nullableSha" }, "postcondition": { "enum": ["PASS", "FAIL", "UNKNOWN", "NOT_APPLICABLE"] }, "predecessor_sha256": { "$ref": "#/$defs/nullableSha" }, "created_at_ms": { "type": "integer", "minimum": 0 }, "transition_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "nullableSha": { "oneOf": [{ "$ref": "#/$defs/sha" }, { "type": "null" }] },
+    "evidenceAttestation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "attestation_id", "goal_id", "work_cell_id", "operation_id", "obligation_id", "oracle_sha256", "input_closure_sha256", "output_sha256", "baseline_sha256", "environment_sha256", "result", "freshness", "postcondition", "artifact_id", "created_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "attestation_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "work_cell_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "operation_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "obligation_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "oracle_sha256": { "$ref": "#/$defs/sha" }, "input_closure_sha256": { "$ref": "#/$defs/sha" }, "output_sha256": { "$ref": "#/$defs/sha" }, "baseline_sha256": { "$ref": "#/$defs/sha" }, "environment_sha256": { "$ref": "#/$defs/sha" }, "result": { "enum": ["PASS", "FAIL", "UNKNOWN"] }, "freshness": { "enum": ["CURRENT", "STALE", "UNKNOWN"] }, "postcondition": { "enum": ["PASS", "FAIL", "UNKNOWN", "NOT_APPLICABLE"] }, "artifact_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "routeHealth": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "health_id", "goal_id", "route_id", "work_cell_id", "trigger_sha256", "failure_signature_sha256", "occurrence", "level", "reason_code", "selected_route_id", "created_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "health_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "route_id": { "$ref": "#/$defs/id" }, "work_cell_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "trigger_sha256": { "$ref": "#/$defs/sha" }, "failure_signature_sha256": { "$ref": "#/$defs/nullableSha" }, "occurrence": { "type": "integer", "minimum": 0 }, "level": { "enum": ["H0_CONTINUE", "H1_RETRY", "H2_REPAIR", "H3_REFRAME", "H4_ASK", "H5_RECONCILE_OR_STOP"] }, "reason_code": { "type": "string", "minLength": 1, "maxLength": 160 }, "selected_route_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "taskDecisionEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "decision_entry_id", "goal_id", "contract_id", "route_id", "decision_key", "authority_actor", "materiality", "reversible", "privacy_related", "question_hmac", "recommendation", "selection", "state", "binding_sha256", "created_at_ms", "expires_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "decision_entry_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "contract_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "route_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "decision_key": { "type": "string", "minLength": 1, "maxLength": 160 }, "authority_actor": { "enum": ["USER", "RUNTIME"] }, "materiality": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] }, "reversible": { "type": "boolean" }, "privacy_related": { "type": "boolean" }, "question_hmac": { "$ref": "#/$defs/sha" }, "recommendation": { "type": "object" }, "selection": { "oneOf": [{ "type": "object" }, { "type": "null" }] }, "state": { "enum": ["OPEN", "RESOLVED", "EXPIRED", "CANCELED", "SUPERSEDED"] }, "binding_sha256": { "$ref": "#/$defs/sha" }, "created_at_ms": { "type": "integer", "minimum": 0 }, "expires_at_ms": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    },
+    "deliverableManifest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "deliverable_id", "goal_id", "contract_id", "route_id", "final_baseline_id", "obligation_closure_sha256", "evidence_root_sha256", "artifacts", "result", "created_at_ms", "record_sha256"],
+      "properties": { "schema_version": { "const": 1 }, "deliverable_id": { "$ref": "#/$defs/id" }, "goal_id": { "$ref": "#/$defs/id" }, "contract_id": { "$ref": "#/$defs/id" }, "route_id": { "$ref": "#/$defs/id" }, "final_baseline_id": { "$ref": "#/$defs/id" }, "obligation_closure_sha256": { "$ref": "#/$defs/sha" }, "evidence_root_sha256": { "$ref": "#/$defs/sha" }, "artifacts": { "type": "array", "maxItems": 4096, "items": { "type": "object" } }, "result": { "enum": ["SUCCEEDED", "FAILED", "CANCELED"] }, "created_at_ms": { "type": "integer", "minimum": 0 }, "record_sha256": { "$ref": "#/$defs/sha" } }
+    }
+  }
+}

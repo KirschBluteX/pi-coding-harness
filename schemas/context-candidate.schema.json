@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/context-candidate.schema.json",
+  "title": "PCH Input Context v1 ContextCandidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_id", "source_kind", "content_freshness", "scope_authorization", "semantic_applicability", "representation_fidelity", "trust", "obligation_ids", "evidence_sha256", "dependency_signature_sha256", "artifact_locator", "estimated_tokens", "classification", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "candidate_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "source_kind": { "$ref": "input-context-common.schema.json#/$defs/sourceKind" },
+    "content_freshness": { "$ref": "input-context-common.schema.json#/$defs/contentFreshness" },
+    "scope_authorization": { "$ref": "input-context-common.schema.json#/$defs/scopeAuthorization" },
+    "semantic_applicability": { "$ref": "input-context-common.schema.json#/$defs/semanticApplicability" },
+    "representation_fidelity": { "$ref": "input-context-common.schema.json#/$defs/representationFidelity" },
+    "trust": { "enum": ["AUTHORITY", "VERIFIED_EVIDENCE", "UNTRUSTED_CONTEXT"] },
+    "obligation_ids": { "$ref": "input-context-common.schema.json#/$defs/boundedIds" },
+    "evidence_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "dependency_signature_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "artifact_locator": { "type": ["string", "null"], "minLength": 1, "maxLength": 512, "pattern": "^(?![A-Za-z]:[\\\\/])(?!\\\\\\\\)(?!/).*$" },
+    "estimated_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 10000000 },
+    "classification": { "$ref": "input-context-common.schema.json#/$defs/classification" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  }
+}

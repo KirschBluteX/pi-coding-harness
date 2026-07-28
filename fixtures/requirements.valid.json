@@ -1,0 +1,190 @@
+{
+  "$schema": "../schemas/requirements.schema.json",
+  "schema_version": 1,
+  "package": {
+    "requirement_id": "REQ-DEMO-001",
+    "goal_id": "GOAL-DEMO-001",
+    "goal_version": 1,
+    "revision": 1,
+    "parent_requirement_id": null,
+    "profile": "PRD",
+    "status": "FROZEN",
+    "created_at": "2026-07-21T12:00:00Z",
+    "source_intake_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "requirements": {
+    "problem": "A durable goal must survive long execution and compaction.",
+    "target_users": ["Pi coding-agent user"],
+    "desired_outcomes": [
+      { "id": "OUT-DEMO-001", "statement": "Recover the exact next action.", "measure": "Protected-state diff equals zero." }
+    ],
+    "scope": ["Single-agent staged execution"],
+    "non_goals": ["Subagent orchestration"],
+    "functional_requirements": [
+      { "id": "FR-DEMO-001", "statement": "Persist the current goal and stage.", "priority": "MUST", "rationale": "Recovery needs durable truth.", "acceptance_ids": ["AC-DEMO-001"] }
+    ],
+    "quality_requirements": [
+      {
+        "id": "QR-DEMO-001",
+        "class": "RELIABILITY",
+        "statement": "Do not repeat a completed WorkItem.",
+        "threshold": {
+          "metric": "duplicate_work_items",
+          "operator": "EQ",
+          "target": 0,
+          "unit": "count",
+          "aggregation": "COUNT",
+          "tolerance": 0,
+          "evidence_method": "Restart integration report"
+        },
+        "acceptance_ids": ["AC-DEMO-001"]
+      }
+    ],
+    "user_flows": [
+      { "id": "FLOW-DEMO-001", "actor": "User", "trigger": "Submit a task", "steps": ["Freeze requirements", "Freeze plan", "Build"], "success": "Acceptance receipts close the goal.", "failure_paths": ["Ask for a material decision"] }
+    ],
+    "constraints": [
+      { "id": "CON-DEMO-001", "statement": "Use one Agent.", "source": "user", "hard": true }
+    ],
+    "assumptions": [
+      { "id": "ASM-DEMO-001", "statement": "SQLite WAL is available locally.", "impact": "HIGH", "status": "SUPPORTED", "verification": "Runtime capability probe" }
+    ],
+    "open_decisions": [],
+    "acceptance_criteria": [
+      { "id": "AC-DEMO-001", "statement": "Restart restores the exact protected state without duplicate work.", "evidence": "Restart integration report", "required": true }
+    ],
+    "performance_contract": {
+      "schema_version": 3,
+      "contract_id": "PERF-DEMO-001",
+      "mode": "AUTO_GUARDED",
+      "activation_basis": "REQUIREMENT_ACCEPTANCE",
+      "opportunity_policy": "PROFILE_WHEN_JUSTIFIED",
+      "opportunity_admission": {
+        "allowed_sources": ["USER_REQUIREMENT", "OBSERVED_REGRESSION", "EXISTING_PROFILE", "STATIC_EVIDENCE", "REPRODUCIBLE_TOOL_EVIDENCE"],
+        "scan_scope": "FROZEN_INCLUDE_ONLY",
+        "require_measured_or_bounded_hotspot": true,
+        "minimum_hotspot_fraction": 0.05,
+        "minimum_theoretical_speedup_pct": 3,
+        "end_to_end_metric_required": true,
+        "unknown_action": "ADVICE_ONLY"
+      },
+      "project_scope": {
+        "include": ["src/runtime/**"],
+        "exclude": ["**/*.generated.*"],
+        "sensitive_path_policy": "EXCLUDE_UNLESS_EXPLICITLY_AUTHORIZED"
+      },
+      "workloads": [
+        {
+          "id": "WORKLOAD-DEMO-001",
+          "role": "PRIMARY",
+          "scenario": "Recover the next executable action after restart.",
+          "dataset_or_fixture": "A fixed 10k-event fixture database.",
+          "scale": "10000 events and 1000 receipts",
+          "temperature": "BOTH",
+          "provenance": "The recovery acceptance fixture and Phase 1 benchmark corpus.",
+          "representativeness": "Represents a long local PCH Goal restart; it does not represent remote or network filesystems.",
+          "acceptance_ids": ["AC-DEMO-001"]
+        },
+        {
+          "id": "WORKLOAD-DEMO-REGRESSION-001",
+          "role": "REGRESSION",
+          "scenario": "Recover a small Goal without duplicating completed work.",
+          "dataset_or_fixture": "A fixed 100-event regression fixture database.",
+          "scale": "100 events and 20 receipts",
+          "temperature": "BOTH",
+          "provenance": "The deterministic recovery regression fixture.",
+          "representativeness": "Protects the common small recovery path; it is not a throughput benchmark.",
+          "acceptance_ids": ["AC-DEMO-001"]
+        },
+        {
+          "id": "WORKLOAD-DEMO-HOLDOUT-001",
+          "role": "HOLDOUT",
+          "scenario": "Recover an unseen mixed-size Goal after restart.",
+          "dataset_or_fixture": "A frozen holdout fixture excluded from profiling and candidate selection.",
+          "scale": "2500 events and 250 receipts",
+          "temperature": "BOTH",
+          "provenance": "A separately generated deterministic recovery fixture frozen before the trial epoch.",
+          "representativeness": "Detects overfitting to the primary and small regression recovery corpora.",
+          "acceptance_ids": ["AC-DEMO-001"]
+        }
+      ],
+      "metrics": [
+        {
+          "id": "METRIC-DEMO-001",
+          "role": "PRIMARY_GATE",
+          "name": "Recovery latency",
+          "unit": "ms",
+          "direction": "LOWER",
+          "aggregation": "P95",
+          "target": {
+            "kind": "BASELINE_NON_REGRESSION",
+            "value": null,
+            "relative_improvement_pct": null,
+            "tolerance": 0.05
+          },
+          "workload_ids": ["WORKLOAD-DEMO-001", "WORKLOAD-DEMO-REGRESSION-001", "WORKLOAD-DEMO-HOLDOUT-001"],
+          "measurement_protocol": "Run paired baseline and candidate epochs with the same runtime fingerprint."
+        }
+      ],
+      "correctness_acceptance_ids": ["AC-DEMO-001"],
+      "experiment_budget": {
+        "max_trials": 3,
+        "max_wall_time_ms": 300000,
+        "max_user_blocking_ms": 1000,
+        "allow_background": true
+      },
+      "trial_protocol": {
+        "min_pairs": 30,
+        "max_pairs": 100,
+        "order_policy": "RANDOMIZED_INTERLEAVED",
+        "warmup_policy": "PROJECT_NATIVE",
+        "confidence_method": "PAIRED_BOOTSTRAP",
+        "confidence_level": 0.95,
+        "confidence_bound_required": true,
+        "bootstrap_resamples": 5000,
+        "random_seed": 1729,
+        "minimum_practical_improvement_pct": 3,
+        "max_coefficient_of_variation": 0.15,
+        "stopping_rule": "FIXED_PAIRS",
+        "outlier_policy": "KEEP_AND_REPORT",
+        "environment_drift_action": "NEW_EPOCH",
+        "multiple_candidate_policy": "ONE_AT_A_TIME",
+        "candidate_family_size": 1,
+        "holdout_policy": "REQUIRED",
+        "holdout_justification": null,
+        "holdout_waiver_promotion": "USER_DECISION_ONLY",
+        "analysis_population": "ALL_PREDECLARED_VALID_PAIRS",
+        "pair_exclusion_policy": "PREDECLARED_ONLY",
+        "environment_fingerprint_fields": ["runtime", "operating_system", "cpu_and_power_mode", "dependency_lock", "dataset_hash"],
+        "automatic_benefit_horizon": {
+          "required": true,
+          "payback_metric_id": "METRIC-DEMO-001",
+          "max_payback_executions": 100,
+          "estimated_payback_executions": 40,
+          "basis": "Recovery is expected to recur across long-running Goals; otherwise retain the finding without automatic patching."
+        }
+      },
+      "regression_policy": {
+        "correctness_first": true,
+        "baseline_required_for_performance_affecting_stage": true,
+        "paired_benchmark_required_for_optimization": true,
+        "confidence_bound_required_for_promotion": true,
+        "max_relative_regression_pct": 5,
+        "noisy_result_action": "NEED_MORE_EVIDENCE"
+      },
+      "user_decision_id": null
+    },
+    "response_requirements": {
+      "default_detail": "MINIMAL_SUFFICIENT",
+      "artifact_policy": "ARTIFACT_FIRST",
+      "preserve_user_requested_format": true,
+      "required_final_slots": ["RESULT", "EVIDENCE", "VERIFICATION", "ARTIFACT", "LIMITATIONS"]
+    },
+    "change_policy": "Behavior or acceptance changes create a new RequirementRevision."
+  },
+  "integrity": {
+    "canonicalization": "PCH-CJ1",
+    "requirements_payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  }
+}

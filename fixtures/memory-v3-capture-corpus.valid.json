@@ -1,0 +1,112 @@
+{
+  "$schema": "../schemas/memory-v3-capture-corpus.schema.json",
+  "schema_version": 1,
+  "language": "zh-CN",
+  "minimum_expanded_cases": 1200,
+  "subjects": [
+    "输出保持简洁",
+    "优先使用中文说明",
+    "修改代码前先读取相关文件",
+    "测试失败时先定位根因",
+    "先给出结论再列证据",
+    "避免重复读取未变化文档",
+    "使用项目现有命名约定",
+    "更改接口时同步更新测试",
+    "先运行最小相关测试",
+    "不要自动提交代码",
+    "用表格呈现对比结果",
+    "在回复中保留验证命令",
+    "优先选择可逆修改",
+    "发现假设错误时及时重规划",
+    "不输出无变化的进度信息",
+    "编辑前检查工作区状态",
+    "先复用现有模块",
+    "明确报告未验证的限制",
+    "对敏感信息只记录摘要",
+    "优先使用确定性本地检查",
+    "将大型结果写入文件",
+    "保留用户指定的输出格式",
+    "性能优化前冻结正确性基线",
+    "遇到未知副作用先做回读",
+    "完成工作后记录状态"
+  ],
+  "families": [
+    {
+      "id": "EXPLICIT_DURABLE",
+      "prefixes": ["请记住：", "长期记住：", "永久记住：", "以后都记住：", "今后请记住：", "从今以后记住：", "请保存为长期偏好：", "麻烦记下："],
+      "suffixes": ["", "。"],
+      "source_kind": "USER_INPUT",
+      "source_actor": "USER",
+      "intent_ownership": "NONE",
+      "expected_route": "EXPLICIT_AUTO",
+      "expected_disposition": "MEMORY_ELIGIBLE",
+      "active_allowed": true
+    },
+    {
+      "id": "IMPLICIT_PREFERENCE",
+      "prefixes": ["我通常更喜欢", "我一直偏好", "我总是习惯", "我的长期偏好是", "我的习惯是"],
+      "suffixes": ["", "。"],
+      "source_kind": "USER_INPUT",
+      "source_actor": "USER",
+      "intent_ownership": "NONE",
+      "expected_route": "PROPOSE_ONLY",
+      "expected_disposition": "UNCERTAIN_PROPOSE",
+      "active_allowed": false
+    },
+    {
+      "id": "CURRENT_TASK",
+      "prefixes": ["请检查", "请修改", "请修复", "请实现", "请运行", "请测试"],
+      "suffixes": ["。"],
+      "source_kind": "USER_INPUT",
+      "source_actor": "USER",
+      "intent_ownership": "NONE",
+      "expected_route": "REJECT",
+      "expected_disposition": "REQUIREMENT_FIRST",
+      "active_allowed": false
+    },
+    {
+      "id": "TEMPORARY_EXPLICIT",
+      "prefixes": ["请记住：本次任务", "请记住：这次", "请记住：本轮", "请记住：当前任务", "请记住：暂时"],
+      "suffixes": ["。"],
+      "source_kind": "USER_INPUT",
+      "source_actor": "USER",
+      "intent_ownership": "NONE",
+      "expected_route": "PROPOSE_ONLY",
+      "expected_disposition": "UNCERTAIN_PROPOSE",
+      "active_allowed": false
+    },
+    {
+      "id": "CAPTURE_QUESTION",
+      "prefixes": ["你是否会记住", "系统能否记住", "这里可不可以记住", "以后会不会记住"],
+      "suffixes": ["吗？"],
+      "source_kind": "USER_INPUT",
+      "source_actor": "USER",
+      "intent_ownership": "NONE",
+      "expected_route": "REJECT",
+      "expected_disposition": "MEMORY_ELIGIBLE",
+      "active_allowed": false
+    },
+    {
+      "id": "NEGATED_CAPTURE",
+      "prefixes": ["不要记住：", "无需记住：", "不用记下：", "别帮我保存："],
+      "suffixes": ["。"],
+      "source_kind": "USER_INPUT",
+      "source_actor": "USER",
+      "intent_ownership": "NONE",
+      "expected_route": "REJECT",
+      "expected_disposition": "MEMORY_ELIGIBLE",
+      "active_allowed": false
+    },
+    {
+      "id": "QUOTED_OR_HYPOTHETICAL",
+      "prefixes": ["如果我说请记住：", "假如有人说请记住：", "例如文档中写着记住：", "他说请记住："],
+      "suffixes": ["。"],
+      "source_kind": "USER_INPUT",
+      "source_actor": "USER",
+      "intent_ownership": "NONE",
+      "expected_route": "REJECT",
+      "expected_disposition": "MEMORY_ELIGIBLE",
+      "active_allowed": false
+    }
+  ]
+}

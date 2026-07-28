@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/context-projection-receipt.schema.json",
+  "title": "PCH Input Context v1 projection saga receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "projection_id", "transition_ordinal", "context_envelope_sha256", "tool_surface_plan_sha256", "layout_manifest_sha256", "retained_root_sha256", "runtime_fingerprint_sha256", "subject", "prompt_generation_id", "projection_state", "idempotency_key_hmac", "finality", "created_at_ms", "receipt_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "projection_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "transition_ordinal": { "type": "integer", "minimum": 0, "maximum": 32 },
+    "context_envelope_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "tool_surface_plan_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "layout_manifest_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "retained_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "runtime_fingerprint_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "subject": { "$ref": "input-context-common.schema.json#/$defs/executionSubjectRef" },
+    "prompt_generation_id": { "$ref": "input-context-common.schema.json#/$defs/nullableId" },
+    "projection_state": { "enum": ["PREPARED", "APPLIED", "REQUEST_OBSERVED", "OUTCOME_UNKNOWN", "COMPLETED", "ABANDONED"] },
+    "idempotency_key_hmac": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "finality": { "enum": ["PCH_HOOK_INPUT", "PCH_HOOK_OUTPUT", "EXTENSION_CHAIN_FINAL", "WIRE_SERIALIZED"] },
+    "created_at_ms": { "$ref": "input-context-common.schema.json#/$defs/nonNegativeInteger" },
+    "receipt_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "transition_ordinal": { "const": 0 } }, "required": ["transition_ordinal"] },
+      "then": { "properties": { "projection_state": { "const": "PREPARED" } } }
+    }
+  ]
+}

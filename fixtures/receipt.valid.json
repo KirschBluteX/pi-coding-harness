@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "receipt_id": "RCP-DEMO-001",
+  "goal_id": "GOAL-DEMO-001",
+  "receipt_type": "REQUIREMENT_FREEZE",
+  "subject_type": "REQUIREMENT",
+  "subject_id": "REQ-DEMO-001",
+  "attempt_id": null,
+  "result": "SUCCEEDED",
+  "input_closure_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "output_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "artifacts": [
+    { "artifact_id": "ART-DEMO-001", "sha256": "2222222222222222222222222222222222222222222222222222222222222222", "locator": "pch-cas://sha256/2222222222222222222222222222222222222222222222222222222222222222" }
+  ],
+  "evidence": [
+    { "kind": "VALIDATOR_REPORT", "locator": "pch-cas://sha256/3333333333333333333333333333333333333333333333333333333333333333", "sha256": "3333333333333333333333333333333333333333333333333333333333333333" }
+  ],
+  "failure_signature": null,
+  "issued_at": "2026-07-21T12:00:00Z",
+  "issuer": "VALIDATOR",
+  "event_sequence": 1,
+  "caveats": []
+}

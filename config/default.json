@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "data": {
+    "root": "~/.pi/agent/coding-harness",
+    "require_local_filesystem": true,
+    "sqlite_busy_timeout_ms": 5000
+  },
+  "requirements": {
+    "profile": "AUTO",
+    "batch_questions": true,
+    "max_initial_questions": 5,
+    "safe_default_policy": "LOW_RISK_ONLY"
+  },
+  "execution": {
+    "default_intent": "AUTO",
+    "planning_depth": "AUTO",
+    "same_failure_retry_limit": 2,
+    "lease_ttl_ms": 30000,
+    "worker_timeout_ms": 900000,
+    "max_parallel_workers": 4,
+    "worker_runtime": {
+      "unavailable_policy": "INHERIT_SUPERVISOR",
+      "roles": {
+        "PLANNER": { "source": "INHERIT_SUPERVISOR" },
+        "EXPLORER": { "source": "INHERIT_SUPERVISOR" },
+        "IMPLEMENTER": { "source": "INHERIT_SUPERVISOR" },
+        "VERIFIER": { "source": "INHERIT_SUPERVISOR" },
+        "INTEGRATOR": { "source": "INHERIT_SUPERVISOR" }
+      }
+    }
+  },
+  "modules": {
+    "memory": {
+      "enabled": true,
+      "mode": "EXPERIMENTAL",
+      "epoch": "MEMORY-V3-EXPERIMENTAL-001",
+      "fallback": "EMPTY_OPTIONAL_PROJECTION",
+      "soft_projection_tokens": 256,
+      "hard_projection_tokens": 640,
+      "max_results": 12,
+      "max_policy_results": 6,
+      "max_evidence_results": 4,
+      "max_experience_results": 2,
+      "max_structured_scan_rows": 5000,
+      "max_payload_bytes": 1048576,
+      "index_drain_batch": 128,
+      "index_drain_debounce_ms": 250,
+      "capture_mode": "GUARDED_AUTO",
+      "capture_epoch": "MEMORY-V3.1-GUARDED-AUTO-001"
+    },
+    "input_context": {
+      "enabled": true,
+      "mode": "AUTO_GUARDED",
+      "epoch": "INPUT-CONTEXT-V1-USER-EXPLICIT-001",
+      "fallback": "PI_BASELINE",
+      "soft_evidence_tokens": 512,
+      "hard_evidence_tokens": 2048,
+      "max_batch_items": 10,
+      "max_batch_bytes": 1048576,
+      "cursor_ttl_ms": 300000
+    },
+    "compaction": {
+      "enabled": true,
+      "epoch": "COMPACTION-V2.1-NATIVE-001",
+      "fallback": "NATIVE_PI"
+    },
+    "cache": {
+      "enabled": true,
+      "epoch": "CACHE-C1-GEEKSPACE-OPENAI-COMPLETIONS-001",
+      "arm": "C1_PREFIX",
+      "fallback": "C0",
+      "provider_integration": "geekspace-openai-completions-positive-usage-v1",
+      "allow_payload_mutation": false,
+      "allow_live_canary": false,
+      "observation_protocol": {
+        "decision_authority": "LEGACY_DIAGNOSTIC_ONLY",
+        "min_observable_requests": 30,
+        "fixed_natural_request_count": 200,
+        "max_calendar_window_ms": 604800000,
+        "confidence_level": 0.95,
+        "request_diagnostic_interval_method": "WILSON_SCORE_NATURAL_WINDOW",
+        "token_diagnostic_interval_method": "REQUEST_CLUSTER_BOOTSTRAP_NATURAL_WINDOW",
+        "bootstrap_resamples": 5000,
+        "bootstrap_seed": 1729,
+        "freeze_membership_before_epoch": true
+      }
+    },
+    "output": {
+      "enabled": true,
+      "epoch": "OUTPUT-CONSERVATIVE-STABLE-001",
+      "mode": "AUTO",
+      "fallback": "BASELINE_PI",
+      "artifact_first": true,
+      "suppress_duplicate_progress": true,
+      "progress_delivery": "WIDGET_FIRST_CHAT_FALLBACK",
+      "max_silent_wait_ms": 30000,
+      "history_rewrite_policy": "GENERATION_BOUNDARY_ONLY",
+      "stable_policy_in_prefix": true,
+      "compact_suffix_only_when_beneficial": true,
+      "goal_level_rebound_guard": true,
+      "account_tool_call_arguments": true,
+      "account_reasoning_tokens": true,
+      "tool_result_projection": "EVIDENCE_LIVENESS_ROUTED",
+      "max_response_directive_input_tokens": 24,
+      "soft_text_token_budgets": {
+        "tool_action": 0,
+        "ack": 32,
+        "question": 160,
+        "status": 80,
+        "result": 320
+      }
+    }
+  },
+  "ui": {
+    "widget": true,
+    "status": true,
+    "debounce_ms": 250,
+    "max_widget_lines": 4
+  },
+  "retention": {
+    "telemetry_days": 30,
+    "unreferenced_artifact_days": 30
+  },
+  "performance": {
+    "enforce_budgets": true,
+    "optional_module_auto_bypass": true,
+    "window_samples": 100,
+    "paired_min_samples": 30,
+    "target_project": {
+      "enabled": true,
+      "default_mode": "BASELINE_GUARD",
+      "auto_activation": "EVIDENCE_OR_EXPLICIT_REQUEST",
+      "max_trials": 3,
+      "max_user_blocking_ms": 1000,
+      "profile_only_when_justified": true
+    },
+    "budgets_file": "docs/PERFORMANCE-BUDGET.md"
+  }
+}

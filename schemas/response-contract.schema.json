@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/response-contract.schema.json",
+  "title": "PCH per-emission ResponseContract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "origin",
+    "execution_path",
+    "response_class",
+    "completion_requirement",
+    "channel",
+    "status_delivery",
+    "mandatory_slots",
+    "soft_text_token_budget",
+    "budget_basis",
+    "text_policy",
+    "information_delta",
+    "artifact_policy",
+    "directive_placement",
+    "budget_behavior",
+    "goal_level_rebound_guard",
+    "generated_content_accounting",
+    "tool_result_projection_policy",
+    "preserve_user_requested_format",
+    "suppress_when",
+    "hard_truncation_allowed",
+    "rewrite_request_allowed",
+    "reason"
+  ],
+  "properties": {
+    "schema_version": { "const": 3 },
+    "contract_id": { "$ref": "#/$defs/id" },
+    "goal_id": {
+      "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+    },
+    "origin": { "enum": ["USER_REQUEST", "LOCAL_COMMAND", "LOCAL_PROGRESS", "ROUTINE_CHECKPOINT", "TELEMETRY", "STAGE_TRANSITION", "FAILURE", "FINALIZATION"] },
+    "execution_path": { "enum": ["LOCAL_ONLY", "AGENT_TURN"] },
+    "response_class": { "enum": ["SILENT_LOCAL", "TOOL_ACTION", "ACK", "QUESTION", "STATUS", "RESULT", "AUDIT", "USER_FORMAT"] },
+    "completion_requirement": { "enum": ["NONE", "TOOL_THEN_RESULT", "RESULT_NOW"] },
+    "channel": { "enum": ["NONE", "TOOL_CALL", "WIDGET", "CHAT", "ARTIFACT_POINTER", "CHAT_AND_ARTIFACT"] },
+    "status_delivery": { "enum": ["WIDGET_FIRST", "CHAT_REQUIRED", "NOT_APPLICABLE"] },
+    "mandatory_slots": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["RESULT", "QUESTION", "RECOMMENDATION", "DECISION", "FAILURE", "BLOCKER", "RISK", "EVIDENCE", "VERIFICATION", "ARTIFACT", "UNCERTAINTY", "LIMITATIONS", "NEXT_ACTION"]
+      }
+    },
+    "soft_text_token_budget": { "type": ["integer", "null"], "minimum": 0, "maximum": 32768 },
+    "budget_basis": { "enum": ["CLASS_DEFAULT", "MANDATORY_SLOT_ESTIMATE", "USER_REQUEST", "UNBOUNDED_REQUIRED"] },
+    "text_policy": { "enum": ["NO_PROSE_PREFERRED", "CONCISE_COMPLETE", "USER_CONTROLLED"] },
+    "information_delta": { "enum": ["NO_CHANGE", "MATERIAL", "FINAL", "USER_REQUIRED"] },
+    "dedupe_key_hmac_sha256": {
+      "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+    },
+    "artifact_policy": { "enum": ["NONE", "WHEN_LARGE", "ARTIFACT_FIRST", "USER_DECIDES"] },
+    "directive_placement": { "enum": ["NONE", "STABLE_POLICY_ONLY", "DYNAMIC_SUFFIX"] },
+    "budget_behavior": { "const": "EXPAND_FOR_REQUIRED_CONTENT" },
+    "goal_level_rebound_guard": { "const": true },
+    "generated_content_accounting": { "const": "PROVIDER_OUTPUT_WITH_REASONING_AND_TOOL_ARGUMENT_ATTRIBUTION" },
+    "tool_result_projection_policy": { "const": "EVIDENCE_LIVENESS_ROUTED" },
+    "preserve_user_requested_format": { "const": true },
+    "suppress_when": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["NO_STATE_CHANGE", "DUPLICATE_PROJECTION", "ROUTINE_CHECKPOINT", "NONCRITICAL_TELEMETRY"] }
+    },
+    "hard_truncation_allowed": { "const": false },
+    "rewrite_request_allowed": { "const": false },
+    "reason": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "response_class": { "const": "SILENT_LOCAL" } } },
+      "then": {
+        "properties": {
+          "origin": { "enum": ["LOCAL_PROGRESS", "ROUTINE_CHECKPOINT", "TELEMETRY", "STAGE_TRANSITION"] },
+          "execution_path": { "const": "LOCAL_ONLY" },
+          "channel": { "enum": ["NONE", "WIDGET"] },
+          "completion_requirement": { "const": "NONE" },
+          "mandatory_slots": { "type": "array", "maxItems": 0 },
+          "soft_text_token_budget": { "const": 0 },
+          "text_policy": { "const": "NO_PROSE_PREFERRED" },
+          "information_delta": { "const": "NO_CHANGE" },
+          "directive_placement": { "const": "NONE" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "response_class": { "const": "TOOL_ACTION" } }, "required": ["response_class"] },
+      "then": {
+        "properties": {
+          "execution_path": { "const": "AGENT_TURN" },
+          "channel": { "const": "TOOL_CALL" },
+          "completion_requirement": { "const": "TOOL_THEN_RESULT" },
+          "mandatory_slots": { "type": "array", "maxItems": 0 },
+          "text_policy": { "const": "NO_PROSE_PREFERRED" },
+          "information_delta": { "enum": ["MATERIAL", "USER_REQUIRED"] },
+          "artifact_policy": { "const": "NONE" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "origin": { "const": "USER_REQUEST" } } },
+      "then": {
+        "properties": {
+          "execution_path": { "const": "AGENT_TURN" },
+          "response_class": { "not": { "const": "SILENT_LOCAL" } },
+          "directive_placement": { "enum": ["STABLE_POLICY_ONLY", "DYNAMIC_SUFFIX"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "execution_path": { "const": "LOCAL_ONLY" } } },
+      "then": { "properties": { "directive_placement": { "const": "NONE" } } }
+    },
+    {
+      "if": { "properties": { "execution_path": { "const": "AGENT_TURN" } }, "required": ["execution_path"] },
+      "then": { "properties": { "directive_placement": { "enum": ["STABLE_POLICY_ONLY", "DYNAMIC_SUFFIX"] } } }
+    },
+    {
+      "if": { "properties": { "response_class": { "const": "USER_FORMAT" } }, "required": ["response_class"] },
+      "then": {
+        "properties": {
+          "text_policy": { "const": "USER_CONTROLLED" },
+          "budget_basis": { "enum": ["USER_REQUEST", "UNBOUNDED_REQUIRED"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "origin": { "const": "FINALIZATION" } }, "required": ["origin"] },
+      "then": { "properties": { "completion_requirement": { "const": "RESULT_NOW" } } }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9._:-]{1,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

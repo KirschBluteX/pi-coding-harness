@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/intake-calibration.schema.json",
+  "title": "PCH deterministic intake classifier calibration corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "corpus_id", "status", "thresholds", "cases"],
+  "properties": {
+    "$schema": { "type": "string", "minLength": 1 },
+    "schema_version": { "const": 1 },
+    "corpus_id": { "$ref": "#/$defs/id" },
+    "status": { "enum": ["SYNTHETIC_SEED", "ADJUDICATED_FROZEN"] },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_calibration_cases",
+        "minimum_calibration_families",
+        "minimum_holdout_cases",
+        "minimum_holdout_families",
+        "minimum_kappa",
+        "minimum_macro_f1",
+        "minimum_prd_recall",
+        "minimum_build_light_recall",
+        "maximum_unsafe_build_light_wilson_upper",
+        "maximum_high_impact_underclassifications"
+      ],
+      "properties": {
+        "minimum_calibration_cases": { "type": "integer", "minimum": 1 },
+        "minimum_calibration_families": { "type": "integer", "minimum": 1 },
+        "minimum_holdout_cases": { "type": "integer", "minimum": 1 },
+        "minimum_holdout_families": { "type": "integer", "minimum": 1 },
+        "minimum_kappa": { "type": "number", "minimum": -1, "maximum": 1 },
+        "minimum_macro_f1": { "$ref": "#/$defs/rate" },
+        "minimum_prd_recall": { "$ref": "#/$defs/rate" },
+        "minimum_build_light_recall": { "$ref": "#/$defs/rate" },
+        "maximum_unsafe_build_light_wilson_upper": { "$ref": "#/$defs/rate" },
+        "maximum_high_impact_underclassifications": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "ADJUDICATED_FROZEN" } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "annotations": {
+                  "type": "object",
+                  "properties": {
+                    "annotator_a": { "$ref": "#/$defs/label" },
+                    "annotator_b": { "$ref": "#/$defs/label" },
+                    "adjudication": { "enum": ["AGREED", "ADJUDICATED"] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "route": { "enum": ["BUILD_LIGHT", "TASK_SPEC", "PRD"] },
+    "depth": { "enum": ["LIGHT", "STANDARD", "FULL"] },
+    "label": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["specification_route", "planning_depth"],
+      "properties": {
+        "specification_route": { "$ref": "#/$defs/route" },
+        "planning_depth": { "$ref": "#/$defs/depth" }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "family_id", "split", "objective", "expected", "annotations"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "family_id": { "$ref": "#/$defs/id" },
+        "split": { "enum": ["CALIBRATION", "HOLDOUT"] },
+        "objective": { "type": "string", "minLength": 1 },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["specification_route", "planning_depth", "rationale", "risk_weight"],
+          "properties": {
+            "specification_route": { "$ref": "#/$defs/route" },
+            "planning_depth": { "$ref": "#/$defs/depth" },
+            "rationale": { "type": "string", "minLength": 1 },
+            "risk_weight": { "enum": [1, 5, 10] }
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["annotator_a", "annotator_b", "adjudication"],
+          "properties": {
+            "annotator_a": { "anyOf": [{ "$ref": "#/$defs/label" }, { "type": "null" }] },
+            "annotator_b": { "anyOf": [{ "$ref": "#/$defs/label" }, { "type": "null" }] },
+            "adjudication": { "enum": ["SYNTHETIC_SEED", "AGREED", "ADJUDICATED"] }
+          }
+        }
+      }
+    }
+  }
+}

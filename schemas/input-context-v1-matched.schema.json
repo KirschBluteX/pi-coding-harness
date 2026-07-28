@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/input-context-v1-matched.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "module", "epoch", "verdict", "generated_at", "preregistration_sha256",
+    "first_observation_at", "last_observation_at", "analysis_population", "runtime_fingerprints",
+    "post_outcome_exclusions", "pairs"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "module": { "const": "INPUT_CONTEXT" },
+    "epoch": { "const": "INPUT-CONTEXT-V1-MATCHED-001" },
+    "verdict": { "const": "PASS" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "preregistration_sha256": { "$ref": "#/$defs/sha256" },
+    "first_observation_at": { "type": "string", "format": "date-time" },
+    "last_observation_at": { "type": "string", "format": "date-time" },
+    "analysis_population": { "const": "ALL_PREREGISTERED_VALID_PAIRS" },
+    "runtime_fingerprints": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sha256" }
+    },
+    "post_outcome_exclusions": { "const": 0 },
+    "pairs": { "type": "array", "minItems": 30, "items": { "$ref": "#/$defs/pair" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "metrics": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "provider_requests", "total_input_tokens", "uncached_input_tokens", "cache_write_tokens",
+        "generated_output_tokens", "tool_context_bytes", "ttft_ms", "goal_wall_ms", "followup_count",
+        "rework_count", "reopen_count", "ordinary_read_count"
+      ],
+      "properties": {
+        "provider_requests": { "type": "number", "minimum": 0 },
+        "total_input_tokens": { "type": "number", "minimum": 0 },
+        "uncached_input_tokens": { "type": "number", "minimum": 0 },
+        "cache_write_tokens": { "type": "number", "minimum": 0 },
+        "generated_output_tokens": { "type": "number", "minimum": 0 },
+        "tool_context_bytes": { "type": "number", "minimum": 0 },
+        "ttft_ms": { "type": "number", "minimum": 0 },
+        "goal_wall_ms": { "type": "number", "minimum": 0 },
+        "followup_count": { "type": "number", "minimum": 0 },
+        "rework_count": { "type": "number", "minimum": 0 },
+        "reopen_count": { "type": "number", "minimum": 0 },
+        "ordinary_read_count": { "type": "number", "minimum": 0 }
+      }
+    },
+    "arm": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "quality_score", "acceptance_pass", "requested_format_pass", "safety_pass", "privacy_pass",
+        "side_effect_pass", "metrics"
+      ],
+      "properties": {
+        "quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "acceptance_pass": { "const": true },
+        "requested_format_pass": { "const": true },
+        "safety_pass": { "const": true },
+        "privacy_pass": { "const": true },
+        "side_effect_pass": { "const": true },
+        "metrics": { "$ref": "#/$defs/metrics" }
+      }
+    },
+    "pair": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "pair_id", "family_id_hmac", "split", "order", "runtime_fingerprint_sha256", "baseline", "candidate"
+      ],
+      "properties": {
+        "pair_id": { "type": "string", "minLength": 1 },
+        "family_id_hmac": { "$ref": "#/$defs/sha256" },
+        "split": { "enum": ["CALIBRATION", "HOLDOUT"] },
+        "order": { "enum": ["BASELINE_THEN_CANDIDATE", "CANDIDATE_THEN_BASELINE"] },
+        "runtime_fingerprint_sha256": { "$ref": "#/$defs/sha256" },
+        "baseline": { "$ref": "#/$defs/arm" },
+        "candidate": { "$ref": "#/$defs/arm" }
+      }
+    }
+  }
+}

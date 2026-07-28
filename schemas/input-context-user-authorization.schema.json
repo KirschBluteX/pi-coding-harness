@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/input-context-user-authorization.schema.json",
+  "title": "Input Context explicit user activation authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "decision_id",
+    "module",
+    "source",
+    "authorization_scope",
+    "requested_mode",
+    "activation_basis",
+    "effectiveness_experiment",
+    "effectiveness_verdict",
+    "benefit_claim",
+    "fallback",
+    "user_configuration_policy",
+    "authorized_at"
+  ],
+  "properties": {
+    "$schema": { "const": "../schemas/input-context-user-authorization.schema.json" },
+    "schema_version": { "const": 1 },
+    "decision_id": { "const": "DEC-IC1-USER-ACTIVATE-001" },
+    "module": { "const": "INPUT_CONTEXT" },
+    "source": { "const": "EXPLICIT_USER_REQUEST" },
+    "authorization_scope": { "const": "LOCAL_PCH_INSTALLATION" },
+    "requested_mode": { "const": "AUTO_GUARDED" },
+    "activation_basis": { "const": "USER_EXPLICIT_UNVALIDATED" },
+    "effectiveness_experiment": { "const": "NOT_REQUIRED_FOR_INITIAL_ACTIVATION" },
+    "effectiveness_verdict": { "const": "NOT_EVALUATED" },
+    "benefit_claim": { "const": "PROHIBITED_UNTIL_MATCHED_PROMOTION" },
+    "fallback": { "const": "PI_BASELINE" },
+    "user_configuration_policy": { "const": "INHERIT_CURRENT_PI" },
+    "authorized_at": { "type": "string", "format": "date-time" }
+  }
+}

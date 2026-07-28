@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "event_id": "EVENT-DEMO-001",
+  "goal_id": "GOAL-DEMO-001",
+  "sequence": 1,
+  "event_type": "REQUIREMENT_FROZEN",
+  "command_id": "CMD-DEMO-001",
+  "idempotency_key_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "actor": "RUNTIME",
+  "occurred_at_ms": 1784635200000,
+  "payload": { "requirement_id": "REQ-DEMO-001" },
+  "payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "prev_event_sha256": null,
+  "event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "store_generation": 1,
+  "leader_epoch": 1
+}

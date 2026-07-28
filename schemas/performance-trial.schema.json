@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/performance-trial.schema.json",
+  "title": "PCH authorized target-project PerformanceTrial spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "opportunity_id",
+    "epoch_id",
+    "goal_id",
+    "stage_id",
+    "work_item_id",
+    "plan_revision_id",
+    "performance_contract_id",
+    "performance_contract_sha256",
+    "baseline_revision_sha256",
+    "baseline_correctness_receipt_id",
+    "baseline_metric_evidence_sha256",
+    "environment_fingerprint_sha256",
+    "candidate_patch_sha256",
+    "hypothesis",
+    "opportunity_admission",
+    "scope",
+    "workload_ids",
+    "holdout_workload_ids",
+    "metric_ids",
+    "correctness_acceptance_ids",
+    "protocol_sha256",
+    "candidate_family_id",
+    "candidate_index",
+    "authorization",
+    "automatic_promotion_eligible",
+    "reversible",
+    "rollback_action",
+    "kill_conditions",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "trial_id": { "$ref": "#/$defs/id" },
+    "opportunity_id": { "$ref": "#/$defs/id" },
+    "epoch_id": { "$ref": "#/$defs/id" },
+    "goal_id": { "$ref": "#/$defs/id" },
+    "stage_id": { "$ref": "#/$defs/id" },
+    "work_item_id": { "$ref": "#/$defs/id" },
+    "plan_revision_id": { "$ref": "#/$defs/id" },
+    "performance_contract_id": { "$ref": "#/$defs/id" },
+    "performance_contract_sha256": { "$ref": "#/$defs/sha256" },
+    "baseline_revision_sha256": { "$ref": "#/$defs/sha256" },
+    "baseline_correctness_receipt_id": { "$ref": "#/$defs/id" },
+    "baseline_metric_evidence_sha256": { "$ref": "#/$defs/sha256" },
+    "environment_fingerprint_sha256": { "$ref": "#/$defs/sha256" },
+    "candidate_patch_sha256": { "$ref": "#/$defs/sha256" },
+    "hypothesis": { "type": "string", "minLength": 1 },
+    "opportunity_admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "evidence_receipt_id", "hotspot_fraction", "theoretical_speedup_ceiling_pct", "end_to_end_metric_ids", "result"],
+      "properties": {
+        "source": { "enum": ["USER_REQUIREMENT", "OBSERVED_REGRESSION", "EXISTING_PROFILE", "STATIC_EVIDENCE", "REPRODUCIBLE_TOOL_EVIDENCE"] },
+        "evidence_receipt_id": { "$ref": "#/$defs/id" },
+        "hotspot_fraction": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 1 },
+        "theoretical_speedup_ceiling_pct": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 },
+        "end_to_end_metric_ids": { "$ref": "#/$defs/idSet" },
+        "result": { "const": "PASS" }
+      }
+    },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "workload_ids": { "$ref": "#/$defs/idSet" },
+    "holdout_workload_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "metric_ids": { "$ref": "#/$defs/idSet" },
+    "correctness_acceptance_ids": { "$ref": "#/$defs/idSet" },
+    "protocol_sha256": { "$ref": "#/$defs/sha256" },
+    "candidate_family_id": { "$ref": "#/$defs/id" },
+    "candidate_index": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "decision_id"],
+      "properties": {
+        "kind": { "enum": ["AUTO_WITHIN_FROZEN_CONTRACT", "USER_DECISION"] },
+        "decision_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+      }
+    },
+    "automatic_promotion_eligible": { "type": "boolean" },
+    "reversible": { "const": true },
+    "rollback_action": { "type": "string", "minLength": 1 },
+    "kill_conditions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "authorization": { "type": "object", "properties": { "kind": { "const": "USER_DECISION" } }, "required": ["kind"] } } },
+      "then": { "properties": { "authorization": { "type": "object", "properties": { "decision_id": { "$ref": "#/$defs/id" } } } } }
+    },
+    {
+      "if": { "properties": { "authorization": { "type": "object", "properties": { "kind": { "const": "AUTO_WITHIN_FROZEN_CONTRACT" } }, "required": ["kind"] } } },
+      "then": {
+        "properties": {
+          "automatic_promotion_eligible": { "const": true },
+          "holdout_workload_ids": { "type": "array", "minItems": 1 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "idSet": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    }
+  }
+}

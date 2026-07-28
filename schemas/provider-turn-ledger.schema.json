@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/provider-turn-ledger.schema.json",
+  "title": "PCH logical provider-turn ledger v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "prompt_request_id", "prompt_generation_id", "context_envelope_sha256", "layout_manifest_sha256", "contributions", "provider_uncached_input_tokens", "provider_cache_read_tokens", "provider_cache_write_tokens", "provider_generated_output_tokens", "provider_reasoning_tokens", "attributed_input_tokens", "unattributed_input_tokens", "attributed_output_tokens", "unattributed_output_tokens", "accounting_completeness", "additional_model_requests", "additional_provider_requests", "created_at_ms", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "prompt_request_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "prompt_generation_id": { "$ref": "input-context-common.schema.json#/$defs/nullableId" },
+    "context_envelope_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "layout_manifest_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "contributions": { "type": "array", "items": { "$ref": "input-context-common.schema.json#/$defs/providerContribution" }, "maxItems": 256 },
+    "provider_uncached_input_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "provider_cache_read_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "provider_cache_write_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "provider_generated_output_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "provider_reasoning_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "attributed_input_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "unattributed_input_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "attributed_output_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "unattributed_output_tokens": { "type": ["integer", "null"], "minimum": 0, "maximum": 100000000 },
+    "accounting_completeness": { "enum": ["COMPLETE", "PARTIAL", "UNOBSERVABLE"] },
+    "additional_model_requests": { "const": 0 },
+    "additional_provider_requests": { "const": 0 },
+    "created_at_ms": { "$ref": "input-context-common.schema.json#/$defs/nonNegativeInteger" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "accounting_completeness": { "const": "COMPLETE" } }, "required": ["accounting_completeness"] },
+      "then": {
+        "properties": {
+          "provider_uncached_input_tokens": { "type": "integer" },
+          "provider_cache_read_tokens": { "type": "integer" },
+          "provider_cache_write_tokens": { "type": "integer" },
+          "provider_generated_output_tokens": { "type": "integer" },
+          "attributed_input_tokens": { "type": "integer" },
+          "unattributed_input_tokens": { "type": "integer" },
+          "attributed_output_tokens": { "type": "integer" },
+          "unattributed_output_tokens": { "type": "integer" }
+        }
+      }
+    }
+  ]
+}

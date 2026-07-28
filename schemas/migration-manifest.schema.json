@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/migration-manifest.schema.json",
+  "title": "PCH source migration manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "generated_at", "target_root", "selection_policy", "entries", "summary"],
+  "properties": {
+    "$schema": { "const": "../schemas/migration-manifest.schema.json" },
+    "schema_version": { "const": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "target_root": { "const": "." },
+    "selection_policy": { "type": "string", "minLength": 1 },
+    "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/entry" } },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_count", "copied_count", "rewritten_count", "generated_count", "excluded_count"],
+      "properties": {
+        "candidate_count": { "type": "integer", "minimum": 0 },
+        "copied_count": { "type": "integer", "minimum": 0 },
+        "rewritten_count": { "type": "integer", "minimum": 0 },
+        "generated_count": { "type": "integer", "minimum": 0 },
+        "excluded_count": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "destination", "source_sha256", "destination_sha256", "category", "purpose", "disposition", "rewritten", "reason"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^MIG-[0-9]{3}$" },
+        "source": { "type": "string", "minLength": 1 },
+        "destination": { "oneOf": [{ "$ref": "#/$defs/relativePath" }, { "type": "null" }] },
+        "source_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "destination_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "category": { "enum": ["BLUEPRINT", "ARCHITECTURE_REPORT", "VALIDATION", "AUTHORITY_REFERENCE", "SCHEMA_REFERENCE", "RUNTIME_EVIDENCE", "CODE", "DEPENDENCY_TREE", "RUN_ARTIFACT", "SECRET_OR_SESSION", "LICENSE"] },
+        "purpose": { "type": "string", "minLength": 1 },
+        "disposition": { "enum": ["COPIED", "REWRITTEN", "GENERATED", "EXCLUDED"] },
+        "rewritten": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "destination": { "enum": ["manifests/PROJECT-STATE.json", "PROJECT-STATUS.md"] }
+            },
+            "required": ["destination"]
+          },
+          "then": {
+            "properties": {
+              "source_sha256": { "type": "null" },
+              "destination_sha256": { "type": "null" },
+              "category": { "const": "RUN_ARTIFACT" },
+              "disposition": { "const": "REWRITTEN" },
+              "rewritten": { "const": true }
+            }
+          },
+          "else": {
+            "if": {
+              "properties": { "disposition": { "const": "REWRITTEN" } },
+              "required": ["disposition"]
+            },
+            "then": {
+              "properties": {
+                "destination": { "$ref": "#/$defs/relativePath" },
+                "source_sha256": { "$ref": "#/$defs/sha256" },
+                "rewritten": { "const": true }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "relativePath": { "type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:)(?![\\\\/]).+" }
+  }
+}

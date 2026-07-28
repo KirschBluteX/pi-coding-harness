@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/execution-subject-ref.schema.json",
+  "title": "ExecutionSubjectRef",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "goalId", "subjectId", "routeRevision", "goalContractSha256", "executionAuthorizationSha256", "bindingSha256"],
+  "properties": {
+    "kind": { "enum": ["NONE", "GOAL", "WORK_CELL"] },
+    "goalId": { "type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_:-]{0,159}$" },
+    "subjectId": { "type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_:-]{0,159}$" },
+    "routeRevision": { "type": ["integer", "null"], "minimum": 1 },
+    "goalContractSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "executionAuthorizationSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "bindingSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "NONE" } } },
+      "then": { "properties": { "goalId": { "type": "null" }, "subjectId": { "type": "null" }, "routeRevision": { "type": "null" }, "goalContractSha256": { "type": "null" }, "executionAuthorizationSha256": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "GOAL" } } },
+      "then": { "properties": { "goalId": { "type": "string" }, "subjectId": { "type": "string" }, "goalContractSha256": { "type": "string" }, "executionAuthorizationSha256": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "WORK_CELL" } } },
+      "then": { "properties": { "goalId": { "type": "string" }, "subjectId": { "type": "string" }, "routeRevision": { "type": "integer" }, "goalContractSha256": { "type": "string" }, "executionAuthorizationSha256": { "type": "string" } } }
+    }
+  ]
+}

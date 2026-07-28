@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "verdict_id": "PERF-VERDICT-DEMO-001",
+  "trial_id": "TRIAL-DEMO-001",
+  "sequence": 1,
+  "analysis_population": "ALL_PREDECLARED_VALID_PAIRS",
+  "sample_set_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "statistics_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "estimates": [
+    {
+      "workload_id": "WORKLOAD-DEMO-001",
+      "workload_role": "PRIMARY",
+      "metric_id": "METRIC-DEMO-001",
+      "pair_count": 30,
+      "baseline_point": 100,
+      "candidate_point": 91.8,
+      "point": 8.2,
+      "lower": 4.1,
+      "upper": 11.7,
+      "unit": "relative_improvement_pct",
+      "confidence_level": 0.95,
+      "method": "PAIRED_BOOTSTRAP"
+    }
+  ],
+  "gates": {
+    "correctness": "PASS",
+    "confidence": "PASS",
+    "practical_effect": "PASS",
+    "end_to_end": "PASS",
+    "regression": "PASS",
+    "holdout": "PASS",
+    "benefit_horizon": "PASS",
+    "environment": "PASS",
+    "budget": "PASS"
+  },
+  "verdict": "PROMOTE",
+  "reason": "The candidate passed every preregistered correctness, statistical, end-to-end, holdout, regression, environment, and budget gate.",
+  "recorded_at": "2026-07-22T08:05:00Z"
+}

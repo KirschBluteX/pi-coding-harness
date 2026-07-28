@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/plan.schema.json",
+  "title": "PCH PlanPackage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "package", "plan", "integrity"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": 2 },
+    "package": { "$ref": "#/$defs/packageMetadata" },
+    "plan": { "$ref": "#/$defs/plan" },
+    "integrity": { "$ref": "#/$defs/integrity" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9._:-]{1,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "packageMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_id", "goal_id", "goal_version", "revision", "intent", "status", "created_at", "source_intake_sha256", "requirement_id", "requirement_payload_sha256"],
+      "properties": {
+        "plan_id": { "$ref": "#/$defs/id" },
+        "goal_id": { "$ref": "#/$defs/id" },
+        "goal_version": { "type": "integer", "minimum": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "parent_plan_id": { "type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9._:-]{1,127}$" },
+        "intent": { "enum": ["PLAN_ONLY", "BUILD", "PLAN_THEN_BUILD"] },
+        "status": { "enum": ["DRAFT", "VALIDATED", "FROZEN", "SUPERSEDED"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "source_intake_sha256": { "$ref": "#/$defs/sha256" },
+        "requirement_id": { "$ref": "#/$defs/id" },
+        "requirement_payload_sha256": { "$ref": "#/$defs/sha256" },
+        "supersedes_plan_id": { "type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9._:-]{1,127}$" }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objective",
+        "planning_depth",
+        "constraints",
+        "assumptions",
+        "acceptance_coverage",
+        "stages",
+        "route_selection",
+        "response_policy",
+        "risk_summary",
+        "build_entry_gate"
+      ],
+      "properties": {
+        "objective": { "$ref": "#/$defs/nonEmpty" },
+        "planning_depth": { "enum": ["LIGHT", "STANDARD", "FULL"] },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/constraint" } },
+        "assumptions": { "type": "array", "items": { "$ref": "#/$defs/assumption" } },
+        "acceptance_coverage": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/coverage" } },
+        "stages": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/stage" } },
+        "route_selection": { "$ref": "#/$defs/routeSelection" },
+        "response_policy": { "$ref": "#/$defs/responsePolicy" },
+        "risk_summary": { "type": "array", "items": { "$ref": "#/$defs/risk" } },
+        "build_entry_gate": { "$ref": "#/$defs/gate" }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "source", "hard"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "text": { "$ref": "#/$defs/nonEmpty" },
+        "source": { "$ref": "#/$defs/nonEmpty" },
+        "hard": { "type": "boolean" }
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "status", "impact", "verification"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "$ref": "#/$defs/nonEmpty" },
+        "status": { "enum": ["UNVERIFIED", "SUPPORTED", "REFUTED"] },
+        "impact": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "verification": { "$ref": "#/$defs/nonEmpty" },
+        "evidence_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterion_id", "stage_ids", "proof"],
+      "properties": {
+        "criterion_id": { "$ref": "#/$defs/id" },
+        "stage_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "proof": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "logical_key",
+        "title",
+        "detail_horizon",
+        "dependencies",
+        "entry_criteria",
+        "outputs",
+        "files",
+        "interfaces",
+        "data_migrations",
+        "failure_routes",
+        "tests",
+        "performance_contract",
+        "review_gates",
+        "exit_criteria",
+        "next_stage_ids"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "logical_key": { "$ref": "#/$defs/nonEmpty" },
+        "title": { "$ref": "#/$defs/nonEmpty" },
+        "detail_horizon": { "enum": ["CURRENT", "NEAR", "LATER"] },
+        "dependencies": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "entry_criteria": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "outputs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "files": { "type": "array", "items": { "$ref": "#/$defs/fileChange" } },
+        "interfaces": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+        "data_migrations": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+        "failure_routes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "tests": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "performance_contract": { "$ref": "#/$defs/stagePerformanceContract" },
+        "review_gates": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } },
+        "exit_criteria": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "next_stage_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "fileChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "action", "purpose"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "action": { "enum": ["CREATE", "MODIFY", "DELETE", "VERIFY"] },
+        "purpose": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "stagePerformanceContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "requirement_metric_ids", "budgets", "opportunity_scan", "baseline_receipt_required", "paired_benchmark_required", "max_trials", "exit_policy"],
+      "properties": {
+        "mode": { "enum": ["BYPASS", "GUARDRAIL", "OPTIMIZE"] },
+        "requirement_metric_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "budgets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/stageBudget" }
+        },
+        "opportunity_scan": { "enum": ["NONE", "STATIC_ONLY", "PROFILE_WHEN_JUSTIFIED"] },
+        "baseline_receipt_required": { "type": "boolean" },
+        "paired_benchmark_required": { "type": "boolean" },
+        "max_trials": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "exit_policy": { "enum": ["NON_REGRESSION", "MEET_TARGET", "BEST_WITHIN_BUDGET"] }
+      }
+    },
+    "stageBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "operator", "threshold", "unit", "aggregation", "scope", "evidence"],
+      "properties": {
+        "metric": { "$ref": "#/$defs/nonEmpty" },
+        "operator": { "enum": ["LTE", "GTE", "EQ", "NON_REGRESSION"] },
+        "threshold": { "type": ["number", "null"] },
+        "unit": { "$ref": "#/$defs/nonEmpty" },
+        "aggregation": { "enum": ["SINGLE", "COUNT", "RATE", "P50", "P95", "P99", "PAIRED_DELTA"] },
+        "scope": { "enum": ["RUNTIME_OVERHEAD", "TARGET_PROJECT", "CACHE", "OUTPUT"] },
+        "evidence": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "routeSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "objective_order", "candidates", "selected_candidate_id", "selection_reason", "fallback_candidate_id"],
+      "properties": {
+        "mode": { "enum": ["FAST_SINGLE", "BOUNDED_COMPARE", "MEASURED_REPLAN"] },
+        "objective_order": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "HARD_GATES" },
+            { "const": "ACCEPTANCE_AND_QUALITY" },
+            { "const": "EVIDENCE" },
+            { "const": "RISK_REVERSIBILITY_RECOVERY" },
+            { "const": "PERFORMANCE" },
+            { "const": "RESOURCE_AND_WAIT_COST" }
+          ],
+          "items": false,
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/routeCandidate" }
+        },
+        "selected_candidate_id": { "$ref": "#/$defs/id" },
+        "selection_reason": { "$ref": "#/$defs/nonEmpty" },
+        "fallback_candidate_id": {
+          "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        }
+      }
+    },
+    "routeCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "hard_gate_pass", "acceptance_reachability", "evidence_strength", "risk", "reversibility", "performance_estimates", "resource_estimates", "disqualifiers"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "description": { "$ref": "#/$defs/nonEmpty" },
+        "hard_gate_pass": { "type": "boolean" },
+        "acceptance_reachability": { "enum": ["PROVEN", "LIKELY", "UNKNOWN", "UNREACHABLE"] },
+        "evidence_strength": { "enum": ["MEASURED", "DERIVED", "DOCUMENTED", "ESTIMATED", "UNKNOWN"] },
+        "risk": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "reversibility": { "enum": ["REVERSIBLE", "FORWARD_ONLY", "IRREVERSIBLE"] },
+        "performance_estimates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/performanceEstimate" }
+        },
+        "resource_estimates": { "$ref": "#/$defs/resourceEstimates" },
+        "disqualifiers": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } }
+      }
+    },
+    "resourceEstimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit", "confidence", "basis"],
+      "properties": {
+        "value": { "type": ["number", "null"] },
+        "unit": { "$ref": "#/$defs/nonEmpty" },
+        "confidence": { "enum": ["MEASURED", "DERIVED", "ESTIMATED", "UNKNOWN"] },
+        "basis": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "performanceEstimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric_id", "value", "unit", "confidence", "basis"],
+      "properties": {
+        "metric_id": { "$ref": "#/$defs/id" },
+        "value": { "type": ["number", "null"] },
+        "unit": { "$ref": "#/$defs/nonEmpty" },
+        "confidence": { "enum": ["MEASURED", "DERIVED", "ESTIMATED", "UNKNOWN"] },
+        "basis": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "resourceEstimates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider_requests", "uncached_input_tokens", "generated_output_tokens", "tool_context_tokens", "user_wait_ms", "interruption_cost"],
+      "properties": {
+        "provider_requests": { "$ref": "#/$defs/resourceEstimate" },
+        "uncached_input_tokens": { "$ref": "#/$defs/resourceEstimate" },
+        "generated_output_tokens": { "$ref": "#/$defs/resourceEstimate" },
+        "tool_context_tokens": { "$ref": "#/$defs/resourceEstimate" },
+        "user_wait_ms": { "$ref": "#/$defs/resourceEstimate" },
+        "interruption_cost": { "$ref": "#/$defs/resourceEstimate" }
+      }
+    },
+    "responsePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_class", "artifact_first", "ui_first_progress", "suppress_duplicate_progress", "stable_policy_in_prefix", "directive_placement", "adaptive_text_budget", "history_rewrite_policy", "goal_level_rebound_guard", "generated_content_accounting", "tool_result_projection_policy", "preserve_user_requested_format", "hard_truncation_allowed", "rewrite_request_allowed"],
+      "properties": {
+        "default_class": { "enum": ["ACK", "QUESTION", "STATUS", "RESULT", "AUDIT", "USER_FORMAT"] },
+        "artifact_first": { "type": "boolean" },
+        "ui_first_progress": { "type": "boolean" },
+        "suppress_duplicate_progress": { "type": "boolean" },
+        "stable_policy_in_prefix": { "const": true },
+        "directive_placement": { "enum": ["STABLE_POLICY_ONLY", "DYNAMIC_SUFFIX"] },
+        "adaptive_text_budget": { "const": true },
+        "history_rewrite_policy": { "const": "GENERATION_BOUNDARY_ONLY" },
+        "goal_level_rebound_guard": { "const": true },
+        "generated_content_accounting": { "const": "PROVIDER_OUTPUT_WITH_REASONING_AND_TOOL_ARGUMENT_ATTRIBUTION" },
+        "tool_result_projection_policy": { "const": "EVIDENCE_LIVENESS_ROUTED" },
+        "preserve_user_requested_format": { "const": true },
+        "hard_truncation_allowed": { "const": false },
+        "rewrite_request_allowed": { "const": false }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "severity", "mitigation", "owner_stage_id"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "description": { "$ref": "#/$defs/nonEmpty" },
+        "severity": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "mitigation": { "$ref": "#/$defs/nonEmpty" },
+        "owner_stage_id": { "$ref": "#/$defs/id" }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_receipt_types", "required_review_gates", "all_acceptance_covered"],
+      "properties": {
+        "required_receipt_types": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "required_review_gates": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } },
+        "all_acceptance_covered": { "const": true },
+        "user_decision_required": { "type": "boolean" }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalization", "requirement_payload_sha256", "plan_payload_sha256", "artifact_sha256"],
+      "properties": {
+        "canonicalization": { "const": "PCH-CJ1" },
+        "requirement_payload_sha256": { "$ref": "#/$defs/sha256" },
+        "plan_payload_sha256": { "$ref": "#/$defs/sha256" },
+        "artifact_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

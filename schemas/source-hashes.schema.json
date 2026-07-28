@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/source-hashes.schema.json",
+  "title": "PCH release source hash manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "generated_at", "algorithm", "target_root", "input_sources", "target_files"],
+  "properties": {
+    "$schema": { "const": "../schemas/source-hashes.schema.json" },
+    "schema_version": { "const": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "algorithm": { "const": "SHA-256" },
+    "target_root": { "const": "." },
+    "input_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["migration_id", "source", "sha256", "disposition"],
+        "properties": {
+          "migration_id": { "type": "string", "pattern": "^MIG-[0-9]{3}$" },
+          "source": { "type": "string", "minLength": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "disposition": { "enum": ["COPIED", "REWRITTEN"] }
+        }
+      }
+    },
+    "target_files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "bytes"],
+        "properties": {
+          "path": { "$ref": "#/$defs/relativePath" },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "relativePath": { "type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:)(?![\\\\/]).+" }
+  }
+}

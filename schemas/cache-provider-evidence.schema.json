@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/cache-provider-evidence.schema.json",
+  "title": "Provider-specific Cache C1 activation evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "evidence_id", "generated_at", "source", "window", "usage", "models_observed", "semantics", "decision", "limitations"],
+  "properties": {
+    "$schema": { "const": "../schemas/cache-provider-evidence.schema.json" },
+    "schema_version": { "const": 1 },
+    "evidence_id": { "type": "string", "pattern": "^PCH-CACHE-EVIDENCE-[A-Z0-9-]+$" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "pi_version", "provider", "api", "base_url", "content_retained", "credentials_accessed"],
+      "properties": {
+        "kind": { "const": "PREEXISTING_PI_SESSION_NORMALIZED_USAGE" },
+        "pi_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "provider": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "api": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "base_url": { "type": "string", "pattern": "^https://[^\\s]+$", "maxLength": 2048 },
+        "content_retained": { "const": false },
+        "credentials_accessed": { "const": false }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "requested_samples", "selected_samples", "session_count", "first_at", "last_at", "membership_sha256", "fixed_before_activation"],
+      "properties": {
+        "policy": { "const": "LATEST_PREEXISTING_PROVIDER_USAGE" },
+        "requested_samples": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "selected_samples": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "session_count": { "type": "integer", "minimum": 1 },
+        "first_at": { "type": "string", "format": "date-time" },
+        "last_at": { "type": "string", "format": "date-time" },
+        "membership_sha256": { "$ref": "#/$defs/sha256" },
+        "fixed_before_activation": { "const": true }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positive_cache_read_samples", "zero_cache_read_samples", "uncached_input_tokens", "cache_read_tokens", "cache_write_tokens", "effective_input_tokens", "positive_provider_report_share", "token_read_share"],
+      "properties": {
+        "positive_cache_read_samples": { "type": "integer", "minimum": 0 },
+        "zero_cache_read_samples": { "type": "integer", "minimum": 0 },
+        "uncached_input_tokens": { "type": "integer", "minimum": 0 },
+        "cache_read_tokens": { "type": "integer", "minimum": 0 },
+        "cache_write_tokens": { "type": "integer", "minimum": 0 },
+        "effective_input_tokens": { "type": "integer", "minimum": 0 },
+        "positive_provider_report_share": { "type": "number", "minimum": 0, "maximum": 1 },
+        "token_read_share": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "models_observed": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["model", "samples"],
+        "properties": {
+          "model": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "samples": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positive_cache_read", "zero_cache_read", "pi_normalization", "request_hit_rate_claim"],
+      "properties": {
+        "positive_cache_read": { "const": "PROVIDER_REPORTED_HIT" },
+        "zero_cache_read": { "const": "UNOBSERVABLE" },
+        "pi_normalization": { "const": "MISSING_CACHED_TOKENS_DEFAULTS_TO_ZERO" },
+        "request_hit_rate_claim": { "const": "PROHIBITED" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "arm", "provider_integration", "allow_payload_mutation", "allow_live_canary", "fallback", "reason"],
+      "properties": {
+        "result": { "enum": ["ACTIVATE", "EXTERNAL_LIMIT"] },
+        "arm": { "enum": ["C0", "C1_PREFIX"] },
+        "provider_integration": { "type": ["string", "null"], "maxLength": 256 },
+        "allow_payload_mutation": { "const": false },
+        "allow_live_canary": { "const": false },
+        "fallback": { "const": "C0" },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1, "maxLength": 2048 }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" }
+  }
+}

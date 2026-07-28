@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/context-demand.schema.json",
+  "title": "PCH Input Context v1 ContextDemand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "demand_id", "subject", "profile", "next_action_sha256", "obligations", "source_closure_root_sha256", "acceptance_closure_root_sha256", "context_pressure", "runtime_fingerprint_sha256", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "demand_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "subject": { "$ref": "input-context-common.schema.json#/$defs/executionSubjectRef" },
+    "profile": { "$ref": "input-context-common.schema.json#/$defs/contextProfile" },
+    "next_action_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "obligations": { "type": "array", "items": { "$ref": "input-context-common.schema.json#/$defs/evidenceObligation" }, "maxItems": 128 },
+    "source_closure_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "acceptance_closure_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/nullableSha256" },
+    "context_pressure": { "enum": ["LOW", "MEDIUM", "HIGH", "UNKNOWN"] },
+    "runtime_fingerprint_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "profile": { "const": "PASS_THROUGH" } }, "required": ["profile"] },
+      "then": { "properties": { "subject": { "type": "object", "properties": { "kind": { "const": "NONE" } } }, "obligations": { "type": "array", "maxItems": 0 } } }
+    },
+    {
+      "if": { "properties": { "profile": { "not": { "const": "PASS_THROUGH" } } }, "required": ["profile"] },
+      "then": { "properties": { "subject": { "type": "object", "properties": { "kind": { "not": { "const": "NONE" } } } } } }
+    }
+  ]
+}

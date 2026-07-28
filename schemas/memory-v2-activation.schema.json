@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/memory-v2-activation.schema.json",
+  "title": "PCH Memory v2 activation report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "report_type", "status", "verdict", "activation_basis",
+    "promotion_arm", "activation_epoch", "generated_at", "inputs", "runtime_fingerprint", "checks"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "report_type": { "const": "PCH_MEMORY_V2_ACTIVATION" },
+    "status": { "const": "PASS" },
+    "verdict": { "const": "ACTIVATE_EXPERIMENTAL" },
+    "activation_basis": { "const": "USER_EXPLICIT_EXPERIMENTAL" },
+    "promotion_arm": { "const": "M5" },
+    "activation_epoch": { "type": "string", "pattern": "^MEMORY-V2-EXPERIMENTAL-[0-9]{3}$" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "performance", "matched"],
+      "properties": {
+        "contract": { "$ref": "#/$defs/file" },
+        "performance": { "$ref": "#/$defs/file" },
+        "matched": { "$ref": "#/$defs/file" }
+      }
+    },
+    "runtime_fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "thinking_level", "context_window"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "thinking_level": { "type": "string", "minLength": 1 },
+        "context_window": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "minProperties": 8,
+      "additionalProperties": { "const": true }
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^reports/memory-v2-(contract|performance|matched)\\.json$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  }
+}

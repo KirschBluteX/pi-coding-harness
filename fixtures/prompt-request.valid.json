@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "prompt_request_id": "PROMPT-REQ-DEMO-002",
+  "prompt_generation_id": "PROMPT-GEN-DEMO-002",
+  "previous_prompt_request_id": "PROMPT-REQ-DEMO-001",
+  "request_sequence": 2,
+  "history_action": "APPEND",
+  "append_only_verification": "VERIFIED",
+  "logical_request_hmac_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+  "logical_reusable_prefix_hmac_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+  "provider_prompt_hmac_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+  "provider_prompt_reusable_prefix_hmac_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+  "provider_prompt_contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "provider_prompt_observability": "EXACT_AFTER_HOOK",
+  "reusable_prefix_method": "EXACT_PROVIDER_PROMPT_SEQUENCE_LCP",
+  "token_counts": {
+    "total_input_tokens": 4608,
+    "provider_prompt_tokens": 4608,
+    "stable_contract_prefix_tokens": 2048,
+    "provider_prompt_lcp_tokens": 4096,
+    "dynamic_suffix_tokens": 512,
+    "response_directive_input_tokens": 18,
+    "tokenizer_source": "PROVIDER"
+  },
+  "response_contract_id": "RESPONSE-DEMO-001",
+  "directive_profile": "COMPACT_SUFFIX",
+  "contains_prompt_content": false,
+  "recorded_at": "2026-07-22T08:00:01Z"
+}

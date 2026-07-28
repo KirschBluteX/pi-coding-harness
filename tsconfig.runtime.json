@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "sourceMap": false,
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "tests/**/*.ts",
+    "src/memory/engine.ts",
+    "src/memory/index-drainer.ts",
+    "src/memory/ranking.ts",
+    "src/memory/retrieval.ts",
+    "src/memory/telemetry.ts"
+  ]
+}

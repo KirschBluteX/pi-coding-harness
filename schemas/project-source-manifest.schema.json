@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/project-source-manifest.schema.json",
+  "title": "PCH Input Context v1 project source manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_id", "workspace_id", "subject", "entries", "created_at_ms", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "manifest_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "workspace_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "subject": { "$ref": "input-context-common.schema.json#/$defs/executionSubjectRef" },
+    "entries": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "source_kind", "workspace_path_hmac", "content_sha256", "source_version_handle_hmac", "trust", "content_freshness", "representation_fidelity", "classification"],
+        "properties": {
+          "source_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+          "source_kind": { "enum": ["PROJECT_GUIDE", "PROJECT_DOCUMENT", "USER_SELECTED_STRATEGY", "CONFIGURATION", "OTHER"] },
+          "workspace_path_hmac": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+          "content_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+          "source_version_handle_hmac": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+          "trust": { "enum": ["AUTHORITY", "VERIFIED_EVIDENCE", "UNTRUSTED_CONTEXT"] },
+          "content_freshness": { "enum": ["HASH_CURRENT", "CHANGE_WITNESS_CURRENT"] },
+          "representation_fidelity": { "enum": ["EXACT_RAW", "EXACT_DECODED", "TYPED_EXTRACT"] },
+          "classification": { "$ref": "input-context-common.schema.json#/$defs/classification" }
+        }
+      }
+    },
+    "created_at_ms": { "$ref": "input-context-common.schema.json#/$defs/nonNegativeInteger" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  }
+}

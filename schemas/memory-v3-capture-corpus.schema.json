@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/memory-v3-capture-corpus.schema.json",
+  "title": "PCH Memory v3.1 Chinese capture corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "language", "minimum_expanded_cases", "subjects", "families"],
+  "properties": {
+    "$schema": { "const": "../schemas/memory-v3-capture-corpus.schema.json" },
+    "schema_version": { "const": 1 },
+    "language": { "const": "zh-CN" },
+    "minimum_expanded_cases": { "type": "integer", "minimum": 1000 },
+    "subjects": {
+      "type": "array",
+      "minItems": 20,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 2, "pattern": "[\\u3400-\\u9fff]" }
+    },
+    "families": {
+      "type": "array",
+      "minItems": 7,
+      "items": { "$ref": "#/$defs/family" }
+    }
+  },
+  "$defs": {
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prefixes", "suffixes", "source_kind", "source_actor", "intent_ownership", "expected_route", "expected_disposition", "active_allowed"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]{2,63}$" },
+        "prefixes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "pattern": "[\\u3400-\\u9fff]" } },
+        "suffixes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+        "source_kind": { "enum": ["USER_INPUT", "AUTHORITY_DECISION", "ROUTE_FAILURE", "AGENT_PROPOSAL"] },
+        "source_actor": { "enum": ["USER", "AGENT", "RUNTIME"] },
+        "intent_ownership": { "enum": ["NONE", "GOAL_INTAKE", "REQUIREMENT_REVISION", "PLAN_REVISION", "ACTIVE_BUILD"] },
+        "authority_verified": { "type": "boolean" },
+        "user_decision_receipt": { "type": "boolean" },
+        "expected_route": { "enum": ["EXPLICIT_AUTO", "AUTHORITY_DERIVED", "PROPOSE_ONLY", "REJECT"] },
+        "expected_disposition": { "enum": ["MEMORY_ELIGIBLE", "REQUIREMENT_FIRST", "PLAN_FIRST", "UNCERTAIN_PROPOSE"] },
+        "active_allowed": { "type": "boolean" }
+      }
+    }
+  }
+}

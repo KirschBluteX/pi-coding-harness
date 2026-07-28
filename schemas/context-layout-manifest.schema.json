@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/context-layout-manifest.schema.json",
+  "title": "PCH Input Context v1 layout manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "layout_manifest_id", "context_envelope_sha256", "prompt_generation_id", "ordered_segment_root_sha256", "segment_count", "entries", "canonical_encoder_version", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "layout_manifest_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "context_envelope_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "prompt_generation_id": { "$ref": "input-context-common.schema.json#/$defs/nullableId" },
+    "ordered_segment_root_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "segment_count": { "type": "integer", "minimum": 0, "maximum": 256 },
+    "entries": { "type": "array", "items": { "$ref": "input-context-common.schema.json#/$defs/layoutEntry" }, "maxItems": 256 },
+    "canonical_encoder_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  }
+}

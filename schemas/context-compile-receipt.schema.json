@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/context-compile-receipt.schema.json",
+  "title": "PCH Input Context v1 compile receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "compile_receipt_id", "working_set_id", "envelope_sha256", "input_closure_sha256", "mandatory_obligation_count", "mandatory_covered_count", "discovery_debt_count", "omitted_optional_count", "fallback", "duration_micros", "created_at_ms", "receipt_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "compile_receipt_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "working_set_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "envelope_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "input_closure_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "mandatory_obligation_count": { "type": "integer", "minimum": 0, "maximum": 128 },
+    "mandatory_covered_count": { "type": "integer", "minimum": 0, "maximum": 128 },
+    "discovery_debt_count": { "type": "integer", "minimum": 0, "maximum": 128 },
+    "omitted_optional_count": { "type": "integer", "minimum": 0, "maximum": 4096 },
+    "fallback": { "enum": ["NONE", "PI_BASELINE", "FRESH_READ", "NATIVE_RECOVERY"] },
+    "duration_micros": { "type": "integer", "minimum": 0, "maximum": 60000000 },
+    "created_at_ms": { "$ref": "input-context-common.schema.json#/$defs/nonNegativeInteger" },
+    "receipt_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  }
+}

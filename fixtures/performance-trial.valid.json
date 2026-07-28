@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "trial_id": "TRIAL-DEMO-001",
+  "opportunity_id": "OPPORTUNITY-DEMO-001",
+  "epoch_id": "PERF-EPOCH-DEMO-001",
+  "goal_id": "GOAL-DEMO-001",
+  "stage_id": "STAGE-DEMO-001",
+  "work_item_id": "WORK-DEMO-001",
+  "plan_revision_id": "PLAN-REV-DEMO-001",
+  "performance_contract_id": "PERF-DEMO-001",
+  "performance_contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "baseline_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "baseline_correctness_receipt_id": "RCP-BASELINE-CORRECT-001",
+  "baseline_metric_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "environment_fingerprint_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "candidate_patch_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "hypothesis": "An indexed bounded lookup reduces recovery latency without changing recovered state.",
+  "opportunity_admission": {
+    "source": "EXISTING_PROFILE",
+    "evidence_receipt_id": "RCP-PROFILE-DEMO-001",
+    "hotspot_fraction": 0.42,
+    "theoretical_speedup_ceiling_pct": 18,
+    "end_to_end_metric_ids": ["METRIC-DEMO-001"],
+    "result": "PASS"
+  },
+  "scope": ["src/runtime/recovery.ts"],
+  "workload_ids": ["WORKLOAD-DEMO-001", "WORKLOAD-DEMO-REGRESSION-001", "WORKLOAD-DEMO-HOLDOUT-001"],
+  "holdout_workload_ids": ["WORKLOAD-DEMO-HOLDOUT-001"],
+  "metric_ids": ["METRIC-DEMO-001"],
+  "correctness_acceptance_ids": ["AC-DEMO-001"],
+  "protocol_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "candidate_family_id": "FAMILY-DEMO-001",
+  "candidate_index": 1,
+  "authorization": {
+    "kind": "AUTO_WITHIN_FROZEN_CONTRACT",
+    "decision_id": null
+  },
+  "automatic_promotion_eligible": true,
+  "reversible": true,
+  "rollback_action": "Discard the candidate patch and retain the hash-bound baseline revision.",
+  "kill_conditions": ["Any correctness failure", "Environment fingerprint drift", "Trial or user-blocking budget exhaustion"],
+  "created_at": "2026-07-22T08:00:00Z"
+}

@@ -1,0 +1,162 @@
+{
+  "$schema": "../schemas/acceptance.schema.json",
+  "schema_version": 1,
+  "contract_id": "PCH-ACCEPTANCE-1",
+  "goal": "Release a self-contained, low-overhead Pi Coding Harness whose Single and Multi paths are durable, recoverable, configuration-honoring and independently verifiable.",
+  "hard_constraints": [
+    "PCH-ACC-002",
+    "PCH-ACC-004",
+    "PCH-ACC-005",
+    "PCH-ACC-006",
+    "PCH-ACC-008",
+    "PCH-ACC-009",
+    "PCH-ACC-011",
+    "PCH-ACC-012",
+    "PCH-ACC-013"
+  ],
+  "criteria": [
+    {
+      "id": "PCH-ACC-001",
+      "statement": "A clean dependency install compiles, lints, builds and passes the complete current test suite.",
+      "class": "FUNCTIONAL",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P10"],
+      "review_gates": ["RG-12"],
+      "tests": ["npm ci", "npm run compile", "npm run lint", "npm run build", "npm test"],
+      "blueprint_sections": ["Section 18 Lifecycle and packaging", "Section 19 Acceptance matrix"]
+    },
+    {
+      "id": "PCH-ACC-002",
+      "statement": "Authority migrations 001 through 017 apply in order with immutable triggers, foreign keys and integrity intact.",
+      "class": "AUTHORITY",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P2"],
+      "review_gates": ["RG-03"],
+      "tests": ["npm run verify:sql", "tests/fault/harness-migration.test.ts", "tests/fault/harness-post-migration.test.ts"],
+      "blueprint_sections": ["Section 8 Durable authority and schema"]
+    },
+    {
+      "id": "PCH-ACC-003",
+      "statement": "The release has one authoritative blueprint and valid JSON, Markdown and Mermaid.",
+      "class": "DOCUMENTATION",
+      "required": true,
+      "evidence": ["STATIC", "DETERMINISTIC"],
+      "implementation_phases": ["P10"],
+      "review_gates": ["RG-12"],
+      "tests": ["npm run verify:json", "npm run verify:markdown", "npm run verify:self-contained"],
+      "blueprint_sections": ["Section 2 Final design audit", "Section 19 Acceptance matrix"]
+    },
+    {
+      "id": "PCH-ACC-004",
+      "statement": "Before explicit /coding entry there is no Host, SQLite, RPC, prompt addition or extra model/provider request.",
+      "class": "PERFORMANCE",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P1"],
+      "review_gates": ["RG-10"],
+      "tests": ["tests/pi/coding-harness-bridge.test.ts"],
+      "blueprint_sections": ["Section 4 Entry, intent and topology", "Section 17 Performance budgets"]
+    },
+    {
+      "id": "PCH-ACC-005",
+      "statement": "Single execution gates canonical mutations, readback and fresh oracle evidence before delivery.",
+      "class": "AUTHORITY",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P4"],
+      "review_gates": ["RG-04"],
+      "tests": ["tests/integration/task-flow-session.test.ts", "tests/integration/harness-authority.test.ts", "tests/unit/verification-order.test.ts"],
+      "blueprint_sections": ["Section 5 Goal and route workflow", "Section 6 Single execution"]
+    },
+    {
+      "id": "PCH-ACC-006",
+      "statement": "Multi Workers are role/scoped, fenced and isolated; PatchSets integrate serially without overwriting conflicts.",
+      "class": "SAFETY",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P5"],
+      "review_gates": ["RG-06"],
+      "tests": ["tests/integration/harness-worker-executor.test.ts", "tests/integration/harness-worker-lifecycle.test.ts", "tests/unit/harness-worker-runtime-policy.test.ts"],
+      "blueprint_sections": ["Section 7 Multi execution", "Section 15 Security and privacy"]
+    },
+    {
+      "id": "PCH-ACC-007",
+      "statement": "Plan offers Build, Keep and Revise while route health closes retry, repair, replan, ask and reconcile paths.",
+      "class": "FUNCTIONAL",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P3"],
+      "review_gates": ["RG-01"],
+      "tests": ["tests/unit/task-flow-finalization-v2.test.ts", "tests/unit/plan-health.test.ts", "tests/pi/coding-harness-bridge.test.ts"],
+      "blueprint_sections": ["Section 5 Goal and route workflow"]
+    },
+    {
+      "id": "PCH-ACC-008",
+      "statement": "Memory guarded/manual lifecycle and Input Context exact/deferred/fallback paths preserve privacy and bounded context.",
+      "class": "PRIVACY",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P6", "P7"],
+      "review_gates": ["RG-07"],
+      "tests": ["tests/integration/memory-v3-lifecycle.test.ts", "tests/integration/memory-privacy.test.ts", "tests/unit/input-context-context-tool.test.ts", "tests/pi/coding-harness-bridge.test.ts"],
+      "blueprint_sections": ["Section 9 Memory v3", "Section 10 Input Context"]
+    },
+    {
+      "id": "PCH-ACC-009",
+      "statement": "Compaction 2.1 verifies the exact authority frontier across native Pi compaction and restart.",
+      "class": "AUTHORITY",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P8"],
+      "review_gates": ["RG-08"],
+      "tests": ["tests/integration/harness-host-runtime.test.ts", "tests/integration/harness-authority.test.ts"],
+      "blueprint_sections": ["Section 11 Compaction 2.1"]
+    },
+    {
+      "id": "PCH-ACC-010",
+      "statement": "Install, upgrade, doctor, uninstall and arbitrary-cwd loading work from the final self-contained root.",
+      "class": "FUNCTIONAL",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P10"],
+      "review_gates": ["RG-12"],
+      "tests": ["npm run verify:lifecycle", "arbitrary-cwd-import", "scripts/doctor.ps1"],
+      "blueprint_sections": ["Section 18 Lifecycle and packaging"]
+    },
+    {
+      "id": "PCH-ACC-011",
+      "statement": "Local P50 and P95 performance budgets pass with zero additional model/provider requests.",
+      "class": "PERFORMANCE",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION"],
+      "implementation_phases": ["P9"],
+      "review_gates": ["RG-10"],
+      "tests": ["npm run verify:performance", "docs/PERFORMANCE-BUDGET.md"],
+      "blueprint_sections": ["Section 14 Target-project performance", "Section 17 Performance budgets"]
+    },
+    {
+      "id": "PCH-ACC-012",
+      "statement": "Release closure contains no secret, obsolete public surface, fixed model/thinking/window, reparse link or external runtime dependency.",
+      "class": "MIGRATION",
+      "required": true,
+      "evidence": ["STATIC", "DETERMINISTIC"],
+      "implementation_phases": ["P10"],
+      "review_gates": ["RG-12"],
+      "tests": ["npm run verify:self-contained", "manifests/MIGRATION-MANIFEST.json", "manifests/SOURCE-HASHES.json"],
+      "blueprint_sections": ["Section 15 Security and privacy", "Section 18 Lifecycle and packaging"]
+    },
+    {
+      "id": "PCH-ACC-013",
+      "statement": "The verified provider/API/base URL activates non-mutating Cache C1, positive provider usage is attributable, normalized zero remains unknown, and unsupported runtimes fall back to C0.",
+      "class": "PERFORMANCE",
+      "required": true,
+      "evidence": ["DETERMINISTIC", "INTEGRATION", "LIVE_TRANSPORT"],
+      "implementation_phases": ["P8"],
+      "review_gates": ["RG-08", "RG-10"],
+      "tests": ["tests/integration/cache-v2-harness.test.ts", "tests/integration/harness-host-runtime.test.ts", "manifests/CACHE-PROVIDER-EVIDENCE.json"],
+      "blueprint_sections": ["Section 12 Cache v2", "Section 17 Performance budgets"]
+    }
+  ]
+}

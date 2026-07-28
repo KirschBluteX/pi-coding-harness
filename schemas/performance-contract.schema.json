@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/performance-contract.schema.json",
+  "title": "PCH target-project PerformanceContract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "mode",
+    "activation_basis",
+    "opportunity_policy",
+    "opportunity_admission",
+    "project_scope",
+    "workloads",
+    "metrics",
+    "correctness_acceptance_ids",
+    "experiment_budget",
+    "trial_protocol",
+    "regression_policy"
+  ],
+  "properties": {
+    "schema_version": { "const": 3 },
+    "contract_id": { "$ref": "#/$defs/id" },
+    "mode": { "enum": ["BASELINE_GUARD", "AUTO_GUARDED", "REQUIRED", "OFF_BY_USER"] },
+    "activation_basis": {
+      "enum": ["BASELINE_DEFAULT", "USER_REQUEST", "REQUIREMENT_ACCEPTANCE", "OBSERVED_REGRESSION", "CONFIG_OPT_IN"]
+    },
+    "opportunity_policy": { "enum": ["ROUTE_ONLY", "STATIC_EVIDENCE", "PROFILE_WHEN_JUSTIFIED"] },
+    "opportunity_admission": { "$ref": "#/$defs/opportunityAdmission" },
+    "project_scope": { "$ref": "#/$defs/projectScope" },
+    "workloads": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/workload" }
+    },
+    "metrics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/metric" }
+    },
+    "correctness_acceptance_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "experiment_budget": { "$ref": "#/$defs/experimentBudget" },
+    "trial_protocol": { "$ref": "#/$defs/trialProtocol" },
+    "regression_policy": { "$ref": "#/$defs/regressionPolicy" },
+    "user_decision_id": {
+      "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9._:-]{1,127}$" },
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "opportunityAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_sources", "scan_scope", "require_measured_or_bounded_hotspot", "minimum_hotspot_fraction", "minimum_theoretical_speedup_pct", "end_to_end_metric_required", "unknown_action"],
+      "properties": {
+        "allowed_sources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["USER_REQUIREMENT", "OBSERVED_REGRESSION", "EXISTING_PROFILE", "STATIC_EVIDENCE", "REPRODUCIBLE_TOOL_EVIDENCE"] }
+        },
+        "scan_scope": { "const": "FROZEN_INCLUDE_ONLY" },
+        "require_measured_or_bounded_hotspot": { "const": true },
+        "minimum_hotspot_fraction": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "minimum_theoretical_speedup_pct": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 },
+        "end_to_end_metric_required": { "const": true },
+        "unknown_action": { "const": "ADVICE_ONLY" }
+      }
+    },
+    "projectScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["include", "exclude", "sensitive_path_policy"],
+      "properties": {
+        "include": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmpty" }
+        },
+        "exclude": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmpty" }
+        },
+        "sensitive_path_policy": { "const": "EXCLUDE_UNLESS_EXPLICITLY_AUTHORIZED" }
+      }
+    },
+    "workload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "scenario", "dataset_or_fixture", "scale", "temperature", "provenance", "representativeness", "acceptance_ids"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "role": { "enum": ["PRIMARY", "REGRESSION", "HOLDOUT"] },
+        "scenario": { "$ref": "#/$defs/nonEmpty" },
+        "dataset_or_fixture": { "$ref": "#/$defs/nonEmpty" },
+        "scale": { "$ref": "#/$defs/nonEmpty" },
+        "temperature": { "enum": ["COLD", "WARM", "BOTH"] },
+        "provenance": { "$ref": "#/$defs/nonEmpty" },
+        "representativeness": { "$ref": "#/$defs/nonEmpty" },
+        "acceptance_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "name", "unit", "direction", "aggregation", "target", "workload_ids", "measurement_protocol"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "role": { "enum": ["PRIMARY_GATE", "REGRESSION_GATE", "OBSERVATION"] },
+        "name": { "$ref": "#/$defs/nonEmpty" },
+        "unit": { "$ref": "#/$defs/nonEmpty" },
+        "direction": { "enum": ["LOWER", "HIGHER", "EXACT"] },
+        "aggregation": { "enum": ["SINGLE", "COUNT", "RATE", "P50", "P95", "P99", "MEAN", "PAIRED_DELTA"] },
+        "target": { "$ref": "#/$defs/target" },
+        "workload_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "measurement_protocol": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value", "relative_improvement_pct", "tolerance"],
+      "properties": {
+        "kind": { "enum": ["ABSOLUTE", "RELATIVE_IMPROVEMENT", "BASELINE_NON_REGRESSION", "MAXIMIZE_WITHIN_BUDGET"] },
+        "value": { "type": ["number", "null"] },
+        "relative_improvement_pct": { "type": ["number", "null"], "minimum": 0 },
+        "tolerance": { "type": "number", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "ABSOLUTE" } } },
+          "then": { "properties": { "value": { "type": "number" }, "relative_improvement_pct": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "RELATIVE_IMPROVEMENT" } } },
+          "then": { "properties": { "value": { "type": "null" }, "relative_improvement_pct": { "type": "number", "exclusiveMinimum": 0 } } }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["BASELINE_NON_REGRESSION", "MAXIMIZE_WITHIN_BUDGET"] } } },
+          "then": { "properties": { "value": { "type": "null" }, "relative_improvement_pct": { "type": "null" } } }
+        }
+      ]
+    },
+    "experimentBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_trials", "max_wall_time_ms", "max_user_blocking_ms", "allow_background"],
+      "properties": {
+        "max_trials": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "max_wall_time_ms": { "type": "integer", "minimum": 0, "maximum": 86400000 },
+        "max_user_blocking_ms": { "type": "integer", "minimum": 0, "maximum": 600000 },
+        "allow_background": { "type": "boolean" }
+      }
+    },
+    "trialProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_pairs",
+        "max_pairs",
+        "order_policy",
+        "warmup_policy",
+        "confidence_method",
+        "confidence_level",
+        "confidence_bound_required",
+        "bootstrap_resamples",
+        "random_seed",
+        "minimum_practical_improvement_pct",
+        "max_coefficient_of_variation",
+        "stopping_rule",
+        "outlier_policy",
+        "environment_drift_action",
+        "multiple_candidate_policy",
+        "candidate_family_size",
+        "holdout_policy",
+        "holdout_justification",
+        "holdout_waiver_promotion",
+        "analysis_population",
+        "pair_exclusion_policy",
+        "environment_fingerprint_fields",
+        "automatic_benefit_horizon"
+      ],
+      "properties": {
+        "min_pairs": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "max_pairs": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "order_policy": { "enum": ["RANDOMIZED_INTERLEAVED", "ALTERNATING", "PROJECT_NATIVE"] },
+        "warmup_policy": { "enum": ["PROJECT_NATIVE", "FIXED_DISCARDED", "NONE_JUSTIFIED"] },
+        "confidence_method": { "enum": ["PROJECT_NATIVE", "PAIRED_BOOTSTRAP", "PAIRED_NONPARAMETRIC"] },
+        "confidence_level": { "type": "number", "minimum": 0.9, "maximum": 0.999 },
+        "confidence_bound_required": { "const": true },
+        "bootstrap_resamples": { "type": "integer", "minimum": 1000, "maximum": 1000000 },
+        "random_seed": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "minimum_practical_improvement_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "max_coefficient_of_variation": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 10 },
+        "stopping_rule": { "enum": ["FIXED_PAIRS", "SEQUENTIAL_ALPHA_SPENDING", "PROJECT_NATIVE_PREDECLARED"] },
+        "outlier_policy": { "enum": ["KEEP_AND_REPORT", "PROJECT_NATIVE_PREDECLARED"] },
+        "environment_drift_action": { "enum": ["NEW_EPOCH", "REJECT"] },
+        "multiple_candidate_policy": { "enum": ["ONE_AT_A_TIME", "CORRECTED_COMPARISON", "PROJECT_NATIVE"] },
+        "candidate_family_size": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "holdout_policy": { "enum": ["REQUIRED", "NOT_APPLICABLE_WITH_JUSTIFICATION", "PROJECT_NATIVE_PREDECLARED"] },
+        "holdout_justification": { "type": ["string", "null"], "minLength": 1 },
+        "holdout_waiver_promotion": { "const": "USER_DECISION_ONLY" },
+        "analysis_population": { "const": "ALL_PREDECLARED_VALID_PAIRS" },
+        "pair_exclusion_policy": { "const": "PREDECLARED_ONLY" },
+        "environment_fingerprint_fields": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmpty" }
+        },
+        "automatic_benefit_horizon": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "payback_metric_id", "max_payback_executions", "estimated_payback_executions", "basis"],
+          "properties": {
+            "required": { "type": "boolean" },
+            "payback_metric_id": {
+              "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+            },
+            "max_payback_executions": { "type": ["integer", "null"], "minimum": 1, "maximum": 1000000000 },
+            "estimated_payback_executions": { "type": ["number", "null"], "minimum": 0, "maximum": 1000000000 },
+            "basis": { "$ref": "#/$defs/nonEmpty" }
+          }
+        }
+      }
+    },
+    "regressionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["correctness_first", "baseline_required_for_performance_affecting_stage", "paired_benchmark_required_for_optimization", "confidence_bound_required_for_promotion", "max_relative_regression_pct", "noisy_result_action"],
+      "properties": {
+        "correctness_first": { "const": true },
+        "baseline_required_for_performance_affecting_stage": { "const": true },
+        "paired_benchmark_required_for_optimization": { "const": true },
+        "confidence_bound_required_for_promotion": { "const": true },
+        "max_relative_regression_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "noisy_result_action": { "enum": ["NEED_MORE_EVIDENCE", "REJECT"] }
+      }
+    }
+  }
+}

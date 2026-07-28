@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/config.schema.json",
+  "title": "Pi Coding Harness configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "requirements", "execution", "modules", "ui", "performance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "batch_questions", "max_initial_questions", "safe_default_policy"],
+      "properties": {
+        "profile": { "enum": ["AUTO", "TASK_SPEC", "PRD"] },
+        "batch_questions": { "const": true },
+        "max_initial_questions": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "safe_default_policy": { "enum": ["LOW_RISK_ONLY", "NEVER"] }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root": { "type": "string", "minLength": 1 },
+        "require_local_filesystem": { "const": true },
+        "sqlite_busy_timeout_ms": { "type": "integer", "minimum": 100, "maximum": 30000 }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_intent", "planning_depth", "same_failure_retry_limit", "lease_ttl_ms"],
+      "properties": {
+        "default_intent": { "enum": ["AUTO", "PLAN_ONLY", "BUILD", "PLAN_THEN_BUILD"] },
+        "planning_depth": { "enum": ["AUTO", "BYPASS", "LIGHT", "STANDARD", "FULL"] },
+        "same_failure_retry_limit": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "lease_ttl_ms": { "type": "integer", "minimum": 5000, "maximum": 300000 },
+        "worker_timeout_ms": { "type": "integer", "minimum": 10000, "maximum": 3600000 },
+        "max_parallel_workers": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "worker_runtime": { "$ref": "#/$defs/workerRuntimePolicy" }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memory", "input_context", "compaction", "cache", "output"],
+      "properties": {
+        "memory": { "$ref": "#/$defs/memoryModule" },
+        "input_context": { "$ref": "#/$defs/inputContextModule" },
+        "compaction": { "$ref": "#/$defs/optionalModule" },
+        "cache": { "$ref": "#/$defs/cacheModule" },
+        "output": { "$ref": "#/$defs/outputModule" }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widget", "status", "debounce_ms", "max_widget_lines"],
+      "properties": {
+        "widget": { "type": "boolean" },
+        "status": { "type": "boolean" },
+        "debounce_ms": { "type": "integer", "minimum": 50, "maximum": 2000 },
+        "max_widget_lines": { "type": "integer", "minimum": 1, "maximum": 6 }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "telemetry_days": { "type": "integer", "minimum": 1, "maximum": 3650 },
+        "unreferenced_artifact_days": { "type": "integer", "minimum": 1, "maximum": 3650 }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enforce_budgets", "optional_module_auto_bypass", "window_samples", "paired_min_samples", "target_project"],
+      "properties": {
+        "enforce_budgets": { "const": true },
+        "optional_module_auto_bypass": { "type": "boolean" },
+        "window_samples": { "type": "integer", "minimum": 10, "maximum": 1000 },
+        "paired_min_samples": { "type": "integer", "minimum": 5, "maximum": 1000 },
+        "target_project": { "$ref": "#/$defs/targetProjectPerformance" },
+        "budgets_file": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "workerRuntimePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unavailable_policy", "roles"],
+      "properties": {
+        "unavailable_policy": { "const": "INHERIT_SUPERVISOR" },
+        "roles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["PLANNER", "EXPLORER", "IMPLEMENTER", "VERIFIER", "INTEGRATOR"],
+          "properties": {
+            "PLANNER": { "$ref": "#/$defs/workerRoleRuntime" },
+            "EXPLORER": { "$ref": "#/$defs/workerRoleRuntime" },
+            "IMPLEMENTER": { "$ref": "#/$defs/workerRoleRuntime" },
+            "VERIFIER": { "$ref": "#/$defs/workerRoleRuntime" },
+            "INTEGRATOR": { "$ref": "#/$defs/workerRoleRuntime" }
+          }
+        }
+      }
+    },
+    "workerRoleRuntime": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source"],
+          "properties": { "source": { "const": "INHERIT_SUPERVISOR" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source", "provider_id", "model_id", "thinking_level"],
+          "properties": {
+            "source": { "const": "PI_CONFIG" },
+            "provider_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "model_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "thinking_level": { "enum": ["INHERIT_SUPERVISOR", "off", "minimal", "low", "medium", "high", "xhigh", "max"] }
+          }
+        }
+      ]
+    },
+    "inputContextModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "mode", "epoch", "fallback", "soft_evidence_tokens", "hard_evidence_tokens", "max_batch_items", "max_batch_bytes", "cursor_ttl_ms"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": { "enum": ["OFF", "OBSERVE", "AUTO_GUARDED"] },
+        "epoch": { "type": "string", "minLength": 1 },
+        "fallback": { "const": "PI_BASELINE" },
+        "soft_evidence_tokens": { "type": "integer", "minimum": 64, "maximum": 32768 },
+        "hard_evidence_tokens": { "type": "integer", "minimum": 64, "maximum": 32768 },
+        "max_batch_items": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "max_batch_bytes": { "type": "integer", "minimum": 1024, "maximum": 1048576 },
+        "cursor_ttl_ms": { "type": "integer", "minimum": 1000, "maximum": 3600000 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "enabled": { "const": false } }, "required": ["enabled"] },
+          "then": { "properties": { "mode": { "const": "OFF" } } }
+        }
+      ]
+    },
+    "memoryModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "mode", "epoch", "fallback", "soft_projection_tokens", "hard_projection_tokens", "max_results", "max_policy_results", "max_evidence_results", "max_experience_results", "max_structured_scan_rows", "max_payload_bytes", "index_drain_batch", "index_drain_debounce_ms", "capture_mode", "capture_epoch"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": { "enum": ["OFF", "EXPLICIT_ONLY", "VERIFIED_JIT", "EXPERIMENTAL"] },
+        "epoch": { "type": "string", "minLength": 1 },
+        "fallback": { "const": "EMPTY_OPTIONAL_PROJECTION" },
+        "soft_projection_tokens": { "type": "integer", "minimum": 64, "maximum": 32768 },
+        "hard_projection_tokens": { "type": "integer", "minimum": 64, "maximum": 32768 },
+        "max_results": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "max_policy_results": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "max_evidence_results": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "max_experience_results": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "max_structured_scan_rows": { "type": "integer", "minimum": 100, "maximum": 50000 },
+        "max_payload_bytes": { "type": "integer", "minimum": 1024, "maximum": 16777216 },
+        "index_drain_batch": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "index_drain_debounce_ms": { "type": "integer", "minimum": 50, "maximum": 10000 },
+        "capture_mode": { "enum": ["MANUAL_CAPTURE", "GUARDED_AUTO"] },
+        "capture_epoch": { "type": "string", "minLength": 1 }
+      }
+    },
+    "optionalModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "epoch", "fallback"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "epoch": { "type": "string", "minLength": 1 },
+        "fallback": { "enum": ["BASELINE", "EMPTY_OPTIONAL_PROJECTION", "NATIVE_PI"] }
+      }
+    },
+    "cacheModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "epoch", "arm", "fallback", "allow_payload_mutation", "allow_live_canary", "observation_protocol"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "epoch": { "type": "string", "minLength": 1 },
+        "arm": { "enum": ["C0", "C1_PREFIX", "C2_PROVIDER", "C3_RETENTION", "C4_COMBINED", "AUTO"] },
+        "fallback": { "const": "C0" },
+        "provider_integration": { "type": ["string", "null"] },
+        "allow_payload_mutation": { "type": "boolean" },
+        "allow_live_canary": { "type": "boolean" },
+        "observation_protocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decision_authority", "min_observable_requests", "fixed_natural_request_count", "max_calendar_window_ms", "confidence_level", "request_diagnostic_interval_method", "token_diagnostic_interval_method", "bootstrap_resamples", "bootstrap_seed", "freeze_membership_before_epoch"],
+          "properties": {
+            "decision_authority": { "const": "LEGACY_DIAGNOSTIC_ONLY" },
+            "min_observable_requests": { "type": "integer", "minimum": 1, "maximum": 10000 },
+            "fixed_natural_request_count": { "type": "integer", "minimum": 1, "maximum": 10000 },
+            "max_calendar_window_ms": { "type": "integer", "minimum": 60000, "maximum": 31536000000 },
+            "confidence_level": { "type": "number", "minimum": 0.9, "maximum": 0.999 },
+            "request_diagnostic_interval_method": { "const": "WILSON_SCORE_NATURAL_WINDOW" },
+            "token_diagnostic_interval_method": { "const": "REQUEST_CLUSTER_BOOTSTRAP_NATURAL_WINDOW" },
+            "bootstrap_resamples": { "type": "integer", "minimum": 1000, "maximum": 100000 },
+            "bootstrap_seed": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+            "freeze_membership_before_epoch": { "const": true }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "enabled": { "const": false } }, "required": ["enabled"] },
+          "then": {
+            "properties": {
+              "arm": { "const": "C0" },
+              "allow_payload_mutation": { "const": false },
+              "allow_live_canary": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "arm": { "enum": ["C0", "C1_PREFIX"] } }, "required": ["arm"] },
+          "then": { "properties": { "allow_payload_mutation": { "const": false } } }
+        },
+        {
+          "if": { "properties": { "arm": { "enum": ["C2_PROVIDER", "C3_RETENTION", "C4_COMBINED"] } }, "required": ["arm"] },
+          "then": { "properties": { "provider_integration": { "type": "string", "minLength": 1 } } }
+        }
+      ]
+    },
+    "outputModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "epoch", "mode", "fallback", "artifact_first", "suppress_duplicate_progress", "progress_delivery", "max_silent_wait_ms", "history_rewrite_policy", "stable_policy_in_prefix", "compact_suffix_only_when_beneficial", "goal_level_rebound_guard", "account_tool_call_arguments", "account_reasoning_tokens", "tool_result_projection", "max_response_directive_input_tokens", "soft_text_token_budgets"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "epoch": { "type": "string", "minLength": 1 },
+        "mode": { "enum": ["AUTO", "NORMAL", "AUDIT"] },
+        "fallback": { "const": "BASELINE_PI" },
+        "artifact_first": { "type": "boolean" },
+        "suppress_duplicate_progress": { "type": "boolean" },
+        "progress_delivery": { "const": "WIDGET_FIRST_CHAT_FALLBACK" },
+        "max_silent_wait_ms": { "type": "integer", "minimum": 5000, "maximum": 300000 },
+        "history_rewrite_policy": { "const": "GENERATION_BOUNDARY_ONLY" },
+        "stable_policy_in_prefix": { "const": true },
+        "compact_suffix_only_when_beneficial": { "const": true },
+        "goal_level_rebound_guard": { "const": true },
+        "account_tool_call_arguments": { "const": true },
+        "account_reasoning_tokens": { "const": true },
+        "tool_result_projection": { "const": "EVIDENCE_LIVENESS_ROUTED" },
+        "max_response_directive_input_tokens": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "soft_text_token_budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tool_action", "ack", "question", "status", "result"],
+          "properties": {
+            "tool_action": { "const": 0 },
+            "ack": { "type": ["integer", "null"], "minimum": 1, "maximum": 32768 },
+            "question": { "type": ["integer", "null"], "minimum": 1, "maximum": 32768 },
+            "status": { "type": ["integer", "null"], "minimum": 1, "maximum": 32768 },
+            "result": { "type": ["integer", "null"], "minimum": 1, "maximum": 32768 }
+          }
+        }
+      }
+    },
+    "targetProjectPerformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "default_mode", "auto_activation", "max_trials", "max_user_blocking_ms", "profile_only_when_justified"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "default_mode": { "enum": ["BASELINE_GUARD", "AUTO_GUARDED"] },
+        "auto_activation": { "const": "EVIDENCE_OR_EXPLICIT_REQUEST" },
+        "max_trials": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "max_user_blocking_ms": { "type": "integer", "minimum": 0, "maximum": 600000 },
+        "profile_only_when_justified": { "const": true }
+      }
+    }
+  }
+}

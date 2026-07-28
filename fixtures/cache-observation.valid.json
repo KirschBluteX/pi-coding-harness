@@ -1,0 +1,59 @@
+{
+  "schema_version": 3,
+  "observation_id": "CACHE-OBS-DEMO-001",
+  "prompt_generation_id": "PROMPT-GEN-DEMO-002",
+  "prompt_request_id": "PROMPT-REQ-DEMO-002",
+  "epoch_id": "CACHE-EPOCH-DEMO-001",
+  "request_sequence": 2,
+  "provider_fingerprint_hmac_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "model_fingerprint_hmac_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "cache_lineage_hmac_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "prefix_generation": 2,
+  "stable_contract_prefix_hmac_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "provider_prompt_reusable_prefix_hmac_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+  "fingerprint_method": "HMAC_SHA256_INSTALL_SCOPED",
+  "transport_contract_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "state": "HIT",
+  "eligibility": {
+    "eligible": true,
+    "reason": "SUPPORTED_WARM",
+    "append_only_verified": true,
+    "total_input_tokens": 4608,
+    "provider_prompt_lcp_tokens": 4096,
+    "eligible_cacheable_prefix_tokens": 4096,
+    "provider_minimum_tokens": 1024,
+    "provider_granularity_tokens": 128,
+    "denominator_method": "PROVIDER_PROMPT_SEQUENCE_LCP_QUANTIZED"
+  },
+  "retention": {
+    "contract_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "mode": "VERIFIED_TTL",
+    "verified_min_ttl_ms": 300000,
+    "inter_request_gap_ms": 15000,
+    "within_verified_window": true
+  },
+  "usage_contract": {
+    "receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "total_input_definition": "UNCACHED_PLUS_CACHE_READ_AND_WRITE",
+    "cache_read_scope": "PROVIDER_PROMPT_REUSABLE_PREFIX"
+  },
+  "usage": {
+    "source": "PROVIDER_USAGE",
+    "observable": true,
+    "uncached_input_tokens": 512,
+    "cache_read_tokens": 4096,
+    "cache_write_tokens": 0,
+    "output_tokens": 96,
+    "reasoning_tokens": null
+  },
+  "diagnostic_rates": {
+    "pi_compatible_latest_hit_rate": 0.8888888888888888,
+    "pi_formula": "CACHE_READ_OVER_UNCACHED_PLUS_READ_PLUS_WRITE",
+    "warm_eligible_token_hit_rate": 1.0
+  },
+  "miss_attribution": "NOT_APPLICABLE",
+  "latency_ms": 850,
+  "quality_gate": "PASS",
+  "contains_prompt_content": false,
+  "recorded_at": "2026-07-22T00:00:00Z"
+}

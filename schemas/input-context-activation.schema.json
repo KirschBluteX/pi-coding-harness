@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/input-context-activation.schema.json",
+  "title": "PCH Input Context v1 activation closure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "activation_id", "blueprint_revision", "mode", "activation_basis", "effectiveness_verdict", "runtime_fingerprint_sha256", "dependencies", "result", "fallback", "additional_model_requests", "additional_provider_requests", "created_at_ms", "record_sha256"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "activation_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+    "blueprint_revision": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$" },
+    "mode": { "enum": ["OFF", "OBSERVE", "AUTO_GUARDED"] },
+    "activation_basis": { "enum": ["NONE", "MATCHED_PROMOTION", "USER_EXPLICIT_UNVALIDATED"] },
+    "effectiveness_verdict": { "enum": ["PASS", "NOT_EVALUATED"] },
+    "runtime_fingerprint_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" },
+    "dependencies": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "role", "sha256"],
+        "properties": {
+          "source_id": { "$ref": "input-context-common.schema.json#/$defs/id" },
+          "role": { "type": "string", "minLength": 1, "maxLength": 96 },
+          "sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+        }
+      }
+    },
+    "result": { "enum": ["PASS", "FAIL", "INCONCLUSIVE"] },
+    "fallback": { "const": "PI_BASELINE" },
+    "additional_model_requests": { "const": 0 },
+    "additional_provider_requests": { "const": 0 },
+    "created_at_ms": { "$ref": "input-context-common.schema.json#/$defs/nonNegativeInteger" },
+    "record_sha256": { "$ref": "input-context-common.schema.json#/$defs/sha256" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "mode": { "const": "AUTO_GUARDED" } }, "required": ["mode"] },
+      "then": { "properties": { "result": { "const": "PASS" } } }
+    },
+    {
+      "if": { "properties": { "activation_basis": { "const": "MATCHED_PROMOTION" } }, "required": ["activation_basis"] },
+      "then": { "properties": { "effectiveness_verdict": { "const": "PASS" } } }
+    },
+    {
+      "if": { "properties": { "activation_basis": { "const": "USER_EXPLICIT_UNVALIDATED" } }, "required": ["activation_basis"] },
+      "then": { "properties": { "effectiveness_verdict": { "const": "NOT_EVALUATED" } } }
+    }
+  ]
+}

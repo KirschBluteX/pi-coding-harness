@@ -1,0 +1,64 @@
+{
+  "name": "pi-coding-harness",
+  "version": "1.2.1",
+  "private": true,
+  "description": "Opt-in Pi coding harness with durable Single and role-isolated Multi execution",
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.3 <23 || >=24.15.0"
+  },
+  "packageManager": "npm@11.9.0",
+  "scripts": {
+    "build": "npm run build:runtime",
+    "build:runtime": "tsc -p tsconfig.runtime.json",
+    "compile": "tsc --noEmit",
+    "lint": "eslint src tests vitest.config.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:pi": "vitest run tests/pi",
+    "manifest:migration": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-migration-manifest.ps1",
+    "manifest:hashes": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-source-hashes.ps1",
+    "verify": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-project.ps1",
+    "verify:json": "node ./scripts/validate-json.mjs --root . --report ./reports/json-validation.json",
+    "verify:sql": "node ./scripts/verify-sql.mjs --report ./reports/sql-validation.json",
+    "verify:markdown": "node ./scripts/verify-markdown.mjs --report ./reports/markdown-validation.json",
+    "verify:self-contained": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-self-contained.ps1",
+    "verify:state-update": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-state-update.ps1",
+    "verify:lifecycle": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-lifecycle.ps1",
+    "verify:performance": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-performance-baseline.ps1"
+  },
+  "codingHarness": {
+    "blueprintVersion": "1.2.1",
+    "productImplementation": "pi-coding-harness-v1",
+    "authoritySchema": 19
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.82.1",
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.12.0",
+    "ajv": "8.20.0",
+    "eslint": "10.8.0",
+    "jsdom": "^26.1.0",
+    "mermaid": "^11.16.0",
+    "typescript-eslint": "8.57.1",
+    "vitest": "4.1.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.81.0 <=0.82.1"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "keywords": [
+    "pi-package"
+  ],
+  "dependencies": {
+    "mdast-util-from-markdown": "^2.0.2",
+    "smol-toml": "^1.7.1",
+    "typebox": "1.1.38",
+    "typescript": "^5.9.3",
+    "yaml": "^2.9.0"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/memory-v2-matched-corpus.schema.json",
+  "title": "PCH Memory v2 matched live corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "corpus_id", "frozen_at", "randomization_seed", "system_prompt", "cases"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": 1 },
+    "corpus_id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "frozen_at": { "type": "string", "format": "date-time" },
+    "randomization_seed": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+    "system_prompt": { "type": "string", "minLength": 40, "maxLength": 1000 },
+    "cases": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "scope": { "enum": ["GOAL", "WORKSPACE"] },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prompt", "accepted_answers"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]{1,64}$" },
+        "prompt": { "type": "string", "minLength": 10, "maxLength": 1000 },
+        "accepted_answers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "forbidden_answers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "scope", "statement", "applies_to", "reason"],
+      "properties": {
+        "claim_id": { "type": "string", "minLength": 1 },
+        "scope": { "$ref": "#/$defs/scope" },
+        "statement": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "applies_to": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "scope", "locator", "description", "reason"],
+      "properties": {
+        "claim_id": { "type": "string", "minLength": 1 },
+        "scope": { "$ref": "#/$defs/scope" },
+        "locator": { "type": "string", "pattern": "^pch-file://" },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "experience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "scope", "lesson", "outcome", "receipt_id", "reason"],
+      "properties": {
+        "claim_id": { "type": "string", "minLength": 1 },
+        "scope": { "$ref": "#/$defs/scope" },
+        "lesson": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "outcome": { "enum": ["SUCCEEDED", "FAILED", "BLOCKED", "UNKNOWN_OUTCOME", "WAIVED"] },
+        "receipt_id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "evidence", "experience", "conflicts", "abstentions", "inject_once"],
+      "properties": {
+        "policy": { "type": "array", "maxItems": 6, "items": { "$ref": "#/$defs/policy" } },
+        "evidence": { "type": "array", "maxItems": 4, "items": { "$ref": "#/$defs/evidence" } },
+        "experience": { "type": "array", "maxItems": 2, "items": { "$ref": "#/$defs/experience" } },
+        "conflicts": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "abstentions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "inject_once": { "type": "boolean" }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "stratum", "representative_user_value", "turns", "memory", "provenance"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^MEM-MATCH-[0-9]{2}$" },
+        "stratum": {
+          "enum": [
+            "POLICY_BENEFIT",
+            "EXACT_EVIDENCE",
+            "STALE_CONFLICTING_ABSTENTION",
+            "BM25_PENDING_OVERLAY",
+            "WORKING_SET_REUSE",
+            "RECEIPT_BACKED_EXPERIENCE"
+          ]
+        },
+        "representative_user_value": { "type": "string", "minLength": 10, "maxLength": 500 },
+        "turns": { "type": "array", "minItems": 1, "maxItems": 2, "items": { "$ref": "#/$defs/turn" } },
+        "memory": { "$ref": "#/$defs/memory" },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "purpose"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "purpose": { "type": "string", "minLength": 1 },
+              "sha256": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": 3,
+  "prompt_generation_id": "PROMPT-GEN-DEMO-002",
+  "parent_prompt_generation_id": "PROMPT-GEN-DEMO-001",
+  "logical_session_hmac_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "transport_epoch_hmac_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "cache_lineage_hmac_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "lineage_action": "CONTINUE",
+  "prefix_generation": 2,
+  "generation_action": "INCREMENT",
+  "boundary_reason": "PLAN_BUILD_SURFACE_CHANGED",
+  "boundary_policy": "IMMEDIATE_REQUIRED",
+  "coalesced_change_count": 1,
+  "history_policy": "APPEND_ONLY_WITHIN_GENERATION",
+  "stable_contract_prefix_hmac_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "provider_prompt_contract_prefix_hmac_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "prefix_segment_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "stable_policy_tokens": 1536,
+  "tool_schema_tokens": 512,
+  "dynamic_suffix_order": ["PROTECTED_STATE", "MEMORY", "TOOL_EVIDENCE", "RESPONSE_DIRECTIVE"],
+  "contains_prompt_content": false,
+  "recorded_at": "2026-07-22T08:00:00Z"
+}

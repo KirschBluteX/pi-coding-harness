@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/output-observation.schema.json",
+  "title": "PCH Goal-level output observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "observation_id", "epoch_id", "goal_id", "response_contract_id",
+    "response_contract_sha256", "response_contract", "prompt_request_id",
+    "emission_origin", "execution_path", "response_class", "provider_requests", "generation_accounting",
+    "generated_output_tokens", "assistant_text_tokens", "tool_call_argument_tokens", "reasoning_tokens",
+    "unattributed_output_tokens", "provider_output_includes_reasoning", "stop_reason", "completion_gate",
+    "user_answer_obligation", "mandatory_slots_required", "mandatory_slots_fulfilled",
+    "response_directive_input_tokens", "tool_result_source_tokens", "tool_context_tokens",
+    "tool_context_avoided_tokens", "rendered_output_chars", "artifact_bytes", "suppressed_progress_events",
+    "duplicate_output_tokens_estimate", "first_pass_acceptance_closed", "omission_followup_count", "reopen_count",
+    "quality_gate", "recorded_at"
+  ],
+  "properties": {
+    "schema_version": { "const": 3 },
+    "observation_id": { "$ref": "#/$defs/id" },
+    "epoch_id": { "$ref": "#/$defs/id" },
+    "goal_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "response_contract_id": { "$ref": "#/$defs/id" },
+    "response_contract_sha256": { "$ref": "#/$defs/sha256" },
+    "response_contract": { "type": "object" },
+    "prompt_request_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "emission_origin": { "enum": ["USER_REQUEST", "LOCAL_COMMAND", "LOCAL_PROGRESS", "ROUTINE_CHECKPOINT", "TELEMETRY", "STAGE_TRANSITION", "FAILURE", "FINALIZATION"] },
+    "execution_path": { "enum": ["LOCAL_ONLY", "AGENT_TURN"] },
+    "response_class": { "enum": ["SILENT_LOCAL", "TOOL_ACTION", "ACK", "QUESTION", "STATUS", "RESULT", "AUDIT", "USER_FORMAT"] },
+    "provider_requests": { "type": "integer", "minimum": 0 },
+    "generation_accounting": { "enum": ["PROVIDER_SPLIT", "PROVIDER_TOTAL_LOCAL_SPLIT_ESTIMATE", "INCOMPLETE", "NOT_APPLICABLE"] },
+    "generated_output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "assistant_text_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "tool_call_argument_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "reasoning_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "unattributed_output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "provider_output_includes_reasoning": { "type": ["boolean", "null"] },
+    "stop_reason": { "enum": ["stop", "length", "toolUse", "error", "aborted", "LOCAL_NOT_APPLICABLE"] },
+    "completion_gate": { "enum": ["PASS", "FAIL", "NOT_EVALUATED"] },
+    "user_answer_obligation": { "enum": ["NONE", "PENDING", "FULFILLED"] },
+    "mandatory_slots_required": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/slot" } },
+    "mandatory_slots_fulfilled": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/slot" } },
+    "response_directive_input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "tool_result_source_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "tool_context_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "tool_context_avoided_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "rendered_output_chars": { "type": "integer", "minimum": 0 },
+    "artifact_bytes": { "type": "integer", "minimum": 0 },
+    "suppressed_progress_events": { "type": "integer", "minimum": 0 },
+    "duplicate_output_tokens_estimate": { "type": ["integer", "null"], "minimum": 0 },
+    "first_pass_acceptance_closed": { "type": ["boolean", "null"] },
+    "omission_followup_count": { "type": "integer", "minimum": 0 },
+    "reopen_count": { "type": "integer", "minimum": 0 },
+    "quality_gate": { "enum": ["PASS", "FAIL", "NOT_EVALUATED"] },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "response_class": { "const": "SILENT_LOCAL" } }, "required": ["response_class"] },
+      "then": {
+        "properties": {
+          "execution_path": { "const": "LOCAL_ONLY" }, "provider_requests": { "const": 0 },
+          "generation_accounting": { "const": "NOT_APPLICABLE" }, "generated_output_tokens": { "type": "null" },
+          "assistant_text_tokens": { "type": "null" }, "tool_call_argument_tokens": { "type": "null" },
+          "reasoning_tokens": { "type": "null" }, "unattributed_output_tokens": { "type": "null" },
+          "provider_output_includes_reasoning": { "type": "null" }, "prompt_request_id": { "type": "null" },
+          "stop_reason": { "const": "LOCAL_NOT_APPLICABLE" }, "user_answer_obligation": { "const": "NONE" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "generation_accounting": { "enum": ["PROVIDER_SPLIT", "PROVIDER_TOTAL_LOCAL_SPLIT_ESTIMATE"] } }, "required": ["generation_accounting"] },
+      "then": {
+        "properties": {
+          "generated_output_tokens": { "type": "integer" }, "assistant_text_tokens": { "type": "integer" },
+          "tool_call_argument_tokens": { "type": "integer" }, "reasoning_tokens": { "type": "integer" },
+          "unattributed_output_tokens": { "type": "integer" }, "provider_output_includes_reasoning": { "const": true }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "stop_reason": { "const": "length" } }, "required": ["stop_reason"] },
+      "then": { "properties": { "completion_gate": { "const": "FAIL" }, "user_answer_obligation": { "not": { "const": "FULFILLED" } } } }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "slot": { "enum": ["RESULT", "QUESTION", "RECOMMENDATION", "DECISION", "FAILURE", "BLOCKER", "RISK", "EVIDENCE", "VERIFICATION", "ARTIFACT", "UNCERTAINTY", "LIMITATIONS", "NEXT_ACTION"] }
+  }
+}

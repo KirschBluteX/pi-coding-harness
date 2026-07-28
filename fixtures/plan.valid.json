@@ -1,0 +1,176 @@
+{
+  "$schema": "../schemas/plan.schema.json",
+  "schema_version": 2,
+  "package": {
+    "plan_id": "PLAN-DEMO-001",
+    "goal_id": "GOAL-DEMO-001",
+    "goal_version": 1,
+    "revision": 1,
+    "parent_plan_id": null,
+    "intent": "PLAN_THEN_BUILD",
+    "status": "FROZEN",
+    "created_at": "2026-07-21T12:01:00Z",
+    "source_intake_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "requirement_id": "REQ-DEMO-001",
+    "requirement_payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "supersedes_plan_id": null
+  },
+  "plan": {
+    "objective": "Implement exact goal recovery.",
+    "planning_depth": "STANDARD",
+    "constraints": [
+      { "id": "CON-DEMO-001", "text": "Use one Agent.", "source": "user", "hard": true }
+    ],
+    "assumptions": [
+      { "id": "ASM-DEMO-001", "statement": "SQLite WAL is available locally.", "status": "SUPPORTED", "impact": "HIGH", "verification": "Runtime probe", "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333" }
+    ],
+    "acceptance_coverage": [
+      { "criterion_id": "AC-DEMO-001", "stage_ids": ["STAGE-DEMO-001"], "proof": "Restart integration test receipt" }
+    ],
+    "stages": [
+      {
+        "id": "STAGE-DEMO-001",
+        "logical_key": "authority-store",
+        "title": "Implement recovery authority",
+        "detail_horizon": "CURRENT",
+        "dependencies": [],
+        "entry_criteria": ["Requirement and plan hashes validate."],
+        "outputs": ["AuthorityStore implementation"],
+        "files": [
+          { "path": "src/authority/database.ts", "action": "CREATE", "purpose": "Own SQLite transactions." }
+        ],
+        "interfaces": ["AuthorityStore.transact"],
+        "data_migrations": ["Apply schemas/sql/001_core.sql."],
+        "failure_routes": ["L3 replan if SQLite contract is unavailable."],
+        "tests": ["Restart integration test"],
+        "performance_contract": {
+          "mode": "GUARDRAIL",
+          "requirement_metric_ids": ["METRIC-DEMO-001"],
+          "budgets": [
+            {
+              "metric": "snapshot_read_latency",
+              "operator": "LTE",
+              "threshold": 8,
+              "unit": "ms",
+              "aggregation": "P95",
+              "scope": "RUNTIME_OVERHEAD",
+              "evidence": "Isolated warm benchmark receipt"
+            }
+          ],
+          "opportunity_scan": "STATIC_ONLY",
+          "baseline_receipt_required": true,
+          "paired_benchmark_required": true,
+          "max_trials": 2,
+          "exit_policy": "NON_REGRESSION"
+        },
+        "review_gates": ["RG-01", "RG-04"],
+        "exit_criteria": ["Restart test has exact protected-state diff zero."],
+        "next_stage_ids": []
+      }
+    ],
+    "route_selection": {
+      "mode": "FAST_SINGLE",
+      "objective_order": [
+        "HARD_GATES",
+        "ACCEPTANCE_AND_QUALITY",
+        "EVIDENCE",
+        "RISK_REVERSIBILITY_RECOVERY",
+        "PERFORMANCE",
+        "RESOURCE_AND_WAIT_COST"
+      ],
+      "candidates": [
+        {
+          "id": "ROUTE-DEMO-001",
+          "description": "Implement recovery through the verified local SQLite authority path.",
+          "hard_gate_pass": true,
+          "acceptance_reachability": "PROVEN",
+          "evidence_strength": "MEASURED",
+          "risk": "LOW",
+          "reversibility": "REVERSIBLE",
+        "performance_estimates": [
+          {
+            "metric_id": "METRIC-DEMO-001",
+            "value": 8,
+            "unit": "P95 ms budget",
+            "confidence": "MEASURED",
+            "basis": "Phase 1 authority benchmark epoch"
+          }
+        ],
+        "resource_estimates": {
+          "provider_requests": {
+            "value": 0,
+            "unit": "requests",
+            "confidence": "DERIVED",
+            "basis": "All route selection checks are local"
+          },
+          "uncached_input_tokens": {
+            "value": null,
+            "unit": "tokens",
+            "confidence": "UNKNOWN",
+            "basis": "Provider usage is not available during static route selection"
+          },
+          "generated_output_tokens": {
+            "value": null,
+            "unit": "tokens",
+            "confidence": "UNKNOWN",
+            "basis": "Depends on the user-configured model and response cohort"
+          },
+          "tool_context_tokens": {
+            "value": null,
+            "unit": "tokens",
+            "confidence": "UNKNOWN",
+            "basis": "Depends on tool evidence produced during execution"
+          },
+          "user_wait_ms": {
+            "value": 0,
+            "unit": "ms additional planning wait",
+            "confidence": "DERIVED",
+            "basis": "FAST_SINGLE selection adds no benchmark or provider request"
+          },
+          "interruption_cost": {
+            "value": 0,
+            "unit": "user decisions",
+            "confidence": "DERIVED",
+            "basis": "The route introduces no new preference decision"
+          }
+        },
+          "disqualifiers": []
+        }
+      ],
+      "selected_candidate_id": "ROUTE-DEMO-001",
+      "selection_reason": "It is the only route with verified authority and recovery evidence and adds no provider request.",
+      "fallback_candidate_id": null
+    },
+    "response_policy": {
+      "default_class": "RESULT",
+    "artifact_first": true,
+    "ui_first_progress": true,
+    "suppress_duplicate_progress": true,
+    "stable_policy_in_prefix": true,
+    "directive_placement": "STABLE_POLICY_ONLY",
+    "adaptive_text_budget": true,
+      "history_rewrite_policy": "GENERATION_BOUNDARY_ONLY",
+      "goal_level_rebound_guard": true,
+      "generated_content_accounting": "PROVIDER_OUTPUT_WITH_REASONING_AND_TOOL_ARGUMENT_ATTRIBUTION",
+      "tool_result_projection_policy": "EVIDENCE_LIVENESS_ROUTED",
+      "preserve_user_requested_format": true,
+      "hard_truncation_allowed": false,
+      "rewrite_request_allowed": false
+    },
+    "risk_summary": [
+      { "id": "RISK-DEMO-001", "description": "Crash after an external write.", "severity": "HIGH", "mitigation": "Reconcile effect outcome before retry.", "owner_stage_id": "STAGE-DEMO-001" }
+    ],
+    "build_entry_gate": {
+      "required_receipt_types": ["REQUIREMENT_FREEZE", "PLAN_FREEZE"],
+      "required_review_gates": ["RG-01", "RG-05"],
+      "all_acceptance_covered": true,
+      "user_decision_required": false
+    }
+  },
+  "integrity": {
+    "canonicalization": "PCH-CJ1",
+    "requirement_payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "plan_payload_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/domain.schema.json",
+  "title": "PCH current GoalSnapshot projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "goal_id",
+    "version",
+    "event_sequence",
+    "objective",
+    "intent",
+    "mode",
+    "execution_phase",
+    "planning_depth",
+    "status",
+    "acceptance_contract_id",
+    "current_requirement_id",
+    "current_plan_id",
+    "current_stage_id",
+    "next_action",
+    "route_health",
+    "assumptions",
+    "pending_effects",
+    "active_performance_trial",
+    "prompt_generation",
+    "prompt_request",
+    "cache_lineage",
+    "response_contract",
+    "latest_checkpoint_id",
+    "lease"
+  ],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "goal_id": { "$ref": "#/$defs/id" },
+    "version": { "type": "integer", "minimum": 1 },
+    "event_sequence": { "type": "integer", "minimum": 1 },
+    "objective": { "type": "string", "minLength": 1 },
+    "intent": { "enum": ["PLAN_ONLY", "BUILD", "PLAN_THEN_BUILD"] },
+    "mode": { "enum": ["PLAN", "BUILD"] },
+    "execution_phase": { "enum": ["CLARIFYING", "SPECIFYING", "PLANNING", "BUILDING", "VERIFYING", "TERMINAL"] },
+    "planning_depth": { "enum": ["LIGHT", "STANDARD", "FULL"] },
+    "status": { "enum": ["ACTIVE", "WAITING_USER", "PAUSED", "BLOCKED", "RECOVERING", "NEEDS_RECONCILIATION", "SUCCEEDED", "FAILED", "CANCELED"] },
+    "acceptance_contract_id": { "$ref": "#/$defs/id" },
+    "current_requirement_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "current_plan_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "current_stage_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "next_action": { "type": "string", "minLength": 1 },
+    "route_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "correction_level", "reason_codes", "evaluated_at_sequence"],
+      "properties": {
+        "status": { "enum": ["HEALTHY", "DEGRADED", "INVALID", "NEEDS_USER", "RECONCILING"] },
+        "correction_level": { "enum": ["L0", "L1", "L2", "L3", "L4", "L5"] },
+        "reason_codes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "evaluated_at_sequence": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "$ref": "#/$defs/entityRef" } },
+    "pending_effects": { "type": "array", "items": { "$ref": "#/$defs/entityRef" } },
+    "active_performance_trial": { "$ref": "#/$defs/nullableRef" },
+    "prompt_generation": { "$ref": "#/$defs/nullableRef" },
+    "prompt_request": { "$ref": "#/$defs/nullableRef" },
+    "cache_lineage": { "$ref": "#/$defs/nullableRef" },
+    "response_contract": { "$ref": "#/$defs/nullableRef" },
+    "latest_checkpoint_id": { "$ref": "#/$defs/id" },
+    "lease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner_session_id", "generation", "fencing_token", "expires_at"],
+      "properties": {
+        "owner_session_id": { "$ref": "#/$defs/id" },
+        "generation": { "type": "integer", "minimum": 1 },
+        "fencing_token": { "type": "integer", "minimum": 1 },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "entityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "sha256"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "status": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "nullableRef": {
+      "oneOf": [{ "$ref": "#/$defs/ref" }, { "type": "null" }]
+    }
+  }
+}

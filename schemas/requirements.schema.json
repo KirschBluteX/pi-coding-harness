@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/requirements.schema.json",
+  "title": "PCH RequirementPackage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "package", "requirements", "integrity"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": 1 },
+    "package": { "$ref": "#/$defs/packageMetadata" },
+    "requirements": { "$ref": "#/$defs/requirements" },
+    "integrity": { "$ref": "#/$defs/integrity" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9._:-]{1,127}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "packageMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_id", "goal_id", "goal_version", "revision", "profile", "status", "created_at", "source_intake_sha256"],
+      "properties": {
+        "requirement_id": { "$ref": "#/$defs/id" },
+        "goal_id": { "$ref": "#/$defs/id" },
+        "goal_version": { "type": "integer", "minimum": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "parent_requirement_id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+        "profile": { "enum": ["TASK_SPEC", "PRD"] },
+        "status": { "enum": ["DRAFT", "VALIDATED", "FROZEN", "SUPERSEDED"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "source_intake_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["problem", "target_users", "desired_outcomes", "scope", "non_goals", "functional_requirements", "quality_requirements", "user_flows", "constraints", "assumptions", "open_decisions", "acceptance_criteria", "performance_contract", "response_requirements", "change_policy"],
+      "properties": {
+        "problem": { "$ref": "#/$defs/nonEmpty" },
+        "target_users": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "desired_outcomes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/outcome" } },
+        "scope": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "non_goals": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } },
+        "functional_requirements": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/requirement" } },
+        "quality_requirements": { "type": "array", "items": { "$ref": "#/$defs/qualityRequirement" } },
+        "user_flows": { "type": "array", "items": { "$ref": "#/$defs/userFlow" } },
+        "constraints": { "type": "array", "items": { "$ref": "#/$defs/constraint" } },
+        "assumptions": { "type": "array", "items": { "$ref": "#/$defs/assumption" } },
+        "open_decisions": { "type": "array", "items": { "$ref": "#/$defs/openDecision" } },
+        "acceptance_criteria": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/criterion" } },
+        "performance_contract": { "$ref": "performance-contract.schema.json" },
+        "response_requirements": { "$ref": "#/$defs/responseRequirements" },
+        "change_policy": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "outcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "statement", "measure"],
+      "properties": { "id": { "$ref": "#/$defs/id" }, "statement": { "$ref": "#/$defs/nonEmpty" }, "measure": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "requirement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "statement", "priority", "rationale", "acceptance_ids"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "statement": { "$ref": "#/$defs/nonEmpty" },
+        "priority": { "enum": ["MUST", "SHOULD", "COULD"] }, "rationale": { "$ref": "#/$defs/nonEmpty" },
+        "acceptance_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "qualityRequirement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "class", "statement", "threshold", "acceptance_ids"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "class": { "enum": ["PERFORMANCE", "RELIABILITY", "SECURITY", "PRIVACY", "ACCESSIBILITY", "OPERABILITY", "COMPATIBILITY"] },
+        "statement": { "$ref": "#/$defs/nonEmpty" }, "threshold": { "$ref": "#/$defs/verificationThreshold" },
+        "acceptance_ids": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "verificationThreshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "operator", "target", "unit", "aggregation", "tolerance", "evidence_method"],
+      "properties": {
+        "metric": { "$ref": "#/$defs/nonEmpty" },
+        "operator": { "enum": ["LTE", "GTE", "EQ", "NON_REGRESSION", "BOOLEAN_TRUE"] },
+        "target": { "type": ["number", "string", "boolean", "null"] },
+        "unit": { "$ref": "#/$defs/nonEmpty" },
+        "aggregation": { "enum": ["SINGLE", "COUNT", "RATE", "P50", "P95", "P99", "PAIRED_DELTA", "BOOLEAN"] },
+        "tolerance": { "type": "number", "minimum": 0 },
+        "evidence_method": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "userFlow": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "actor", "trigger", "steps", "success", "failure_paths"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "actor": { "$ref": "#/$defs/nonEmpty" }, "trigger": { "$ref": "#/$defs/nonEmpty" },
+        "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "success": { "$ref": "#/$defs/nonEmpty" }, "failure_paths": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } }
+      }
+    },
+    "constraint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "statement", "source", "hard"],
+      "properties": { "id": { "$ref": "#/$defs/id" }, "statement": { "$ref": "#/$defs/nonEmpty" }, "source": { "$ref": "#/$defs/nonEmpty" }, "hard": { "type": "boolean" } }
+    },
+    "assumption": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "statement", "impact", "status", "verification"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "statement": { "$ref": "#/$defs/nonEmpty" }, "impact": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "status": { "enum": ["UNVERIFIED", "SUPPORTED", "REFUTED"] }, "verification": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "openDecision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "question", "materiality", "recommended_option", "blocking"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "question": { "$ref": "#/$defs/nonEmpty" }, "materiality": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "recommended_option": { "$ref": "#/$defs/nonEmpty" }, "blocking": { "type": "boolean" }
+      }
+    },
+    "criterion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "statement", "evidence", "required"],
+      "properties": { "id": { "$ref": "#/$defs/id" }, "statement": { "$ref": "#/$defs/nonEmpty" }, "evidence": { "$ref": "#/$defs/nonEmpty" }, "required": { "const": true } }
+    },
+    "responseRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_detail", "artifact_policy", "preserve_user_requested_format", "required_final_slots"],
+      "properties": {
+        "default_detail": { "enum": ["MINIMAL_SUFFICIENT", "BALANCED", "DETAILED"] },
+        "artifact_policy": { "enum": ["WHEN_LARGE", "ARTIFACT_FIRST", "USER_DECIDES"] },
+        "preserve_user_requested_format": { "const": true },
+        "required_final_slots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["RESULT", "DECISION", "FAILURE", "BLOCKER", "RISK", "EVIDENCE", "VERIFICATION", "ARTIFACT", "UNCERTAINTY", "LIMITATIONS", "NEXT_ACTION"] }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["canonicalization", "requirements_payload_sha256", "artifact_sha256"],
+      "properties": {
+        "canonicalization": { "const": "PCH-CJ1" },
+        "requirements_payload_sha256": { "$ref": "#/$defs/sha256" },
+        "artifact_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}
