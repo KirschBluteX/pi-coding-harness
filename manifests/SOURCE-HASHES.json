@@ -1,7 +1,7 @@
 {
     "$schema":  "../schemas/source-hashes.schema.json",
     "schema_version":  1,
-    "generated_at":  "2026-07-29T00:10:10.8927754+08:00",
+    "generated_at":  "2026-07-29T00:13:10.8040387+08:00",
     "algorithm":  "SHA-256",
     "target_root":  ".",
     "input_sources":  [
@@ -26,7 +26,7 @@
                           {
                               "migration_id":  "MIG-004",
                               "source":  "X:\\Pi Coding Harness\\docs\\ARCHITECTURE.md",
-                              "sha256":  "D594E9D883840019F73E8ACAD27230E487B29A7BDBBB20892EB37528714F4909",
+                              "sha256":  "95891E7ED4A92DC905B0E9306F152DA19468E9230A125D17BB9886BDA34FBBC7",
                               "disposition":  "COPIED"
                           },
                           {
@@ -230,7 +230,7 @@
                           {
                               "migration_id":  "MIG-038",
                               "source":  "X:\\Pi Coding Harness\\README.md",
-                              "sha256":  "5ECFC3127BF007CB83F7EAB76CE5B0F21DE087AAC6650C90ECE2A890249DAB6F",
+                              "sha256":  "DB2FCE44049D88BEC616BE30CFEAD1C72C16B2DED72827A93F88488A5DAE243B",
                               "disposition":  "COPIED"
                           },
                           {
@@ -2286,8 +2286,8 @@
                          },
                          {
                              "path":  "docs/ARCHITECTURE.md",
-                             "sha256":  "D594E9D883840019F73E8ACAD27230E487B29A7BDBBB20892EB37528714F4909",
-                             "bytes":  15352
+                             "sha256":  "95891E7ED4A92DC905B0E9306F152DA19468E9230A125D17BB9886BDA34FBBC7",
+                             "bytes":  16179
                          },
                          {
                              "path":  "docs/IMPLEMENTATION-PLAYBOOK.md",
@@ -2446,7 +2446,7 @@
                          },
                          {
                              "path":  "manifests/MIGRATION-MANIFEST.json",
-                             "sha256":  "D13388C0799219E6C66247158E7C8A5691EC0A295EA5CFE0CCAF078CF0A747E7",
+                             "sha256":  "836C208472190FE70CE9A7A904DADB4C179F5F7994EB6C40A3144EBF926C419B",
                              "bytes":  313046
                          },
                          {
@@ -2461,8 +2461,8 @@
                          },
                          {
                              "path":  "README.md",
-                             "sha256":  "5ECFC3127BF007CB83F7EAB76CE5B0F21DE087AAC6650C90ECE2A890249DAB6F",
-                             "bytes":  4824
+                             "sha256":  "DB2FCE44049D88BEC616BE30CFEAD1C72C16B2DED72827A93F88488A5DAE243B",
+                             "bytes":  5084
                          },
                          {
                              "path":  "schemas/acceptance.schema.json",

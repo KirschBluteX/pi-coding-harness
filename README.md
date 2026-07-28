@@ -3,6 +3,10 @@
 Pi Coding Harness (PCH) 是一个显式启用的 Pi Coding Agent 外层执行框架。它把普通 Pi
 会话转换为面向软件工程的、可恢复、可审计的执行环境，同时保留未启用时的原生 Pi 体验。
 
+PCH is an opt-in durability and orchestration layer for Pi Coding Agent. It keeps small tasks direct, isolates
+parallel Workers when Multi is explicitly selected, and requires durable evidence before canonical mutation is
+accepted.
+
 **Architecture:** [visual system overview](docs/ARCHITECTURE.md) ·
 **Specification:** [normative implementation blueprint](docs/PI-CODING-HARNESS-BLUEPRINT.md) ·
 **Usage:** [用户指南](docs/USER-GUIDE.md)
@@ -46,7 +50,7 @@ Worker 输出经过 preimage、scope、lease、fencing token 和 fresh oracle �
 |---|---|
 | Runtime | Node `24.18.0`, SQLite `3.53.1`, authority schema `19` |
 | Aggregate | `489` passed, `6` conditional skips, `0` failures |
-| Inactive path | `0` Host / SQLite / RPC / prompt / additional model-provider requests |
+| Inactive path | `0` Host starts / SQLite opens / RPCs / prompt injections / PCH-added model or provider requests |
 | Lifecycle | install, upgrade, uninstall, arbitrary-cwd and self-contained PASS |
 
 ## 环境

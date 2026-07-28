@@ -177,7 +177,7 @@ integration cost. Roles are capabilities, not mandatory ceremony.
 | `PLANNER` | No | Bounded route evidence |
 | `EXPLORER` | No | Source or API findings with locations |
 | `IMPLEMENTER` | No; mirror-only writes | PatchSet and concise summary |
-| `VERIFIER` | No | Fresh oracle evidence; never self-certifies a patch |
+| `VERIFIER` | No | Independent oracle-evidence proposal; never self-certifies a patch |
 | `INTEGRATOR` | No; mirror-only writes | Conflict-resolution PatchSet when explicitly routed |
 
 ```mermaid
@@ -186,7 +186,7 @@ flowchart TB
   C --> P["PLANNER or EXPLORER\nread-only evidence"]
   C --> I1["IMPLEMENTER\nscoped mirror A"]
   C --> I2["IMPLEMENTER\nscoped mirror B"]
-  C --> V["VERIFIER\nfresh oracle evidence"]
+  C --> V["VERIFIER\nindependent evidence proposal"]
   I1 --> Q["Hash-bound PatchSet queue"]
   I2 --> Q
   P --> C
@@ -205,7 +205,8 @@ chat or private Memory.
 Worker mirrors exclude `.git`, `.pi`, `.coding-harness`, dependencies, build/cache output, credentials, and non-template
 `.env` files. Network, extensions, skills, prompt templates, context files, and persistent session history are disabled.
 Parallel write roots must be mutually exclusive. Integration is always serial and checks the current canonical
-preimage, lease, fencing token, postimage, and fresh oracle before authority advances.
+preimage, lease, fencing token, postimage, and fresh canonical oracle before integration is accepted or
+WorkCell/Goal acceptance advances.
 
 ## Durable authority and recovery
 
@@ -248,7 +249,7 @@ the durable choice, then one productive continuation is sent.
 | Compaction 2.1 | Prepare and verify an exact semantic capsule | Uses native compaction; no rewrite request |
 | Cache v2 | Provider-specific request/settle accounting | Unsupported integrations stay at `C0`; no warmup or padding request |
 | Output | Stable response contract and local UI projection | Tool phase is quiet; no additional rewrite request |
-| Performance | Frozen workload, paired samples, correctness oracle and verdict | Runs only for a requested or evidenced hotspot |
+| Performance | Target-project optimization trials with frozen workloads, paired samples, correctness oracles and verdicts | Runs only for a requested or evidenced hotspot |
 
 Planning, route review, Memory, Output, status, and replanning do not receive independent model requests. They reuse
 the current Agent turn and deterministic local Modules. Provider accounting is ordered in the background and does not
@@ -258,16 +259,16 @@ block the provider request. Performance gains never waive correctness, privacy, 
 
 | Module | Main implementation |
 |---|---|
-| Bridge Adapter | `src/bridge/register.ts` |
-| Host and authenticated protocol | `src/harness/host` |
-| Task Flow and planning | `src/task-flow`, `src/planning`, `src/runtime/task-flow-session.ts` |
-| Authority, leases, repositories and migrations | `src/authority`, `schemas/sql` |
-| Operation and patch integration | `src/effects`, `src/task-flow/operation-lifecycle.ts` |
-| Multi domain and Worker execution | `src/harness/domain.ts`, `src/harness/repository.ts`, `src/harness/worker` |
-| Input Context | `src/input-context` |
-| Memory | `src/memory` |
-| Compaction, Cache and Output | `src/context`, `src/cache-v2`, `src/output` |
-| Performance contracts and measurements | `src/performance` |
+| Bridge Adapter | [`src/bridge/register.ts`](../src/bridge/register.ts) |
+| Host and authenticated protocol | [`src/harness/host`](../src/harness/host) |
+| Task Flow and planning | [`src/task-flow`](../src/task-flow), [`src/planning`](../src/planning), [`src/runtime/task-flow-session.ts`](../src/runtime/task-flow-session.ts) |
+| Authority, leases, repositories and migrations | [`src/authority`](../src/authority), [`schemas/sql`](../schemas/sql) |
+| Operation and patch integration | [`src/effects`](../src/effects), [`src/task-flow/operation-lifecycle.ts`](../src/task-flow/operation-lifecycle.ts) |
+| Multi domain and Worker execution | [`src/harness/domain.ts`](../src/harness/domain.ts), [`src/harness/repository.ts`](../src/harness/repository.ts), [`src/harness/worker`](../src/harness/worker) |
+| Input Context | [`src/input-context`](../src/input-context) |
+| Memory | [`src/memory`](../src/memory) |
+| Compaction, Cache and Output | [`src/context`](../src/context), [`src/cache-v2`](../src/cache-v2), [`src/output`](../src/output) |
+| Performance contracts and measurements | [`src/performance`](../src/performance) |
 
 ## Security model
 
@@ -280,9 +281,9 @@ block the provider request. Performance gains never waive correctness, privacy, 
   configured role profile; PCH does not silently downgrade them.
 - Destructive uninstall requires an installation marker, an explicit delete flag, and confirmation.
 
-## Verified release evidence
+## Release 1.2.1 evidence — 2026-07-28
 
-The latest complete local release gate recorded in
+The complete local aggregate recorded in
 [`manifests/PROJECT-STATE.json`](../manifests/PROJECT-STATE.json) produced:
 
 | Gate | Result |
@@ -290,23 +291,25 @@ The latest complete local release gate recorded in
 | Runtime | Node `24.18.0`, SQLite `3.53.1`, authority schema `19` |
 | Test aggregate | `489` passed, `6` conditional skips, `0` failures |
 | Lifecycle | Install, upgrade, uninstall, arbitrary-cwd import, and self-contained checks passed |
-| Installed Pi probe | Pi Coding Agent `0.82.1`; inactive path, Host start, restart recovery, and cleanup passed |
+| Separate installed-Pi probe | Pi Coding Agent `0.82.1`; inactive path, Host start, restart recovery, and cleanup passed; receipt hash recorded separately from the aggregate |
 | Phase 1 local P95 | event commit `5.50 ms`; 1 MiB CAS put `24.07 ms`; snapshot read `3.50 ms`; lease renew `0.04 ms` |
 | Additional requests from the release gate | model `0`; provider `0` |
 
-Reproduce the full local release gate from the repository root:
+Reproduce the aggregate gate from the repository root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-project.ps1
 ```
 
-The numeric contracts and measurement rules are documented in
+This command does not run the separate installed-Pi probe. The numeric contracts and measurement rules are documented in
 [`PERFORMANCE-BUDGET.md`](PERFORMANCE-BUDGET.md). Verification reports are intentionally excluded from Git; their
-SHA-256 receipts are preserved in project state.
+SHA-256 receipts, including the installed-Pi probe receipt, are preserved in project state.
 
 ### Evidence boundaries
 
 - The provider exposed no monetary cost, so observed token/latency data is not converted into currency savings.
+- No provider-backed comparative measurement currently proves token, output, quality, or end-to-end latency
+  reduction.
 - A positive provider `cacheRead` value proves a hit; zero or missing usage remains unobservable rather than a miss.
 - Natural provider-driven compaction was not triggered in the recorded real run; deterministic compaction/recovery
   tests pass.
