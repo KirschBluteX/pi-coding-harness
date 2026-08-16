@@ -7,9 +7,9 @@
 - Authority schema: 35
 - State: PASS
 - Current phase: P12
-- Current stage: CORE_ONLY_RELEASE_VERIFIED
-- State generation: 100
-- Updated: 2026-08-16T05:12:05.8706730-07:00
+- Current stage: PUBLIC_CORE_ONLY_RELEASE_CI_VERIFIED
+- State generation: 101
+- Updated: 2026-08-16T07:00:46.6027859-07:00
 
 ## Goal
 
@@ -17,13 +17,13 @@ Qualify the core-only Pi Coding Harness runtime, its continuous authority schema
 
 ## Evidence
 
-- Completed receipts: 84
+- Completed receipts: 85
 - Authoritative artifacts: 71
 - Verification: PASS
 
 ## Latest correction
 
-PCH-COR-CORE-ONLY-RELEASE-CLOSURE: The optional presentation product, its authority lane, launcher, derived notices and dedicated tests were removed as one closed dependency slice. Later migrations were renumbered so the supported authority schema remains continuous through 35.
+PCH-COR-POWERSHELL-7-RELEASE-GATES: Release, lifecycle and developer entry points now require PowerShell 7 (pwsh), preventing nested fallback to Windows PowerShell 5.1 and restoring the state-update CI gate.
 
 ## Do not repeat
 
@@ -136,4 +136,4 @@ PCH-COR-CORE-ONLY-RELEASE-CLOSURE: The optional presentation product, its author
 
 ## Next action
 
-Commit the verified core-only source closure and push main to the public repository.
+Collect the first independent installation and usage feedback from the public repository while keeping the deferred provider-backed stress and four-run comparison gates explicit.

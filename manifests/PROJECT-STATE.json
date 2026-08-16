@@ -4,10 +4,10 @@
   "version": "1.2.1",
   "authority_schema": 35,
   "status": "PASS",
-  "state_generation": 100,
+  "state_generation": 101,
   "current_phase": "P12",
-  "current_stage": "CORE_ONLY_RELEASE_VERIFIED",
-  "updated_at": "2026-08-16T05:12:05.8706730-07:00",
+  "current_stage": "PUBLIC_CORE_ONLY_RELEASE_CI_VERIFIED",
+  "updated_at": "2026-08-16T07:00:46.6027859-07:00",
   "goal": "Qualify the core-only Pi Coding Harness runtime, its continuous authority schema, lifecycle, installed-package behavior and self-contained public source closure.",
   "completed_receipts": [
     {
@@ -429,6 +429,11 @@
       "id": "PCH-REC-CORE-ONLY-RELEASE-20260816",
       "result": "PASS",
       "evidence": "Pinned Node v24.18.0 with SQLite 3.53.1 passed compile, ESLint, runtime build, 883 tests with 6 contract-defined conditional skips, SQL 001-035 with 272 tables and 567 triggers, JSON, Markdown, state update, install/upgrade/uninstall lifecycle, arbitrary-cwd import and self-contained closure. The final closure scanned 496 files with zero forbidden files, reparse points, source hash mismatches or migration hash mismatches. Additional model/provider requests: 0. Report SHA-256 F05C3A44C75B10B198F7C4A43D34A634F553DB75A9EED61F5DEFE3C68F4062B9."
+    },
+    {
+      "id": "PCH-REC-POWERSHELL-7-CI-20260816",
+      "result": "PASS",
+      "evidence": "Commit 536400365e17331037754aea7ce49c469e452f72 passed GitHub Actions run 31950875584 in 10m45s: compile, lint, 883 tests with 6 conditional skips, build, SQL 001-035, 78 JSON files and 50 schemas, 17 Markdown files and 12 Mermaid diagrams, state-update and self-contained closure. Local install, upgrade and uninstall lifecycle paths also passed on Node 24.18.0 with SQLite 3.53.1."
     }
   ],
   "authoritative_artifacts": [
@@ -939,11 +944,12 @@
     "Automatic Goal recovery attaches and rebuilds projections without sending a user message, starting a Worker, executing a mutation or making a model/provider request.",
     "An active Task Flow Goal created before schema 35 is discoverable as an UNBOUND candidate with a null binding receipt; discovery never invents a receipt and only Host enter may create its first EXPLICIT_ENTRY binding revision.",
     "Bridge and Host application contracts explicitly distinguish a legacy null binding receipt from a malformed non-null SHA-256 value.",
-    "Core release closure excludes dependency trees, runtime state, reports and generated build output without hiding source Modules that share those directory names."
+    "Core release closure excludes dependency trees, runtime state, reports and generated build output without hiding source Modules that share those directory names.",
+    "Release and lifecycle tooling requires PowerShell 7 (pwsh); Windows PowerShell 5.1 is no longer a supported execution path."
   ],
   "latest_correction": {
-    "id": "PCH-COR-CORE-ONLY-RELEASE-CLOSURE",
-    "summary": "The optional presentation product, its authority lane, launcher, derived notices and dedicated tests were removed as one closed dependency slice. Later migrations were renumbered so the supported authority schema remains continuous through 35."
+    "id": "PCH-COR-POWERSHELL-7-RELEASE-GATES",
+    "summary": "Release, lifecycle and developer entry points now require PowerShell 7 (pwsh), preventing nested fallback to Windows PowerShell 5.1 and restoring the state-update CI gate."
   },
   "failed_routes": [
     {
@@ -1063,24 +1069,17 @@
     "An unrestricted release claim still requires the user-deferred PCH Single Terraform STRESS, PCH Multi provider rerun and four-run comparison; the current receipt covers the complete non-benchmark release surface only."
   ],
   "blockers": [],
-  "next_action": "Commit the verified core-only source closure and push main to the public repository.",
+  "next_action": "Collect the first independent installation and usage feedback from the public repository while keeping the deferred provider-backed stress and four-run comparison gates explicit.",
   "verification": {
     "result": "PASS",
     "commands": [
-      "safe Node v24.18.0: tsc --noEmit",
-      "safe Node v24.18.0: eslint src tests vitest.config.ts",
-      "safe Node v24.18.0: tsc -p tsconfig.runtime.json",
-      "safe Node v24.18.0: vitest run",
-      "safe Node v24.18.0: scripts/verify-sql.mjs",
-      "safe Node v24.18.0: scripts/validate-json.mjs",
-      "safe Node v24.18.0: scripts/verify-markdown.mjs",
-      "PowerShell 7: scripts/verify-state-update.ps1",
-      "safe Node v24.18.0 + PowerShell: scripts/verify-lifecycle.ps1",
-      "safe Node v24.18.0: arbitrary-cwd dist/index.js import",
-      "PowerShell 7: scripts/verify-self-contained.ps1"
+      "GitHub Actions run 31950875584: compile, lint, serial tests, build, SQL, JSON, Markdown, state update and self-contained closure",
+      "safe Node v24.18.0: npm test -- --no-file-parallelism --testTimeout=30000",
+      "safe Node v24.18.0 + PowerShell 7: npm run verify:lifecycle",
+      "PowerShell 7: npm run verify:self-contained"
     ],
     "tests_passed": 883,
     "tests_skipped": 6,
-    "report_sha256": "F05C3A44C75B10B198F7C4A43D34A634F553DB75A9EED61F5DEFE3C68F4062B9"
+    "report_sha256": null
   }
 }

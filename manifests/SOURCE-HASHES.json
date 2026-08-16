@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/source-hashes.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-08-16T06:37:16.3541014-07:00",
+  "generated_at": "2026-08-16T07:01:18.3146622-07:00",
   "algorithm": "SHA-256",
   "target_root": ".",
   "input_sources": [
@@ -3162,7 +3162,7 @@
     },
     {
       "path": "manifests/MIGRATION-MANIFEST.json",
-      "sha256": "05F77A2561D6DB82736BAAED08652D6AA2B965779810B78621323B17BA40A60A",
+      "sha256": "A86497F5F2F7B02E171CD7CDDA0D27F26B805427D2D839444BE5EBF83F6746AF",
       "bytes": 294982
     },
     {

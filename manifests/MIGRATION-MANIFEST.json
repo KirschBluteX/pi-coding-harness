@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/migration-manifest.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-08-16T06:37:00.9536320-07:00",
+  "generated_at": "2026-08-16T07:01:08.5200922-07:00",
   "target_root": ".",
   "selection_policy": "Project-owned source, tests, schemas, current documentation, lifecycle scripts and license evidence are copied; dependencies, known generated files, build output, reports, runtime state and version-control metadata are excluded.",
   "entries": [
