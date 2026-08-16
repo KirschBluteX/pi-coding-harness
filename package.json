@@ -16,16 +16,16 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:pi": "vitest run tests/pi",
-    "manifest:migration": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-migration-manifest.ps1",
-    "manifest:hashes": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-source-hashes.ps1",
-    "verify": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-project.ps1",
+    "manifest:migration": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-migration-manifest.ps1",
+    "manifest:hashes": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-source-hashes.ps1",
+    "verify": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-project.ps1",
     "verify:json": "node ./scripts/validate-json.mjs --root . --report ./reports/json-validation.json",
     "verify:sql": "node ./scripts/verify-sql.mjs --report ./reports/sql-validation.json",
     "verify:markdown": "node ./scripts/verify-markdown.mjs --report ./reports/markdown-validation.json",
-    "verify:self-contained": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-self-contained.ps1",
-    "verify:state-update": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-state-update.ps1",
-    "verify:lifecycle": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-lifecycle.ps1",
-    "verify:performance": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-performance-baseline.ps1"
+    "verify:self-contained": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-self-contained.ps1",
+    "verify:state-update": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-state-update.ps1",
+    "verify:lifecycle": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-lifecycle.ps1",
+    "verify:performance": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-performance-baseline.ps1"
   },
   "codingHarness": {
     "blueprintVersion": "1.2.1",

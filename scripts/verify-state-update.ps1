@@ -22,7 +22,7 @@ try {
     $patchPath = Join-Path $testRoot 'patch.json'
     $patch = [ordered]@{ authority_schema = $authoritySchema; current_stage = 'STATE_UPDATE_SELF_TEST'; append_decisions = @('State update self-test') }
     [IO.File]::WriteAllText($patchPath, (($patch | ConvertTo-Json -Depth 10) + "`n"), $utf8)
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $testRoot 'scripts\update-project-state.ps1') -Root $testRoot -PatchJsonPath $patchPath | Out-Null
+    & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $testRoot 'scripts\update-project-state.ps1') -Root $testRoot -PatchJsonPath $patchPath | Out-Null
     if ($LASTEXITCODE -ne 0) { $failures.Add('Valid state patch failed.') }
     $updated = Get-Content -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($updated.current_stage -ne 'STATE_UPDATE_SELF_TEST' -or [int]$updated.state_generation -ne [int]$baseline.state_generation + 1) {
@@ -38,7 +38,7 @@ try {
     }) }
     $receiptPatchPath = Join-Path $testRoot 'receipt-patch.json'
     [IO.File]::WriteAllText($receiptPatchPath, (($receiptPatch | ConvertTo-Json -Depth 10) + "`n"), $utf8)
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $testRoot 'scripts\update-project-state.ps1') -Root $testRoot -PatchJsonPath $receiptPatchPath | Out-Null
+    & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $testRoot 'scripts\update-project-state.ps1') -Root $testRoot -PatchJsonPath $receiptPatchPath | Out-Null
     if ($LASTEXITCODE -ne 0) { $failures.Add('Valid completed receipt replacement failed.') }
     $receiptUpdated = Get-Content -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if (-not ([string]$receiptUpdated.completed_receipts[0].evidence).EndsWith('State updater replacement self-test.')) {
@@ -47,19 +47,19 @@ try {
     $badPath = Join-Path $testRoot 'bad.json'
     [IO.File]::WriteAllText($badPath, '{"unknown_property":true}', $utf8)
     $before = (Get-FileHash -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Algorithm SHA256).Hash
-    $process = Start-Process -FilePath (Get-Command powershell).Source -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$(Join-Path $testRoot 'scripts\update-project-state.ps1')`"",'-Root',"`"$testRoot`"",'-PatchJsonPath',"`"$badPath`"") -WindowStyle Hidden -Wait -PassThru
+    $process = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$(Join-Path $testRoot 'scripts\update-project-state.ps1')`"",'-Root',"`"$testRoot`"",'-PatchJsonPath',"`"$badPath`"") -WindowStyle Hidden -Wait -PassThru
     $after = (Get-FileHash -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Algorithm SHA256).Hash
     if ($process.ExitCode -eq 0 -or $before -ne $after) { $failures.Add('Invalid state patch did not fail without mutation.') }
     $badVerificationPath = Join-Path $testRoot 'bad-verification.json'
     [IO.File]::WriteAllText($badVerificationPath, '{"verification":{"result":"PASS","commands":"npm test","tests_passed":1,"tests_skipped":0,"report_sha256":null}}', $utf8)
     $before = (Get-FileHash -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Algorithm SHA256).Hash
-    $process = Start-Process -FilePath (Get-Command powershell).Source -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$(Join-Path $testRoot 'scripts\update-project-state.ps1')`"",'-Root',"`"$testRoot`"",'-PatchJsonPath',"`"$badVerificationPath`"") -WindowStyle Hidden -Wait -PassThru
+    $process = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$(Join-Path $testRoot 'scripts\update-project-state.ps1')`"",'-Root',"`"$testRoot`"",'-PatchJsonPath',"`"$badVerificationPath`"") -WindowStyle Hidden -Wait -PassThru
     $after = (Get-FileHash -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Algorithm SHA256).Hash
     if ($process.ExitCode -eq 0 -or $before -ne $after) { $failures.Add('Invalid verification contract did not fail without mutation.') }
     $badReceiptPath = Join-Path $testRoot 'bad-receipt.json'
     [IO.File]::WriteAllText($badReceiptPath, '{"append_completed_receipts":[{"id":"BAD","result":"PASS","summary":"not evidence"}]}', $utf8)
     $before = (Get-FileHash -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Algorithm SHA256).Hash
-    $process = Start-Process -FilePath (Get-Command powershell).Source -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$(Join-Path $testRoot 'scripts\update-project-state.ps1')`"",'-Root',"`"$testRoot`"",'-PatchJsonPath',"`"$badReceiptPath`"") -WindowStyle Hidden -Wait -PassThru
+    $process = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$(Join-Path $testRoot 'scripts\update-project-state.ps1')`"",'-Root',"`"$testRoot`"",'-PatchJsonPath',"`"$badReceiptPath`"") -WindowStyle Hidden -Wait -PassThru
     $after = (Get-FileHash -LiteralPath (Join-Path $testRoot 'manifests\PROJECT-STATE.json') -Algorithm SHA256).Hash
     if ($process.ExitCode -eq 0 -or $before -ne $after) { $failures.Add('Invalid completed receipt did not fail without mutation.') }
 } catch { $failures.Add($_.Exception.Message) }

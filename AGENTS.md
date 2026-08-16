@@ -4,7 +4,7 @@
 
 ## 开始与恢复
 
-1. 从项目根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/show-resume-context.ps1`。
+1. 从项目根运行 `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/show-resume-context.ps1`。
 2. 只读取输出指向的当前切片、相关源码/测试及唯一权威蓝图的对应章节。
 3. 不因线程恢复或压缩而重新通读未变化蓝图；hash 不匹配、路线被证伪或用户明确要求时才扩大读取。
 4. 先运行最小失败性测试，再改代码；阶段退出时才运行聚合验证。

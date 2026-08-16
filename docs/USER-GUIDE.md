@@ -129,17 +129,17 @@ a completed WorkCell whose input/evidence closure is still current.
 ## Installation and data
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/upgrade.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/uninstall.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/upgrade.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/uninstall.ps1
 ```
 
 Default data is `~/.pi/agent/coding-harness`. Uninstall preserves it. Export-and-delete is explicit:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/uninstall.ps1 `
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/uninstall.ps1 `
   -ExportPath X:\PCH-Export -DeleteData
 ```
 

@@ -74,7 +74,7 @@ Single 复用当前 Pi Agent 与真实工作区，适合小型或强耦合工作
 
 ### 环境要求
 
-- Windows PowerShell 5.1 或 PowerShell 7
+- PowerShell 7（`pwsh`）
 - Node.js `>=22.22.3 <23` 或 `>=24.15.0`
 - npm `11.x`
 - Pi Coding Agent `>=0.81.0 <=0.82.1`
@@ -89,13 +89,13 @@ cd pi-coding-harness
 npm ci
 
 # 无副作用预演
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
 
 # 构建、安全迁移本地 authority，并注册 Pi 本地 package
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
 
 # 只读诊断
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
 ```
 
 ## 使用

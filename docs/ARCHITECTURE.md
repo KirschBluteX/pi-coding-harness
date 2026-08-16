@@ -298,7 +298,7 @@ The complete local aggregate recorded in
 Reproduce the aggregate gate from the repository root:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-project.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-project.ps1
 ```
 
 This command does not run the separate installed-Pi probe. The numeric contracts and measurement rules are documented in

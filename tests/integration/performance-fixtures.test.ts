@@ -14,7 +14,7 @@ interface FixtureOutput {
 }
 
 async function runFixture(stack: "node" | "powershell", arm: "BASELINE" | "CANDIDATE"): Promise<FixtureOutput> {
-  const command = stack === "node" ? process.execPath : "powershell";
+  const command = stack === "node" ? process.execPath : "pwsh";
   const args = stack === "node"
     ? [resolve("fixtures", "performance", "node", "workload.mjs"), arm]
     : ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", resolve("fixtures", "performance", "powershell", "workload.ps1"), "-Arm", arm];

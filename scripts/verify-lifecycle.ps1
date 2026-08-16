@@ -13,7 +13,7 @@ $results = [Collections.Generic.List[object]]::new()
 if ($LASTEXITCODE -ne 0) { throw "PCH runtime build failed with exit code $LASTEXITCODE." }
 foreach ($test in $tests) {
     try {
-        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $rootPath "tests\lifecycle\$test") -SkipRuntimeBuild
+        & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $rootPath "tests\lifecycle\$test") -SkipRuntimeBuild
         if ($LASTEXITCODE -ne 0) { throw "exit code $LASTEXITCODE" }
         $results.Add([ordered]@{ test = $test; status = 'PASS' })
     } catch {

@@ -9,7 +9,7 @@ are demonstrated by fresh evidence.
 1. Read `AGENTS.md` and run:
 
    ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/show-resume-context.ps1
+   pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/show-resume-context.ps1
    ```
 
 2. Read only the relevant part of the normative

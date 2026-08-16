@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/source-hashes.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-08-16T06:07:19.9615184-07:00",
+  "generated_at": "2026-08-16T06:37:16.3541014-07:00",
   "algorithm": "SHA-256",
   "target_root": ".",
   "input_sources": [
@@ -26,7 +26,7 @@
     {
       "migration_id": "MIG-004",
       "source": "X:\\Pi Coding Harness\\AGENTS.md",
-      "sha256": "FF4EEFBED58EB87404CE0D514B286DC00256ACDC6071995BFDC4974D1D95A225",
+      "sha256": "2918BF3B4984CDC99A8E5E5C501A8ADD6D1FDF8CA17397306F7BE9811A1A839A",
       "disposition": "COPIED"
     },
     {
@@ -38,13 +38,13 @@
     {
       "migration_id": "MIG-006",
       "source": "X:\\Pi Coding Harness\\CONTRIBUTING.md",
-      "sha256": "4DCF8F7F8532742409B9C4CCB8BECB0408DE6C59D47349F7185D41B4C54D1547",
+      "sha256": "3219957C0A4FF2C0A1156EE8F678DD59630074A32571C9F678B42809F182A42B",
       "disposition": "COPIED"
     },
     {
       "migration_id": "MIG-007",
       "source": "X:\\Pi Coding Harness\\docs\\ARCHITECTURE.md",
-      "sha256": "95891E7ED4A92DC905B0E9306F152DA19468E9230A125D17BB9886BDA34FBBC7",
+      "sha256": "DD247E78246756B7544D36E55E42884BD14923F9ADF8D2B144960F2FA4CCD2A1",
       "disposition": "COPIED"
     },
     {
@@ -74,7 +74,7 @@
     {
       "migration_id": "MIG-012",
       "source": "X:\\Pi Coding Harness\\docs\\USER-GUIDE.md",
-      "sha256": "486DE9701B75101D82D99D8E46A58EC4DD7E4FE0F529D767838D108180340D96",
+      "sha256": "49C92C8A4386D2EABA8239174A867F33B0C35B5DB48F185BDD10FBA4F81AC8A4",
       "disposition": "COPIED"
     },
     {
@@ -260,19 +260,19 @@
     {
       "migration_id": "MIG-043",
       "source": "X:\\Pi Coding Harness\\package.json",
-      "sha256": "970860FA9529494873DD3FD26CB0B5B680726F2C184BA8A0900A6E4FE277A422",
+      "sha256": "59622D17A2DA856DDBF1951857A3CB598C698424CBB7416D6AF25778F7865ADC",
       "disposition": "COPIED"
     },
     {
       "migration_id": "MIG-044",
       "source": "X:\\Pi Coding Harness\\README.md",
-      "sha256": "5AB4C97049DA0C2FDDB6CF941D95925F41EAED93D53146859FBC6BA91F8FB823",
+      "sha256": "D10D765AF54EECB1D8B5D86E727BBED3D2D41ED17EEA72ED1D3C7096A0CBEB31",
       "disposition": "COPIED"
     },
     {
       "migration_id": "MIG-045",
       "source": "X:\\Pi Coding Harness\\README.zh-CN.md",
-      "sha256": "82BFC30C44D504D2D7073C473E855F4FA0586ADEFA427C8A8D0EFD5ACBC6D59A",
+      "sha256": "B5A24E2B30816786C8BF669326CBA5CCF15F35484EC22588A5011C8DAA7A5281",
       "disposition": "COPIED"
     },
     {
@@ -866,7 +866,7 @@
     {
       "migration_id": "MIG-144",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-lifecycle.ps1",
-      "sha256": "18B98EBAAC84978DF6866B7F18F43206450453D1D142E54C4AE1D7994009AFC6",
+      "sha256": "D0B114FEB07A456DB4008C1DA6BCE7A878A58B90832E7540C51DB96F0BF92043",
       "disposition": "COPIED"
     },
     {
@@ -908,7 +908,7 @@
     {
       "migration_id": "MIG-151",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-state-update.ps1",
-      "sha256": "2228369DA20FB4A9EF5E891B3FD8FB812FB158D260ECBBB2B95F9FA92082FC86",
+      "sha256": "48C8BB8F45E32676C915F05219C357D7233920119CEE57C9107C8A919040021D",
       "disposition": "COPIED"
     },
     {
@@ -2408,7 +2408,7 @@
     {
       "migration_id": "MIG-401",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\performance-fixtures.test.ts",
-      "sha256": "2761AD193DBEA3C49CDF01A1A65F13B90609B31F0155008882B6895335BDF8B4",
+      "sha256": "2F55E23AF9759889E47216DF69318855AA50D3C9F8990D796A9237E1FFAAEAEE",
       "disposition": "COPIED"
     },
     {
@@ -2982,8 +2982,8 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "FF4EEFBED58EB87404CE0D514B286DC00256ACDC6071995BFDC4974D1D95A225",
-      "bytes": 5201
+      "sha256": "2918BF3B4984CDC99A8E5E5C501A8ADD6D1FDF8CA17397306F7BE9811A1A839A",
+      "bytes": 5195
     },
     {
       "path": "config/default.json",
@@ -2992,13 +2992,13 @@
     },
     {
       "path": "CONTRIBUTING.md",
-      "sha256": "4DCF8F7F8532742409B9C4CCB8BECB0408DE6C59D47349F7185D41B4C54D1547",
-      "bytes": 2200
+      "sha256": "3219957C0A4FF2C0A1156EE8F678DD59630074A32571C9F678B42809F182A42B",
+      "bytes": 2194
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "95891E7ED4A92DC905B0E9306F152DA19468E9230A125D17BB9886BDA34FBBC7",
-      "bytes": 16179
+      "sha256": "DD247E78246756B7544D36E55E42884BD14923F9ADF8D2B144960F2FA4CCD2A1",
+      "bytes": 16173
     },
     {
       "path": "docs/IMPLEMENTATION-PLAYBOOK.md",
@@ -3022,8 +3022,8 @@
     },
     {
       "path": "docs/USER-GUIDE.md",
-      "sha256": "486DE9701B75101D82D99D8E46A58EC4DD7E4FE0F529D767838D108180340D96",
-      "bytes": 6287
+      "sha256": "49C92C8A4386D2EABA8239174A867F33B0C35B5DB48F185BDD10FBA4F81AC8A4",
+      "bytes": 6251
     },
     {
       "path": "eslint.config.js",
@@ -3162,7 +3162,7 @@
     },
     {
       "path": "manifests/MIGRATION-MANIFEST.json",
-      "sha256": "31776CCFBA7F62E3D898A4ADA97E01B4593C279957CCE74E788D8BBB4338813F",
+      "sha256": "05F77A2561D6DB82736BAAED08652D6AA2B965779810B78621323B17BA40A60A",
       "bytes": 294982
     },
     {
@@ -3182,18 +3182,18 @@
     },
     {
       "path": "package.json",
-      "sha256": "970860FA9529494873DD3FD26CB0B5B680726F2C184BA8A0900A6E4FE277A422",
-      "bytes": 2967
+      "sha256": "59622D17A2DA856DDBF1951857A3CB598C698424CBB7416D6AF25778F7865ADC",
+      "bytes": 2925
     },
     {
       "path": "README.md",
-      "sha256": "5AB4C97049DA0C2FDDB6CF941D95925F41EAED93D53146859FBC6BA91F8FB823",
-      "bytes": 7400
+      "sha256": "D10D765AF54EECB1D8B5D86E727BBED3D2D41ED17EEA72ED1D3C7096A0CBEB31",
+      "bytes": 7365
     },
     {
       "path": "README.zh-CN.md",
-      "sha256": "82BFC30C44D504D2D7073C473E855F4FA0586ADEFA427C8A8D0EFD5ACBC6D59A",
-      "bytes": 6628
+      "sha256": "B5A24E2B30816786C8BF669326CBA5CCF15F35484EC22588A5011C8DAA7A5281",
+      "bytes": 6595
     },
     {
       "path": "schemas/acceptance.schema.json",
@@ -3687,8 +3687,8 @@
     },
     {
       "path": "scripts/verify-lifecycle.ps1",
-      "sha256": "18B98EBAAC84978DF6866B7F18F43206450453D1D142E54C4AE1D7994009AFC6",
-      "bytes": 1467
+      "sha256": "D0B114FEB07A456DB4008C1DA6BCE7A878A58B90832E7540C51DB96F0BF92043",
+      "bytes": 1461
     },
     {
       "path": "scripts/verify-markdown.mjs",
@@ -3722,8 +3722,8 @@
     },
     {
       "path": "scripts/verify-state-update.ps1",
-      "sha256": "2228369DA20FB4A9EF5E891B3FD8FB812FB158D260ECBBB2B95F9FA92082FC86",
-      "bytes": 7015
+      "sha256": "48C8BB8F45E32676C915F05219C357D7233920119CEE57C9107C8A919040021D",
+      "bytes": 6985
     },
     {
       "path": "SECURITY.md",
@@ -4972,8 +4972,8 @@
     },
     {
       "path": "tests/integration/performance-fixtures.test.ts",
-      "sha256": "2761AD193DBEA3C49CDF01A1A65F13B90609B31F0155008882B6895335BDF8B4",
-      "bytes": 2464
+      "sha256": "2F55E23AF9759889E47216DF69318855AA50D3C9F8990D796A9237E1FFAAEAEE",
+      "bytes": 2458
     },
     {
       "path": "tests/integration/plan-v2-authority.test.ts",

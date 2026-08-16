@@ -82,7 +82,7 @@ roles. Worker output never becomes authority by narration alone.
 
 ### Requirements
 
-- Windows PowerShell 5.1 or PowerShell 7
+- PowerShell 7 (`pwsh`)
 - Node.js `>=22.22.3 <23` or `>=24.15.0`
 - npm `11.x`
 - Pi Coding Agent `>=0.81.0 <=0.82.1`
@@ -98,13 +98,13 @@ cd pi-coding-harness
 npm ci
 
 # Preview installation without changing local Pi state.
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
 
 # Build, migrate local authority safely, and register the local Pi package.
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
 
 # Read-only health check.
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
 ```
 
 ## Usage
