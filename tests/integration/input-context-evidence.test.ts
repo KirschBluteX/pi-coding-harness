@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { closeAuthorityConnection, openAuthorityConnection } from "../../src/authority/database.js";
@@ -7,10 +7,13 @@ import { sha256Hex } from "../../src/foundation/crypto.js";
 import { makeExecutionSubjectRef } from "../../src/task-flow/domain.js";
 import { EvidenceCatalog, type EvidenceAuthority } from "../../src/input-context/evidence-catalog.js";
 import { InputContextMutationGuard } from "../../src/input-context/mutation-guard.js";
-import { exactEditPreimageProvesCurrentSource } from "../../src/input-context/runtime.js";
+import { exactEditPreimageProvesCurrentSource, InputContextRuntime } from "../../src/input-context/runtime.js";
+import { normalizeToolEffect } from "../../src/effects/normalize.js";
+import type { CodingHarnessConfig } from "../../src/config/types.js";
 import { InputContextRepository } from "../../src/input-context/repository.js";
 import { createGoalCommand, createTestAuthority, type TestAuthority } from "../helpers/authority.js";
 import { taskFlowMemoryMigrations } from "../helpers/task-flow.js";
+import { migrateHarnessPostStore } from "../../src/harness/post-migrate.js";
 
 const authorities: TestAuthority[] = [];
 afterEach(() => { for (const authority of authorities.splice(0)) authority.close(); });
@@ -20,6 +23,7 @@ function setup() {
     memoryMigrations: taskFlowMemoryMigrations,
     taskFlowMigrationPath: resolve("schemas", "sql", "011_task_flow_kernel_v1.sql"),
     inputContextMigrationPath: resolve("schemas", "sql", "012_input_context_v1.sql"),
+    harnessMigrationPath: resolve("schemas", "sql", "013_coding_harness_v1.sql"),
   });
   authorities.push(authority);
   authority.store.transact(createGoalCommand("GOAL-IC-EVIDENCE-001"), {
@@ -95,6 +99,94 @@ describe("Input Context EvidenceCatalog and mutation guard", () => {
       expect(exactEditPreimageProvesCurrentSource(path, {
         edits: [{ oldText: "missing", newText: "x" }],
       })).toBe(false);
+    } finally { closeAuthorityConnection(fixture.connection); }
+  });
+
+  it("requires a fresh exact-source receipt before a formatter mutation", () => {
+    const fixture = setup();
+    try {
+      const path = join(fixture.workspace, "source.go");
+      const content = "package example\n\nvar Value = 1\n";
+      writeFileSync(path, content, "utf8");
+      migrateHarnessPostStore(fixture.connection, resolve("schemas", "sql"), fixture.authority.clock.now());
+      const config = JSON.parse(readFileSync(resolve("config", "default.json"), "utf8")) as CodingHarnessConfig;
+      const runtime = new InputContextRuntime({
+        config: config.modules.input_context,
+        authority: fixture.authority.store,
+        artifacts: new ArtifactStore(fixture.authority.casPath),
+        workspaceRoot: fixture.workspace,
+        hmacKey: "formatter-guard-key",
+        nowMs: () => fixture.authority.clock.now(),
+      });
+      (runtime as unknown as { currentMode: "AUTO_GUARDED" }).currentMode = "AUTO_GUARDED";
+      const effect = normalizeToolEffect({
+        toolCallId: "FORMATTER", toolName: "bash", input: { command: "gofmt -w source.go" }, cwd: fixture.workspace,
+      });
+      expect(runtime.guardMutation(effect)).toMatchObject({
+        allow: false, reason: expect.stringContaining("FRESH_READ_REQUIRED"),
+      });
+      runtime.captureToolResult({
+        seed: {
+          workspaceId: "WS-TEST-001", subject: fixture.subject, obligations: [], nextActionSha256: null,
+          sourceClosureRootSha256: null, acceptanceClosureRootSha256: null,
+        },
+        toolName: "read", toolInput: { path: "source.go" }, result: content, isError: false,
+      });
+      expect(runtime.guardMutation(effect)).toMatchObject({ allow: true, reason: null });
+      writeFileSync(path, "package example\n\nvar Value = 2\n", "utf8");
+      expect(runtime.guardMutation(effect)).toMatchObject({
+        allow: false, reason: expect.stringContaining("SOURCE_VERSION_CHANGED"),
+      });
+      runtime.captureToolResult({
+        seed: {
+          workspaceId: "WS-TEST-001", subject: fixture.subject, obligations: [], nextActionSha256: null,
+          sourceClosureRootSha256: null, acceptanceClosureRootSha256: null,
+        },
+        toolName: "edit", toolInput: { path: "source.go" }, result: "edited", isError: false,
+      });
+      expect(runtime.guardMutation(effect)).toMatchObject({ allow: true, reason: null });
+      writeFileSync(path, "package example\n\nvar Value = 3\n", "utf8");
+      runtime.captureToolResult({
+        seed: {
+          workspaceId: "WS-TEST-001", subject: fixture.subject, obligations: [], nextActionSha256: null,
+          sourceClosureRootSha256: null, acceptanceClosureRootSha256: null,
+        },
+        toolName: "edit", toolInput: { path: "source.go" }, result: "failed", isError: true,
+      });
+      expect(runtime.guardMutation(effect)).toMatchObject({
+        allow: false, reason: expect.stringContaining("SOURCE_VERSION_CHANGED"),
+      });
+
+      const otherPath = join(fixture.workspace, "other.go");
+      writeFileSync(path, content, "utf8");
+      writeFileSync(otherPath, "package example\n\nvar Other = 2\n", "utf8");
+      fixture.authority.clock.advance(1);
+      const batchEffect = normalizeToolEffect({
+        toolCallId: "FORMATTER-BATCH", toolName: "bash",
+        input: { command: "gofmt -w source.go other.go" }, cwd: fixture.workspace,
+      });
+      runtime.captureToolResult({
+        seed: {
+          workspaceId: "WS-TEST-001", subject: fixture.subject, obligations: [], nextActionSha256: null,
+          sourceClosureRootSha256: null, acceptanceClosureRootSha256: null,
+        },
+        toolName: "read", toolInput: { path: "source.go" }, result: content, isError: false,
+      });
+      expect(runtime.guardMutation(batchEffect)).toMatchObject({
+        allow: false, reason: expect.stringContaining("FRESH_READ_REQUIRED"),
+      });
+      runtime.captureToolResult({
+        seed: {
+          workspaceId: "WS-TEST-001", subject: fixture.subject, obligations: [], nextActionSha256: null,
+          sourceClosureRootSha256: null, acceptanceClosureRootSha256: null,
+        },
+        toolName: "read", toolInput: { path: "other.go" }, result: "package example\n\nvar Other = 2\n", isError: false,
+      });
+      expect(runtime.guardMutation(batchEffect)).toMatchObject({ allow: true, reason: null });
+      writeFileSync(otherPath, "package example\n\nvar Other = 3\n", "utf8");
+      expect(runtime.guardMutation(batchEffect)).toMatchObject({
+        allow: false, reason: expect.stringContaining("SOURCE_VERSION_CHANGED"),
+      });
     } finally { closeAuthorityConnection(fixture.connection); }
   });
 

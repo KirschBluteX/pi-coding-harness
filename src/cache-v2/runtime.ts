@@ -5,12 +5,10 @@ import { hmacSha256Hex, sha256Hex } from "../foundation/crypto.js";
 import { idFromSha256 } from "../foundation/ids.js";
 import {
   sealCacheRecord, type CacheLogicalRequestPrepareV2, type CacheLogicalRequestV2,
-  type CacheRequestAttributionV2,
+  type CacheRequestAttributionV2, type CacheSecurityPartitionV2, type StablePrefixFamilyV2,
 } from "./domain.js";
-import {
-  classifyGeekspaceOpenAiCompletionsUsage, resolveGeekspaceOpenAiCompletions,
-  type GeekspaceOpenAiCompletionsContract,
-} from "./geekspace-openai-completions.js";
+import type { CacheProviderContract } from "./provider-contract.js";
+import { resolveCacheProviderContract } from "./provider-contracts.js";
 import type { CacheV2Repository } from "./repository.js";
 
 export interface CacheV2ContextSeed {
@@ -31,8 +29,15 @@ export interface CacheV2Store {
 export class CacheV2Runtime {
   private readonly pending = new Map<string, {
     readonly request: CacheLogicalRequestV2;
-    readonly contract: GeekspaceOpenAiCompletionsContract;
+    readonly contract: CacheProviderContract;
   }>();
+  private identity: {
+    readonly transportIdentity: string;
+    readonly seedIdentity: string;
+    readonly contract: CacheProviderContract;
+    readonly partition: CacheSecurityPartitionV2;
+    readonly family: StablePrefixFamilyV2;
+  } | null = null;
   constructor(private readonly options: {
     readonly config: CacheModuleConfig; readonly repository: CacheV2Store; readonly runId: string;
     readonly secret: Uint8Array; readonly now?: () => number;
@@ -46,7 +51,7 @@ export class CacheV2Runtime {
     if (!this.options.config.enabled || this.options.config.arm === "C0") {
       return { arm: "C0", providerIntegration: null, reason: "DISABLED" };
     }
-    const contract = resolveGeekspaceOpenAiCompletions(this.options.config, runtime);
+    const contract = resolveCacheProviderContract(this.options.config, runtime);
     return contract
       ? { arm: "C1_PREFIX", providerIntegration: contract.integrationId, reason: "ACTIVE" }
       : { arm: "C0", providerIntegration: null, reason: "UNSUPPORTED_RUNTIME" };
@@ -54,30 +59,36 @@ export class CacheV2Runtime {
 
   prepare(runtime: WorkerRuntimeSelection, seed: CacheV2ContextSeed): string | null {
     const now = (this.options.now ?? Date.now)();
-    this.abandonInMemoryPending(now);
-    const contract = resolveGeekspaceOpenAiCompletions(this.options.config, runtime);
+    const contract = resolveCacheProviderContract(this.options.config, runtime);
     if (!contract) return null;
-    const transportHmac = hmacSha256Hex(this.options.secret, canonicalJsonSha256({
-      provider: runtime.provider, api: runtime.api, baseUrl: runtime.base_url ?? "unconfigured",
-      model: runtime.model, thinkingLevel: runtime.thinking_level, contextWindow: runtime.context_window,
-    }));
-    const partitionId = idFromSha256("CACHE_PART", sha256Hex(`${this.options.runId}\0${transportHmac}`));
-    const partition = sealCacheRecord("PCH-CACHE-SECURITY-PARTITION-V2", {
+    const canonicalTransport = contract.canonicalTransportIdentity(runtime);
+    const transportIdentity = canonicalJsonSha256(canonicalTransport);
+    const cached = this.identity?.transportIdentity === transportIdentity
+      && this.identity.contract.integrationId === contract.integrationId ? this.identity : null;
+    const transportHmac = cached?.partition.transport_hmac ?? hmacSha256Hex(this.options.secret, transportIdentity);
+    const partitionId = cached?.partition.partition_id
+      ?? idFromSha256("CACHE_PART", sha256Hex(`${this.options.runId}\0${transportHmac}`));
+    const partition = cached?.partition ?? sealCacheRecord("PCH-CACHE-SECURITY-PARTITION-V2", {
       partition_id: partitionId, run_id: this.options.runId, transport_hmac: transportHmac,
-      provider_hmac: hmacSha256Hex(this.options.secret, runtime.provider), api_hmac: hmacSha256Hex(this.options.secret, runtime.api),
-      model_hmac: hmacSha256Hex(this.options.secret, runtime.model),
+      provider_hmac: hmacSha256Hex(this.options.secret, canonicalTransport.provider),
+      api_hmac: hmacSha256Hex(this.options.secret, canonicalTransport.api),
+      model_hmac: hmacSha256Hex(this.options.secret, canonicalTransport.model),
       security_epoch_hmac: hmacSha256Hex(this.options.secret, `${this.options.config.epoch}\0${contract.securityEpoch}`),
       created_at_ms: now,
     });
-    const familyId = idFromSha256("CACHE_FAMILY", sha256Hex(canonicalJsonSha256({ partitionId, ...seed })));
-    const family = sealCacheRecord("PCH-CACHE-PREFIX-FAMILY-V2", {
-      family_id: familyId, run_id: this.options.runId, partition_id: partitionId,
-      prompt_generation_id: seed.promptGenerationId, system_prompt_sha256: seed.systemPromptSha256,
-      layout_manifest_sha256: seed.layoutManifestSha256, tool_surface_sha256: seed.toolSurfaceSha256,
-      context_subject_sha256: seed.subjectBindingSha256, created_at_ms: now,
-    });
+    const seedIdentity = canonicalJsonSha256(seed);
+    const family = cached?.seedIdentity === seedIdentity ? cached.family : (() => {
+      const familyId = idFromSha256("CACHE_FAMILY", sha256Hex(canonicalJsonSha256({ partitionId, ...seed })));
+      return sealCacheRecord("PCH-CACHE-PREFIX-FAMILY-V2", {
+        family_id: familyId, run_id: this.options.runId, partition_id: partitionId,
+        prompt_generation_id: seed.promptGenerationId, system_prompt_sha256: seed.systemPromptSha256,
+        layout_manifest_sha256: seed.layoutManifestSha256, tool_surface_sha256: seed.toolSurfaceSha256,
+        context_subject_sha256: seed.subjectBindingSha256, created_at_ms: now,
+      });
+    })();
+    this.identity = { transportIdentity, seedIdentity, contract, partition, family };
     const request = this.options.repository.prepare(partition, family, {
-      run_id: this.options.runId, partition_id: partitionId, family_id: familyId,
+      run_id: this.options.runId, partition_id: partitionId, family_id: family.family_id,
       subject_binding_sha256: seed.subjectBindingSha256, created_at_ms: now,
     });
     this.pending.set(request.request_id, { request, contract });
@@ -89,8 +100,8 @@ export class CacheV2Runtime {
   }): CacheRequestAttributionV2 {
     const pending = this.pending.get(requestId);
     if (!pending) throw new TypeError("Cache logical request is not pending in this Host");
-    const { request } = pending;
-    const classification = classifyGeekspaceOpenAiCompletionsUsage({
+    const { request, contract } = pending;
+    const classification = contract.classifyUsage({
       usage: input.usage, responseStatus: input.responseStatus,
     });
     const value = sealCacheRecord("PCH-CACHE-REQUEST-ATTRIBUTION-V2", {
@@ -102,19 +113,4 @@ export class CacheV2Runtime {
     this.options.repository.settle(value); this.pending.delete(requestId); return value;
   }
 
-  private abandonInMemoryPending(now: number): void {
-    for (const [requestId, pending] of this.pending) {
-      const { request } = pending;
-      const value = sealCacheRecord("PCH-CACHE-REQUEST-ATTRIBUTION-V2", {
-        request_id: request.request_id, run_id: request.run_id, partition_id: request.partition_id,
-        family_id: request.family_id, request_sequence: request.request_sequence,
-        subject_binding_sha256: request.subject_binding_sha256,
-        observation_state: "UNOBSERVABLE" as const, evidence_level: "METADATA_ONLY" as const,
-        usage: { input: null, output: null, cacheRead: null, cacheWrite: null, reasoning: null },
-        response_status: null, latency_ms: null, created_at_ms: now,
-      });
-      this.options.repository.settle(value);
-      this.pending.delete(requestId);
-    }
-  }
 }

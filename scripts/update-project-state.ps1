@@ -6,6 +6,9 @@ if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $rootPath = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
 $statePath = Join-Path $rootPath 'manifests\PROJECT-STATE.json'
 $statusPath = Join-Path $rootPath 'PROJECT-STATUS.md'
+$package = Get-Content -LiteralPath (Join-Path $rootPath 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$expectedAuthoritySchema = [int]$package.codingHarness.authoritySchema
+if ($expectedAuthoritySchema -lt 1) { throw 'package.json authority schema is invalid.' }
 $utf8 = New-Object Text.UTF8Encoding($false)
 
 function Write-Atomic([string]$Path, [string]$Content) {
@@ -31,12 +34,27 @@ function Unique-Append([object[]]$Existing, [object[]]$Incoming, [scriptblock]$I
     return $result.ToArray()
 }
 
+function Assert-Receipt($Receipt) {
+    $keys = @($Receipt.PSObject.Properties.Name)
+    foreach ($key in @('id','result','evidence')) {
+        if ($keys -notcontains $key) { throw "Completed receipt missing $key" }
+    }
+    $unexpected = @($keys | Where-Object { $_ -notin @('id','result','evidence') })
+    if ($unexpected.Count -gt 0) { throw "Completed receipt has unexpected property: $($unexpected[0])" }
+    if (-not [string]$Receipt.id -or ([string]$Receipt.id).Length -gt 256) { throw 'Completed receipt id is invalid.' }
+    if ($Receipt.result -notin @('PASS','FAIL','EXTERNAL_LIMIT')) { throw "Completed receipt $($Receipt.id) result is invalid." }
+    if (-not [string]$Receipt.evidence -or ([string]$Receipt.evidence).Length -gt 8192) {
+        throw "Completed receipt $($Receipt.id) evidence is invalid."
+    }
+}
+
 function Assert-State($State) {
     $required = @('schema_version','product','version','authority_schema','status','state_generation','current_phase','current_stage','updated_at','goal','completed_receipts','authoritative_artifacts','decisions','latest_correction','failed_routes','do_not_repeat','open_risks','blockers','next_action','verification')
     foreach ($key in $required) { if ($State.PSObject.Properties.Name -notcontains $key) { throw "State missing $key" } }
-    if ($State.schema_version -ne 1 -or $State.product -ne 'Pi Coding Harness' -or $State.authority_schema -ne 19) { throw 'State identity is invalid.' }
+    if ($State.schema_version -ne 1 -or $State.product -ne 'Pi Coding Harness' -or $State.authority_schema -ne $expectedAuthoritySchema) { throw 'State identity is invalid.' }
     if ($State.status -notin @('IMPLEMENTING','VERIFYING','PASS','FAIL','BLOCKED')) { throw 'State status is invalid.' }
     if ([int]$State.state_generation -lt 1 -or -not [string]$State.next_action) { throw 'State generation or next action is invalid.' }
+    foreach ($receipt in @($State.completed_receipts)) { Assert-Receipt $receipt }
     foreach ($artifact in @($State.authoritative_artifacts)) {
         if ([string]$artifact.sha256 -notmatch '^[A-Fa-f0-9]{64}$') { throw "Artifact hash is invalid: $($artifact.path)" }
     }
@@ -97,7 +115,27 @@ if (-not $RegenerateOnly) {
     foreach ($property in $patch.PSObject.Properties) {
         switch ($property.Name) {
             'append_completed_receipts' { $state.completed_receipts = Unique-Append @($state.completed_receipts) @($property.Value) { param($x) [string]$x.id } }
+            'update_completed_receipts' {
+                foreach ($update in @($property.Value)) {
+                    Assert-Receipt $update
+                    $indices = @(for ($index = 0; $index -lt @($state.completed_receipts).Count; $index++) {
+                        if ($state.completed_receipts[$index].id -eq $update.id) { $index }
+                    })
+                    if ($indices.Count -ne 1) { throw "Completed receipt id is not unique: $($update.id)" }
+                    $state.completed_receipts[$indices[0]] = $update
+                }
+            }
             'append_authoritative_artifacts' { $state.authoritative_artifacts = Unique-Append @($state.authoritative_artifacts) @($property.Value) { param($x) "$($x.path)|$($x.sha256)|$($x.role)" } }
+            'update_authoritative_artifact_hashes' {
+                foreach ($update in @($property.Value)) {
+                    if (-not [string]$update.path -or [string]$update.sha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+                        throw 'Authoritative artifact hash update is invalid.'
+                    }
+                    $matches = @($state.authoritative_artifacts | Where-Object { $_.path -eq $update.path })
+                    if ($matches.Count -ne 1) { throw "Authoritative artifact path is not unique: $($update.path)" }
+                    $matches[0].sha256 = [string]$update.sha256
+                }
+            }
             'append_decisions' { $state.decisions = Unique-Append @($state.decisions) @($property.Value) { param($x) [string]$x } }
             'replace_decisions' { $state.decisions = @($property.Value) }
             'append_do_not_repeat' { $state.do_not_repeat = Unique-Append @($state.do_not_repeat) @($property.Value) { param($x) [string]$x } }

@@ -4,11 +4,23 @@ param([string]$Root, [string]$ReportPath)
 $ErrorActionPreference = 'Stop'
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $rootPath = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
+$package = Get-Content -LiteralPath (Join-Path $rootPath 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$excludedSegments = @($package.codingHarness.releaseExcludedDirectories)
+$excludedFiles = @($package.codingHarness.releaseExcludedFiles)
+if ($excludedSegments.Count -eq 0 -or @($excludedSegments | Where-Object {
+    -not ($_ -is [string]) -or -not $_ -or $_ -match '\\' -or
+    $_.StartsWith('/') -or $_.EndsWith('/') -or $_ -match '(^|/)\.\.?($|/)' -or $_ -match '//'
+}).Count -gt 0) { throw 'package.json releaseExcludedDirectories is invalid.' }
+if ($excludedFiles.Count -eq 0 -or @($excludedFiles | Where-Object {
+    -not ($_ -is [string]) -or -not $_ -or $_ -match '[/\\]'
+}).Count -gt 0) { throw 'package.json releaseExcludedFiles is invalid.' }
 if (-not $ReportPath) { $ReportPath = Join-Path $rootPath 'reports\self-contained.json' }
 $failures = New-Object System.Collections.Generic.List[string]
 
 $required = @(
-    'README.md', 'AGENTS.md', 'PROJECT-STATUS.md', 'package.json', 'package-lock.json', '.gitignore',
+    'README.md', 'README.zh-CN.md', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md',
+    'CONTRIBUTING.md', 'SECURITY.md', 'AGENTS.md', 'PROJECT-STATUS.md',
+    'package.json', 'package-lock.json', '.gitignore',
     'docs/PI-CODING-HARNESS-BLUEPRINT.md', 'docs/IMPLEMENTATION-PLAYBOOK.md', 'docs/USER-GUIDE.md',
     'docs/PERFORMANCE-BUDGET.md', 'docs/REVIEW-GATES.md', 'manifests/PROJECT-STATE.json',
     'manifests/ACCEPTANCE-CONTRACT.json', 'manifests/MIGRATION-MANIFEST.json', 'manifests/SOURCE-HASHES.json',
@@ -16,7 +28,9 @@ $required = @(
     'scripts/verify-project.ps1', 'scripts/verify-self-contained.ps1', 'scripts/verify-performance-baseline.ps1',
     'schemas/migration-manifest.schema.json', 'schemas/source-hashes.schema.json',
     'schemas/sql/001_core.sql', 'schemas/sql/017_target_performance_receipts.sql',
-    'schemas/sql/018_control_plane_v2.sql', 'schemas/sql/019_patch_transaction_v1.sql', 'src/index.ts'
+    'schemas/sql/018_control_plane_v2.sql', 'schemas/sql/019_patch_transaction_v1.sql',
+    'schemas/sql/034_dynamic_multi_proposal_v2.sql', 'schemas/sql/035_session_goal_binding_v1.sql', 'src/index.ts',
+    'src/artifacts/artifact-store.ts', 'src/output/response-contract.ts'
 )
 foreach ($relative in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $rootPath $relative) -PathType Leaf)) { $failures.Add("Missing required file: $relative") }
@@ -38,15 +52,27 @@ foreach ($obsolete in @('.' + $oldAcronymLower, '.pi-' + 'goal-' + 'runtime', 'd
     if (Test-Path -LiteralPath (Join-Path $rootPath $obsolete)) { $failures.Add("Obsolete path exists: $obsolete") }
 }
 
-$excludedSegments = @('node_modules', 'dist', 'reports', '.git', '.tmp')
 function Get-ReleaseItems([string]$Directory) {
     foreach ($item in Get-ChildItem -LiteralPath $Directory -Force -ErrorAction Stop) {
-        if ($excludedSegments -contains $item.Name) { continue }
+        if ($item.PSIsContainer -and (Test-ExcludedDirectory $item.FullName)) { continue }
+        if (-not $item.PSIsContainer -and (Test-ExcludedFile $item.Name)) { continue }
         $item
         if ($item.PSIsContainer -and ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) {
             Get-ReleaseItems $item.FullName
         }
     }
+}
+
+function Test-ExcludedFile([string]$Name) {
+    foreach ($pattern in $excludedFiles) {
+        if ($Name -like $pattern) { return $true }
+    }
+    return $false
+}
+
+function Test-ExcludedDirectory([string]$FullName) {
+    $relative = $FullName.Substring($rootPath.Length).TrimStart('\', '/').Replace('\', '/')
+    return $excludedSegments -contains $relative
 }
 $releaseItems = @(Get-ReleaseItems $rootPath)
 $files = @($releaseItems | Where-Object { -not $_.PSIsContainer })

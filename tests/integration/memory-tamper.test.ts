@@ -110,8 +110,8 @@ describe("Memory v2 tamper detection", () => {
       workspaceId: "WS-TEST-001", goalId: authority.goalId, workspaceRoot: authority.directory,
       text: "receipt", tags: ["receipt"], nowMs: authority.clock.now(),
     }).selected.map((entry) => entry.claimId)).toContain(added.record?.claimId);
-    execute("DROP TRIGGER no_update_evidence_attestations_v1");
-    mutate("UPDATE evidence_attestations_v1 SET result='FAIL' WHERE attestation_id=?", receiptId);
+    execute("DROP TRIGGER no_update_oracle_pass_receipts_v2");
+    mutate("UPDATE oracle_pass_receipts_v2 SET observation_root_sha256=? WHERE pass_receipt_id=?", "f".repeat(64), receiptId);
     expect(() => authority?.memory.retrieve({
       workspaceId: "WS-TEST-001", goalId: authority.goalId, workspaceRoot: authority.directory,
       text: "receipt", tags: ["receipt"], nowMs: authority.clock.now(),

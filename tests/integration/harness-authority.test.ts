@@ -46,6 +46,21 @@ describe("Pi Coding Harness authority", () => {
     ]);
   }, 15_000);
 
+  it("rejects case-aliased concurrent write scopes before Worker admission", () => {
+    const fixture = createHarnessFixture("MULTI", "SCOPE-CASE-ALIAS"); fixtures.push(fixture);
+    const first = workShard(fixture, {
+      id: "SHARD-SCOPE-CASE-A", ordinal: 0, role: "IMPLEMENTER", readRoots: [], writeRoots: ["src/example.ts"],
+    });
+    const alias = workShard(fixture, {
+      id: "SHARD-SCOPE-CASE-B", ordinal: 1, role: "IMPLEMENTER", readRoots: [], writeRoots: ["SRC/EXAMPLE.TS"],
+    });
+    expect(() => fixture.authority.store.transactHarness({
+      type: "DEFINE_WORK_SHARDS", goalId: fixture.goalId, runId: fixture.run.run_id,
+      workCellId: first.work_cell_id, shards: [first, alias],
+    }, harnessMutation(fixture, fixture.version, "scope:case-alias"))).toThrow(/scope|dependency/u);
+    expect(fixture.authority.store.readHarnessView(fixture.goalId)?.shards).toEqual([]);
+  });
+
   it("keeps SINGLE direct and rejects hidden Supervisor WorkShards", () => {
     const fixture = createHarnessFixture("SINGLE", "SINGLE"); fixtures.push(fixture);
     const shard = workShard(fixture, { id: "SHARD-SINGLE-001", ordinal: 0, role: "SUPERVISOR", writeRoots: ["src/example.ts"] });
@@ -155,7 +170,10 @@ describe("Pi Coding Harness authority", () => {
       state: "PREPARED", output_sha256: null, readback_sha256: null, failure_signature_sha256: null,
       postcondition: "UNKNOWN", predecessor_sha256: null, created_at_ms: fixture.authority.clock.now(),
     }, "transition_sha256");
-    version = fixture.authority.store.transactTaskFlow({ type: "PREPARE_OPERATION", goalId: fixture.goalId, attempt, prepared, reconcileLocator: null },
+    version = fixture.authority.store.transactTaskFlow({
+      type: "PREPARE_OPERATION", goalId: fixture.goalId, attempt, prepared, reconcileLocator: null,
+      oracleExecution: null,
+    },
       harnessMutation(fixture, version, "multi:integration:prepare")).goalVersion;
     let predecessor = prepared.transition_sha256;
     for (const [ordinal, state] of [[1, "DISPATCHED"], [2, "OBSERVED"], [3, "COMMITTED"]] as const) {

@@ -66,10 +66,10 @@
     },
     "cache": {
       "enabled": true,
-      "epoch": "CACHE-C1-GEEKSPACE-OPENAI-COMPLETIONS-001",
+      "epoch": "CACHE-C1-CODEX-LOCAL-OPENAI-RESPONSES-001",
       "arm": "C1_PREFIX",
       "fallback": "C0",
-      "provider_integration": "geekspace-openai-completions-positive-usage-v1",
+      "provider_integration": "codex-local-openai-responses-positive-usage-v1",
       "allow_payload_mutation": false,
       "allow_live_canary": false,
       "observation_protocol": {

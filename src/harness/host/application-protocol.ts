@@ -4,6 +4,14 @@ import type { ToolInvocation } from "../../effects/normalize.js";
 import type { ContextToolResponse } from "../../input-context/context-tool.js";
 import type { MemoryCommandRequest } from "../../memory/commands.js";
 import type { ClarificationDecision } from "../../planning/clarification.js";
+import {
+  parseSessionGoalBindingMarker,
+  type SessionGoalBindingMarkerV1,
+} from "../../task-flow/session-binding.js";
+import {
+  validateDecisionInboxProjectionV2,
+  type DecisionInboxProjectionV2,
+} from "./decision-inbox.js";
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 
@@ -16,30 +24,100 @@ export interface HostRuntimeSelection {
   readonly context_window: number;
 }
 
-export interface HostEnterParams {
+interface HostEnterBase {
   readonly cwd: string;
   readonly session_id: string;
+  readonly runtime: HostRuntimeSelection;
+}
+
+export interface HostNewEnterParams extends HostEnterBase {
+  readonly entry_mode?: "LEGACY" | "NEW";
   readonly objective: string;
   readonly intent: "PLAN" | "BUILD";
   readonly topology: "SINGLE" | "MULTI";
-  readonly runtime: HostRuntimeSelection;
+}
+
+export interface HostResumeEnterParams extends HostEnterBase {
+  readonly entry_mode: "RESUME";
+  readonly binding_marker: SessionGoalBindingMarkerV1;
+}
+
+export interface HostRecoverEnterParams extends HostEnterBase {
+  readonly entry_mode: "RECOVER";
+  readonly goal_id: string;
+  readonly allow_transfer: boolean;
+}
+
+export type HostEnterParams = HostNewEnterParams | HostResumeEnterParams | HostRecoverEnterParams;
+
+export interface HostGoalCandidate {
+  readonly goal_id: string;
+  readonly goal_title: string;
+  readonly objective: string;
+  readonly intent: "PLAN_ONLY" | "BUILD" | "PLAN_THEN_BUILD";
+  readonly status: string;
+  readonly next_action_code: string;
+  readonly binding_state: "BOUND" | "UNBOUND" | "TERMINAL";
+  readonly controller_session_id: string | null;
+  readonly controller_live: boolean;
+  readonly binding_receipt_sha256: string | null;
+}
+
+export interface HostGoalDiscovery {
+  readonly current_session_binding: SessionGoalBindingMarkerV1 | null;
+  readonly recoverable: readonly HostGoalCandidate[];
 }
 
 export interface HostFlowStatus extends JsonRecord {
   readonly goalId: string;
+  readonly objective: string;
   readonly mode: "PLAN" | "BUILD";
   readonly phase: string;
   readonly workCell: string | null;
   readonly routeHealth: string;
   readonly nextAction: string;
   readonly blocker: string | null;
+  readonly unresolvedOperationIds: readonly string[];
 }
 
 export interface HostHarnessStatus extends JsonRecord {
   readonly runId: string;
   readonly status: string;
   readonly nextReadyShardId: string | null;
+  readonly requestedTopology: "SINGLE" | "MULTI";
+  readonly effectiveTopology: "SINGLE" | "MULTI";
+  readonly topologyReasonCode: string;
   readonly shards: readonly (JsonRecord & { readonly role: string; readonly status: string })[];
+}
+
+export interface HostPresentationV2 {
+  readonly schema_version: 2;
+  readonly presentation_state_code:
+    | "DEFINING_GOAL" | "PLANNING" | "WAITING_FOR_YOU" | "BUILDING" | "VERIFYING"
+    | "PAUSED" | "RECONCILING" | "COMPLETED" | "FAILED" | "CANCELED";
+  readonly attention: "NONE" | "ACTION_REQUIRED" | "BLOCKING";
+  readonly primary_target:
+    | "CONTRACT_REVIEW" | "CLARIFICATION" | "PLAN_CONTINUATION" | "RECONCILE"
+    | "WORK" | "VERIFY" | "DELIVERABLE";
+  readonly authority_event_sequence: number;
+  readonly lifecycle: {
+    readonly revision: number;
+    readonly current_stage: "INTAKE" | "CONTRACT" | "PLAN" | "BUILD" | "VERIFY" | "DELIVER";
+    readonly steps: readonly {
+      readonly code: "INTAKE" | "CONTRACT" | "PLAN" | "BUILD" | "VERIFY" | "DELIVER";
+      readonly state: "COMPLETE" | "ACTIVE" | "PENDING";
+    }[];
+  };
+}
+
+export interface HostChangedFileV2 {
+  readonly path: string;
+  readonly change: "CREATED" | "MODIFIED" | "DELETED" | "MOVED";
+  readonly operation_id: string;
+  readonly work_cell_id: string;
+  readonly before_sha256: string;
+  readonly after_sha256: string | null;
+  readonly authority_event_sequence: number;
 }
 
 export interface HostStatus {
@@ -69,15 +147,34 @@ export interface HostStatus {
     readonly max_widget_lines: number;
   };
   readonly open_clarifications?: readonly ClarificationDecision[];
+  readonly decision_inbox: DecisionInboxProjectionV2 | null;
   readonly generation_governor: GenerationGovernorSnapshot | null;
   readonly runtime: HostRuntimeSelection | null;
   readonly intent: "PLAN" | "BUILD" | null;
   readonly topology: "SINGLE" | "MULTI" | null;
   readonly control_frame: CurrentControlFrame | null;
+  readonly session_binding?: SessionGoalBindingMarkerV1 | null;
+  readonly presentation?: HostPresentationV2 | null;
+  readonly current_work_cell?: null | {
+    readonly work_cell_id: string;
+    readonly title: string;
+    readonly status: string | null;
+    readonly revision: number;
+  };
+  readonly changed_files?: readonly HostChangedFileV2[];
   readonly plan_review?: null | {
     readonly summary: string;
     readonly artifact_path: string;
     readonly route_sha256: string;
+    readonly plan_revision_sha256: string;
+    readonly stage_gate_sha256: string;
+  };
+  readonly contract_review?: null | {
+    readonly decision_requirement_revision_id: string;
+    readonly requirement_revision_sha256: string;
+    readonly decision_frontier_sha256: string;
+    readonly contract_diff: JsonRecord;
+    readonly requirement_diff: JsonRecord;
   };
 }
 
@@ -178,6 +275,18 @@ export interface HostApplicationMethods {
   readonly status: { readonly params: null; readonly result: HostStatus };
   readonly shutdown: { readonly params: null; readonly result: { readonly stopped: true } };
   readonly enter: { readonly params: HostEnterParams; readonly result: HostStatus };
+  readonly discover_goals: {
+    readonly params: { readonly cwd: string; readonly session_id: string };
+    readonly result: HostGoalDiscovery;
+  };
+  readonly unbind_session: {
+    readonly params: { readonly expected_binding_receipt_sha256: string };
+    readonly result: HostStatus;
+  };
+  readonly rename_goal: {
+    readonly params: { readonly goal_title: string; readonly expected_binding_receipt_sha256: string };
+    readonly result: HostStatus;
+  };
   readonly update_runtime: {
     readonly params: HostRuntimeSelection;
     readonly result: { readonly runtime: HostRuntimeSelection };
@@ -213,10 +322,15 @@ export interface HostApplicationMethods {
       readonly history: HostProviderHistorySummary;
       readonly tool_schema_bytes: number;
     };
-    readonly result: { readonly recorded: boolean; readonly cache_request_id: string | null };
+    readonly result: {
+      readonly recorded: boolean;
+      readonly provider_attempt_id: string | null;
+      readonly cache_request_id: string | null;
+    };
   };
   readonly provider_settle: {
     readonly params: {
+      readonly provider_attempt_id: string | null;
       readonly cache_request_id: string | null;
       readonly usage: HostProviderUsage | null;
       readonly response_status: number | null;
@@ -237,16 +351,44 @@ export interface HostApplicationMethods {
     readonly params: { readonly text: string; readonly goal_intake: boolean };
     readonly result: { readonly observed: true };
   };
-  readonly memory_command: { readonly params: MemoryCommandRequest; readonly result: { readonly message: string } };
-  readonly submit_build: {
-    readonly params: HostControlFrameParam & { readonly contract: JsonRecord; readonly route: JsonRecord };
+  readonly active_goal_input: {
+    readonly params: { readonly text: string };
     readonly result: HostStateResult;
   };
+  readonly classify_active_goal_input: {
+    readonly params: HostControlFrameParam & {
+      readonly user_turn_id: string;
+      readonly expected_user_turn_sha256: string;
+      readonly classification: "CORRECT_CURRENT" | "QUEUE_NEXT" | "CHANGE_REQUEST" | "NEW_GOAL" | "INTERRUPT_NOW" | "DISCUSSION_ONLY";
+      readonly materiality: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+      readonly change_kind: "BEHAVIOR" | "SCOPE" | "ACCEPTANCE" | "USER_PREFERENCE" | null;
+      readonly changed_subjects: readonly { readonly kind: "REQUIREMENT" | "DECISION" | "WORK_CELL"; readonly id: string }[];
+    };
+    readonly result: HostStateResult;
+  };
+  readonly memory_command: { readonly params: MemoryCommandRequest; readonly result: { readonly message: string } };
   readonly submit_contract: { readonly params: HostControlFrameParam & JsonRecord; readonly result: HostStateResult };
+  readonly resolve_contract_review: {
+    readonly params: {
+      readonly expected_decision_requirement_revision_id: string;
+      readonly expected_requirement_revision_sha256: string;
+      readonly expected_decision_frontier_sha256: string;
+      readonly action: "APPROVE" | "REJECT" | "EDIT" | "DEFER";
+      readonly selected_value: unknown;
+      readonly edited_requirement_revision_id?: string;
+      readonly deferred_trigger_sha256?: string;
+    };
+    readonly result: HostStateResult;
+  };
   readonly submit_route: { readonly params: HostControlFrameParam & JsonRecord; readonly result: HostStateResult };
   readonly submit_route_revision: { readonly params: HostControlFrameParam & JsonRecord; readonly result: HostStateResult };
   readonly continue_plan: {
-    readonly params: { readonly choice: "BUILD" | "KEEP" | "REVISE" };
+    readonly params: HostControlFrameParam & {
+      readonly expected_route_sha256: string;
+      readonly expected_plan_revision_sha256: string;
+      readonly expected_stage_gate_sha256: string;
+      readonly choice: "BUILD" | "KEEP" | "REVISE";
+    };
     readonly result: HostStateResult;
   };
   readonly define_shards: {
@@ -283,7 +425,10 @@ export interface HostApplicationMethods {
     readonly params: HostControlFrameParam & { readonly operation_id: string; readonly obligation_keys?: readonly string[] };
     readonly result: HostStateResult;
   };
-  readonly complete: { readonly params: HostControlFrameParam; readonly result: HostStateResult };
+  readonly complete: {
+    readonly params: HostControlFrameParam & { readonly outcome_evidence?: readonly JsonRecord[] };
+    readonly result: HostStateResult;
+  };
   readonly reconcile: {
     readonly params: HostControlFrameParam & { readonly operation_id?: string };
     readonly result: HostStateResult;
@@ -318,13 +463,16 @@ type ResultKind =
   | "STATUS" | "STOPPED" | "RUNTIME" | "WORKER_STARTED" | "WORKER_STATUS" | "WORKER_ABORTED"
   | "TURN_PROJECTION" | "CONTEXT_PROJECTION" | "CONTEXT_RESPONSE" | "PROVIDER_BEGIN" | "PROVIDER_SETTLE"
   | "GENERATION" | "MESSAGE" | "OBSERVED" | "STATE" | "SHARDS" | "TOOL_PREFLIGHT"
-  | "TOOL_RESULT" | "TOOL_END" | "COMPACTION";
+  | "TOOL_RESULT" | "TOOL_END" | "COMPACTION" | "GOAL_DISCOVERY";
 
 /** The one executable registry of every Bridge-to-Host application operation. */
 export const HOST_APPLICATION_PROTOCOL = Object.freeze({
   status: { params: "NULL", result: "STATUS" },
   shutdown: { params: "NULL", result: "STOPPED" },
   enter: { params: "RECORD", result: "STATUS" },
+  discover_goals: { params: "RECORD", result: "GOAL_DISCOVERY" },
+  unbind_session: { params: "RECORD", result: "STATUS" },
+  rename_goal: { params: "RECORD", result: "STATUS" },
   update_runtime: { params: "RECORD", result: "RUNTIME" },
   worker_start: { params: "RECORD", result: "WORKER_STARTED" },
   worker_poll: { params: "RECORD", result: "WORKER_STATUS" },
@@ -338,9 +486,11 @@ export const HOST_APPLICATION_PROTOCOL = Object.freeze({
   generation_settled: { params: "NULL_OR_RECORD", result: "GENERATION" },
   cache_diagnostic: { params: "NULL", result: "MESSAGE" },
   memory_observe: { params: "RECORD", result: "OBSERVED" },
+  active_goal_input: { params: "RECORD", result: "STATE" },
+  classify_active_goal_input: { params: "RECORD", result: "STATE" },
   memory_command: { params: "RECORD", result: "MESSAGE" },
-  submit_build: { params: "RECORD", result: "STATE" },
   submit_contract: { params: "RECORD", result: "STATE" },
+  resolve_contract_review: { params: "RECORD", result: "STATE" },
   submit_route: { params: "RECORD", result: "STATE" },
   submit_route_revision: { params: "RECORD", result: "STATE" },
   continue_plan: { params: "RECORD", result: "STATE" },
@@ -375,6 +525,23 @@ function exactKeys(value: Record<string, unknown>, required: readonly string[], 
 function boundedText(value: unknown, maximum: number): boolean {
   return typeof value === "string" && value.length > 0 && value.length <= maximum
     && value.trim().length > 0 && value === value.normalize("NFC");
+}
+
+function wellFormedUnicode(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (index + 1 >= value.length || next < 0xdc00 || next > 0xdfff) return false;
+      index += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) return false;
+  }
+  return true;
+}
+
+function rawByteBoundedText(value: unknown, maximumBytes: number): boolean {
+  return typeof value === "string" && value.trim().length > 0
+    && wellFormedUnicode(value) && Buffer.byteLength(value, "utf8") <= maximumBytes;
 }
 
 function safeInteger(value: unknown, minimum = 0, maximum = Number.MAX_SAFE_INTEGER): boolean {
@@ -422,6 +589,17 @@ function controlFrameParams(value: unknown): value is Record<string, unknown> & 
   return record(value) && sha256(value.control_frame_sha256);
 }
 
+function outcomeEvidence(value: unknown): boolean {
+  if (value === undefined) return true;
+  return Array.isArray(value) && value.length > 0 && value.length <= 12 && value.every((entry) => {
+    if (!record(entry) || !exactKeys(entry, ["obligation_key", "operation_id", "witnesses"])
+      || !boundedText(entry.obligation_key, 160) || !boundedText(entry.operation_id, 256)
+      || !Array.isArray(entry.witnesses) || entry.witnesses.length < 1 || entry.witnesses.length > 16) return false;
+    return entry.witnesses.every((witness) => record(witness) && exactKeys(witness, ["path", "locator"])
+      && boundedText(witness.path, 4_096) && boundedText(witness.locator, 512));
+  });
+}
+
 function clarification(value: unknown): value is ClarificationDecision {
   if (!record(value) || !exactKeys(value, [
     "id", "question", "whyItMatters", "changeKind", "materiality", "reversible", "privacyRelated",
@@ -462,11 +640,38 @@ function paramsError(method: HostMethod, value: unknown): string | null {
   if (!record(value)) return "params must be an object";
 
   if (method === "enter") {
-    return exactKeys(value, ["cwd", "session_id", "objective", "intent", "topology", "runtime"])
-      && boundedText(value.cwd, 4_096) && boundedText(value.session_id, 256) && boundedText(value.objective, 131_072)
+    const base = boundedText(value.cwd, 4_096) && boundedText(value.session_id, 256) && runtimeSelection(value.runtime);
+    if (!base) return "entry contract is invalid";
+    if (value.entry_mode === "RESUME") {
+      const marker = parseSessionGoalBindingMarker(value.binding_marker);
+      return exactKeys(value, ["cwd", "session_id", "runtime", "entry_mode", "binding_marker"])
+        && marker !== null && marker.session_id === value.session_id && marker.state === "BOUND" && marker.auto_resume
+        ? null : "resume entry contract is invalid";
+    }
+    if (value.entry_mode === "RECOVER") {
+      return exactKeys(value, ["cwd", "session_id", "runtime", "entry_mode", "goal_id", "allow_transfer"])
+        && boundedText(value.goal_id, 256) && typeof value.allow_transfer === "boolean"
+        ? null : "recover entry contract is invalid";
+    }
+    return exactKeys(value, ["cwd", "session_id", "objective", "intent", "topology", "runtime"], ["entry_mode"])
+      && (value.entry_mode === undefined || value.entry_mode === "LEGACY" || value.entry_mode === "NEW")
+      && boundedText(value.objective, 131_072)
       && (value.intent === "PLAN" || value.intent === "BUILD")
-      && (value.topology === "SINGLE" || value.topology === "MULTI") && runtimeSelection(value.runtime)
+      && (value.topology === "SINGLE" || value.topology === "MULTI")
       ? null : "entry contract is invalid";
+  }
+  if (method === "discover_goals") {
+    return exactKeys(value, ["cwd", "session_id"]) && boundedText(value.cwd, 4_096)
+      && boundedText(value.session_id, 256) ? null : "goal discovery contract is invalid";
+  }
+  if (method === "unbind_session") {
+    return exactKeys(value, ["expected_binding_receipt_sha256"]) && sha256(value.expected_binding_receipt_sha256)
+      ? null : "session unbind contract is invalid";
+  }
+  if (method === "rename_goal") {
+    return exactKeys(value, ["goal_title", "expected_binding_receipt_sha256"])
+      && boundedText(value.goal_title, 128) && sha256(value.expected_binding_receipt_sha256)
+      ? null : "Goal rename contract is invalid";
   }
   if (method === "update_runtime") return runtimeSelection(value) ? null : "runtime selection is invalid";
   // Authority-bound payload semantics stay in the Host handler, after ControlFrame
@@ -499,9 +704,10 @@ function paramsError(method: HostMethod, value: unknown): string | null {
   }
   if (method === "provider_settle") {
     return exactKeys(value, [
-      "cache_request_id", "usage", "response_status", "latency_ms", "outcome",
+      "provider_attempt_id", "cache_request_id", "usage", "response_status", "latency_ms", "outcome",
       "assistant_text_bytes", "tool_argument_bytes",
     ])
+      && (value.provider_attempt_id === null || boundedText(value.provider_attempt_id, 256))
       && (value.cache_request_id === null || boundedText(value.cache_request_id, 256))
       && (value.usage === null || providerUsage(value.usage))
       && (value.response_status === null || safeInteger(value.response_status, 100))
@@ -518,14 +724,54 @@ function paramsError(method: HostMethod, value: unknown): string | null {
     return exactKeys(value, ["text", "goal_intake"]) && boundedText(value.text, 16_384)
       && typeof value.goal_intake === "boolean" ? null : "memory_observe params are invalid";
   }
+  if (method === "active_goal_input") {
+    return exactKeys(value, ["text"]) && rawByteBoundedText(value.text, 131_072)
+      ? null : "active_goal_input params are invalid";
+  }
+  if (method === "classify_active_goal_input") {
+    if (!controlFrameParams(value) || !exactKeys(value, [
+      "control_frame_sha256", "user_turn_id", "expected_user_turn_sha256", "classification",
+      "materiality", "change_kind", "changed_subjects",
+    ]) || !boundedText(value.user_turn_id, 160) || !sha256(value.expected_user_turn_sha256)
+      || !["CORRECT_CURRENT", "QUEUE_NEXT", "CHANGE_REQUEST", "NEW_GOAL", "INTERRUPT_NOW", "DISCUSSION_ONLY"]
+        .includes(String(value.classification))
+      || !["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(String(value.materiality))
+      || (value.change_kind !== null
+        && (typeof value.change_kind !== "string"
+          || !["BEHAVIOR", "SCOPE", "ACCEPTANCE", "USER_PREFERENCE"].includes(value.change_kind)))
+      || !Array.isArray(value.changed_subjects) || value.changed_subjects.length > 512) {
+      return "classify_active_goal_input params are invalid";
+    }
+    return value.changed_subjects.every((subject) => record(subject) && exactKeys(subject, ["kind", "id"])
+      && ["REQUIREMENT", "DECISION", "WORK_CELL"].includes(String(subject.kind))
+      && boundedText(subject.id, 160)) ? null : "classify_active_goal_input params are invalid";
+  }
   if (method === "memory_command") return null;
-  if (method === "submit_build") {
-    return controlFrameParams(value) ? null : "submit_build params are invalid";
+  if (method === "resolve_contract_review") {
+    const common = exactKeys(value, [
+      "expected_decision_requirement_revision_id", "expected_requirement_revision_sha256",
+      "expected_decision_frontier_sha256", "action", "selected_value",
+    ], ["edited_requirement_revision_id", "deferred_trigger_sha256"])
+      && boundedText(value.expected_decision_requirement_revision_id, 160)
+      && sha256(value.expected_requirement_revision_sha256) && sha256(value.expected_decision_frontier_sha256)
+      && own(value, "selected_value")
+      && ["APPROVE", "REJECT", "EDIT", "DEFER"].includes(String(value.action));
+    const actionFields = value.action === "EDIT"
+      ? boundedText(value.edited_requirement_revision_id, 160) && value.deferred_trigger_sha256 === undefined
+      : value.action === "DEFER"
+        ? sha256(value.deferred_trigger_sha256) && value.edited_requirement_revision_id === undefined
+        : value.edited_requirement_revision_id === undefined && value.deferred_trigger_sha256 === undefined;
+    return common && actionFields ? null : "resolve_contract_review params are invalid";
   }
   if (method === "submit_contract" || method === "submit_route" || method === "submit_route_revision"
     || method === "tool_preflight") return controlFrameParams(value) ? null : `${method} params are invalid`;
   if (method === "continue_plan") {
-    return exactKeys(value, ["choice"]) && (value.choice === "BUILD" || value.choice === "KEEP" || value.choice === "REVISE")
+    return controlFrameParams(value) && exactKeys(value, [
+      "control_frame_sha256", "expected_route_sha256", "expected_plan_revision_sha256",
+      "expected_stage_gate_sha256", "choice",
+    ]) && sha256(value.expected_route_sha256) && sha256(value.expected_plan_revision_sha256)
+      && sha256(value.expected_stage_gate_sha256)
+      && (value.choice === "BUILD" || value.choice === "KEEP" || value.choice === "REVISE")
       ? null : "continue_plan params are invalid";
   }
   if (method === "define_shards") {
@@ -545,13 +791,13 @@ function paramsError(method: HostMethod, value: unknown): string | null {
     return controlFrameParams(value) ? null : "attest params are invalid";
   }
   if (method === "complete") {
-    return controlFrameParams(value) && exactKeys(value, ["control_frame_sha256"]) ? null : "complete params are invalid";
+    return controlFrameParams(value) && exactKeys(value, ["control_frame_sha256"], ["outcome_evidence"])
+      && outcomeEvidence(value.outcome_evidence) ? null : "complete params are invalid";
   }
   if (method === "reconcile") {
     return controlFrameParams(value) ? null : "reconcile params are invalid";
   }
   if (method === "control") {
-    if (own(value, "control_frame_sha256")) return null;
     return exactKeys(value, ["action"], ["reason", "control_frame_sha256"])
       && ["pause", "resume", "cancel", "replan"].includes(String(value.action))
       && (value.reason === undefined || boundedText(value.reason, 131_072))
@@ -583,16 +829,54 @@ function generation(value: unknown): value is GenerationGovernorSnapshot {
     && nullableString(value.directive) && typeof value.reason_code === "string";
 }
 
+function presentationV2(value: unknown): value is HostPresentationV2 {
+  if (!record(value) || !exactKeys(value, [
+    "schema_version", "presentation_state_code", "attention", "primary_target",
+    "authority_event_sequence", "lifecycle",
+  ]) || value.schema_version !== 2
+    || ![
+      "DEFINING_GOAL", "PLANNING", "WAITING_FOR_YOU", "BUILDING", "VERIFYING", "PAUSED",
+      "RECONCILING", "COMPLETED", "FAILED", "CANCELED",
+    ].includes(String(value.presentation_state_code))
+    || !["NONE", "ACTION_REQUIRED", "BLOCKING"].includes(String(value.attention))
+    || ![
+      "CONTRACT_REVIEW", "CLARIFICATION", "PLAN_CONTINUATION", "RECONCILE", "WORK", "VERIFY", "DELIVERABLE",
+    ].includes(String(value.primary_target))
+    || !safeInteger(value.authority_event_sequence, 1) || !record(value.lifecycle)
+    || !exactKeys(value.lifecycle, ["revision", "current_stage", "steps"])
+    || !safeInteger(value.lifecycle.revision, 1)
+    || !["INTAKE", "CONTRACT", "PLAN", "BUILD", "VERIFY", "DELIVER"].includes(String(value.lifecycle.current_stage))
+    || !Array.isArray(value.lifecycle.steps) || value.lifecycle.steps.length !== 6) return false;
+  const expected = ["INTAKE", "CONTRACT", "PLAN", "BUILD", "VERIFY", "DELIVER"];
+  return value.lifecycle.steps.every((step, index) => record(step) && exactKeys(step, ["code", "state"])
+    && step.code === expected[index] && ["COMPLETE", "ACTIVE", "PENDING"].includes(String(step.state)));
+}
+
+function changedFileV2(value: unknown): value is HostChangedFileV2 {
+  return record(value) && exactKeys(value, [
+    "path", "change", "operation_id", "work_cell_id", "before_sha256", "after_sha256", "authority_event_sequence",
+  ]) && boundedText(value.path, 4_096) && ["CREATED", "MODIFIED", "DELETED", "MOVED"].includes(String(value.change))
+    && boundedText(value.operation_id, 256) && boundedText(value.work_cell_id, 256)
+    && sha256(value.before_sha256) && (value.after_sha256 === null || sha256(value.after_sha256))
+    && safeInteger(value.authority_event_sequence, 1);
+}
+
 function status(value: unknown): value is HostStatus {
   if (!record(value) || typeof value.active !== "boolean") return false;
   if (value.intent !== null && value.intent !== "PLAN" && value.intent !== "BUILD") return false;
   if (value.topology !== null && value.topology !== "SINGLE" && value.topology !== "MULTI") return false;
   if (value.flow !== null && (!record(value.flow) || typeof value.flow.goalId !== "string"
+    || typeof value.flow.objective !== "string"
     || (value.flow.mode !== "PLAN" && value.flow.mode !== "BUILD") || typeof value.flow.phase !== "string"
     || !nullableString(value.flow.workCell) || typeof value.flow.routeHealth !== "string"
-    || typeof value.flow.nextAction !== "string" || !nullableString(value.flow.blocker))) return false;
+    || typeof value.flow.nextAction !== "string" || !nullableString(value.flow.blocker)
+    || !Array.isArray(value.flow.unresolvedOperationIds) || value.flow.unresolvedOperationIds.length > 512
+    || value.flow.unresolvedOperationIds.some((operationId) => !boundedText(operationId, 256)))) return false;
   if (value.harness !== null && (!record(value.harness) || typeof value.harness.runId !== "string"
     || typeof value.harness.status !== "string"
+    || !["SINGLE", "MULTI"].includes(String(value.harness.requestedTopology))
+    || !["SINGLE", "MULTI"].includes(String(value.harness.effectiveTopology))
+    || !boundedText(value.harness.topologyReasonCode, 256)
     || !nullableString(value.harness.nextReadyShardId) || !Array.isArray(value.harness.shards)
     || value.harness.shards.some((shard) => !record(shard) || typeof shard.role !== "string" || typeof shard.status !== "string"))) return false;
   if (value.context !== null && (!record(value.context) || !nullableString(value.context.input_context_error)
@@ -607,16 +891,54 @@ function status(value: unknown): value is HostStatus {
     || !safeInteger(value.ui.max_widget_lines, 1, 6))) return false;
   if (value.open_clarifications !== undefined && (!Array.isArray(value.open_clarifications)
     || value.open_clarifications.length > 5 || value.open_clarifications.some((item) => !clarification(item)))) return false;
+  if (!("decision_inbox" in value)
+    || (value.decision_inbox !== null && !validateDecisionInboxProjectionV2(value.decision_inbox))) return false;
   if (value.generation_governor !== null && !generation(value.generation_governor)) return false;
   if (value.runtime !== null && !runtimeSelection(value.runtime)) return false;
   if (value.plan_review !== undefined && value.plan_review !== null
-    && (!record(value.plan_review) || typeof value.plan_review.summary !== "string"
-      || typeof value.plan_review.artifact_path !== "string" || !sha256(value.plan_review.route_sha256))) return false;
+    && (!record(value.plan_review) || !exactKeys(value.plan_review, [
+      "summary", "artifact_path", "route_sha256", "plan_revision_sha256", "stage_gate_sha256",
+    ]) || typeof value.plan_review.summary !== "string"
+      || typeof value.plan_review.artifact_path !== "string" || !sha256(value.plan_review.route_sha256)
+      || !sha256(value.plan_review.plan_revision_sha256) || !sha256(value.plan_review.stage_gate_sha256))) return false;
+  if (value.contract_review !== undefined && value.contract_review !== null
+    && (!record(value.contract_review) || !exactKeys(value.contract_review, [
+      "decision_requirement_revision_id", "requirement_revision_sha256", "decision_frontier_sha256",
+      "contract_diff", "requirement_diff",
+    ]) || !boundedText(value.contract_review.decision_requirement_revision_id, 160)
+      || !sha256(value.contract_review.requirement_revision_sha256)
+      || !sha256(value.contract_review.decision_frontier_sha256)
+      || !record(value.contract_review.contract_diff) || !record(value.contract_review.requirement_diff))) return false;
+  if (value.session_binding !== undefined && value.session_binding !== null
+    && parseSessionGoalBindingMarker(value.session_binding) === null) return false;
+  if (value.presentation !== undefined && value.presentation !== null && !presentationV2(value.presentation)) return false;
+  if (value.current_work_cell !== undefined && value.current_work_cell !== null
+    && (!record(value.current_work_cell) || !exactKeys(value.current_work_cell, ["work_cell_id", "title", "status", "revision"])
+      || !boundedText(value.current_work_cell.work_cell_id, 256) || !boundedText(value.current_work_cell.title, 8_192)
+      || !nullableString(value.current_work_cell.status) || !safeInteger(value.current_work_cell.revision, 1))) return false;
+  if (value.changed_files !== undefined && (!Array.isArray(value.changed_files)
+    || value.changed_files.length > 4_096 || value.changed_files.some((file) => !changedFileV2(file)))) return false;
   return (value.control_frame === null || controlFrame(value.control_frame)) && "execution_subject" in value;
 }
 
 function state(value: unknown): value is HostStateResult {
   return record(value) && typeof value.message === "string" && status(value.status);
+}
+
+function goalDiscovery(value: unknown): value is HostGoalDiscovery {
+  if (!record(value) || !exactKeys(value, ["current_session_binding", "recoverable"])) return false;
+  if (value.current_session_binding !== null && parseSessionGoalBindingMarker(value.current_session_binding) === null) return false;
+  return Array.isArray(value.recoverable) && value.recoverable.length <= 1_024 && value.recoverable.every((candidate) =>
+    record(candidate) && exactKeys(candidate, [
+      "goal_id", "goal_title", "objective", "intent", "status", "next_action_code", "binding_state",
+      "controller_session_id", "controller_live", "binding_receipt_sha256",
+    ]) && boundedText(candidate.goal_id, 256) && boundedText(candidate.goal_title, 128)
+      && boundedText(candidate.objective, 131_072)
+      && ["PLAN_ONLY", "BUILD", "PLAN_THEN_BUILD"].includes(String(candidate.intent))
+      && boundedText(candidate.status, 128) && boundedText(candidate.next_action_code, 128)
+      && ["BOUND", "UNBOUND", "TERMINAL"].includes(String(candidate.binding_state))
+      && nullableString(candidate.controller_session_id) && typeof candidate.controller_live === "boolean"
+      && (candidate.binding_receipt_sha256 === null || sha256(candidate.binding_receipt_sha256)));
 }
 
 function workerStatus(value: unknown): value is HostWorkerStatus {
@@ -630,6 +952,7 @@ function validResult(kind: ResultKind, value: unknown): boolean {
   if (kind === "STATUS") return status(value);
   if (kind === "STOPPED") return record(value) && value.stopped === true;
   if (kind === "RUNTIME") return record(value) && exactKeys(value, ["runtime"]) && runtimeSelection(value.runtime);
+  if (kind === "GOAL_DISCOVERY") return goalDiscovery(value);
   if (kind === "WORKER_STARTED") return record(value) && typeof value.job_id === "string" && value.state === "RUNNING"
     && Number.isSafeInteger(value.worker_count);
   if (kind === "WORKER_STATUS") return workerStatus(value);

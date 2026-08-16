@@ -57,6 +57,8 @@ describe("Coding Harness Host IPC", () => {
   it("uses one closed application catalog for params, routing, and results", async () => {
     expect(HOST_METHODS).toContain("enter");
     expect(HOST_METHODS).toContain("complete");
+    expect(HOST_METHODS).toContain("resolve_contract_review");
+    expect(HOST_METHODS).not.toContain("submit_build");
     expect(HOST_METHODS).not.toContain("coding");
     expect(HOST_METHODS).not.toContain("worker_wait");
     expect(HOST_METHODS).not.toContain("tool_start");
@@ -67,7 +69,91 @@ describe("Coding Harness Host IPC", () => {
       .toThrow("Unknown Coding Harness Host method");
     expect(() => parseHostApplicationRequest("tool_start", { tool_call_id: "CALL-1" }))
       .toThrow("Unknown Coding Harness Host method");
+    expect(() => parseHostApplicationRequest("submit_build", {}))
+      .toThrow("Unknown Coding Harness Host method");
     expect(() => parseHostApplicationRequest("status", {})).toThrow("Invalid Coding Harness Host params");
+    expect(parseHostApplicationRequest("complete", {
+      control_frame_sha256: "a".repeat(64),
+      outcome_evidence: [{
+        obligation_key: "browser-clients", operation_id: "OPERATION-1",
+        witnesses: [{ path: "tests/browser.test.ts", locator: "browser clients retain behavior" }],
+      }],
+    })).toMatchObject({ method: "complete" });
+    expect(() => parseHostApplicationRequest("complete", {
+      control_frame_sha256: "a".repeat(64), outcome_evidence: [],
+    })).toThrow("complete params are invalid");
+    expect(parseHostApplicationRequest("resolve_contract_review", {
+      expected_decision_requirement_revision_id: "DECISION-REVISION-1",
+      expected_requirement_revision_sha256: "b".repeat(64),
+      expected_decision_frontier_sha256: "c".repeat(64),
+      action: "APPROVE",
+      selected_value: true,
+    })).toMatchObject({ method: "resolve_contract_review" });
+    const continuation = {
+      control_frame_sha256: "d".repeat(64),
+      expected_route_sha256: "e".repeat(64),
+      expected_plan_revision_sha256: "f".repeat(64),
+      expected_stage_gate_sha256: "1".repeat(64),
+      choice: "BUILD",
+    } as const;
+    expect(parseHostApplicationRequest("continue_plan", continuation)).toMatchObject({ method: "continue_plan" });
+    for (const key of Object.keys(continuation)) {
+      const incomplete = { ...continuation } as Record<string, unknown>;
+      delete incomplete[key];
+      expect(() => parseHostApplicationRequest("continue_plan", incomplete)).toThrow("continue_plan params are invalid");
+    }
+    expect(() => parseHostApplicationRequest("continue_plan", { ...continuation, unexpected: true }))
+      .toThrow("continue_plan params are invalid");
+    expect(() => parseHostApplicationRequest("continue_plan", { ...continuation, expected_stage_gate_sha256: "not-a-sha" }))
+      .toThrow("continue_plan params are invalid");
+    expect(() => parseHostApplicationRequest("continue_plan", { choice: "BUILD" }))
+      .toThrow("continue_plan params are invalid");
+    const activeGoalInput = { text: "Preserve the adjacent parser." } as const;
+    expect(parseHostApplicationRequest("active_goal_input", activeGoalInput))
+      .toMatchObject({ method: "active_goal_input" });
+    expect(() => parseHostApplicationRequest("active_goal_input", {}))
+      .toThrow("active_goal_input params are invalid");
+    expect(() => parseHostApplicationRequest("active_goal_input", { ...activeGoalInput, unexpected: true }))
+      .toThrow("active_goal_input params are invalid");
+    const activeGoalClassification = {
+      control_frame_sha256: "2".repeat(64),
+      user_turn_id: "USER_TURN-1",
+      expected_user_turn_sha256: "3".repeat(64),
+      classification: "DISCUSSION_ONLY",
+      materiality: "LOW",
+      change_kind: null,
+      changed_subjects: [],
+    } as const;
+    expect(parseHostApplicationRequest("classify_active_goal_input", activeGoalClassification))
+      .toMatchObject({ method: "classify_active_goal_input" });
+    for (const key of Object.keys(activeGoalClassification)) {
+      const incomplete = { ...activeGoalClassification } as Record<string, unknown>;
+      delete incomplete[key];
+      expect(() => parseHostApplicationRequest("classify_active_goal_input", incomplete))
+        .toThrow("classify_active_goal_input params are invalid");
+    }
+    expect(() => parseHostApplicationRequest("classify_active_goal_input", {
+      ...activeGoalClassification, unexpected: true,
+    })).toThrow("classify_active_goal_input params are invalid");
+    expect(() => parseHostApplicationRequest("classify_active_goal_input", {
+      ...activeGoalClassification, expected_user_turn_sha256: "not-a-sha",
+    })).toThrow("classify_active_goal_input params are invalid");
+    expect(() => parseHostApplicationRequest("classify_active_goal_input", {
+      ...activeGoalClassification,
+      classification: "CHANGE_REQUEST",
+      change_kind: "SCOPE",
+      changed_subjects: [{ kind: "WORK_CELL", id: "CELL-1", unexpected: true }],
+    })).toThrow("classify_active_goal_input params are invalid");
+    expect(() => parseHostApplicationRequest("control", {
+      control_frame_sha256: "not-a-sha", action: "DESTROY", unexpected: true,
+    })).toThrow("control params are invalid");
+    expect(() => parseHostApplicationRequest("resolve_contract_review", {
+      expected_decision_requirement_revision_id: "DECISION-REVISION-1",
+      expected_requirement_revision_sha256: "b".repeat(64),
+      expected_decision_frontier_sha256: "c".repeat(64),
+      action: "EDIT",
+      selected_value: { feedback: "change scope" },
+    })).toThrow("resolve_contract_review params are invalid");
     expect(() => parseHostApplicationRequest("enter", {})).toThrow("entry contract is invalid");
     expect(() => parseHostApplicationRequest("enter", {
       cwd: "X:\\workspace",
@@ -87,7 +173,27 @@ describe("Coding Harness Host IPC", () => {
     expect(parseHostApplicationRequest("context_fetch", {
       control_frame_sha256: "a".repeat(64), selector: "CURRENT_ON_DEMAND", candidate_ids: [],
     }).method).toBe("context_fetch");
+    const legacyDiscovery = {
+      current_session_binding: null,
+      recoverable: [{
+        goal_id: "GOAL-LEGACY-UNBOUND", goal_title: "Legacy unbound Goal", objective: "Recover safely",
+        intent: "PLAN_ONLY", status: "WAITING_USER", next_action_code: "REVIEW_CONTRACT",
+        binding_state: "UNBOUND", controller_session_id: null, controller_live: false,
+        binding_receipt_sha256: null,
+      }],
+    } as const;
+    expect(validateHostApplicationResult("discover_goals", legacyDiscovery)).toEqual(legacyDiscovery);
+    expect(() => validateHostApplicationResult("discover_goals", {
+      ...legacyDiscovery,
+      recoverable: [{ ...legacyDiscovery.recoverable[0], binding_receipt_sha256: "not-a-sha" }],
+    })).toThrow("Invalid Coding Harness Host result");
     expect(() => validateHostApplicationResult("shutdown", { stopped: false })).toThrow("Invalid Coding Harness Host result");
+    expect(() => validateHostApplicationResult("status", {
+      active: false, flow: null, harness: null, execution_subject: null, context: null,
+      cache: { configured: false, enabled: false, arm: "C0", effective_arm: "C0", provider_integration: null, reason: "DISABLED" },
+      output: { enabled: false, mode: "NORMAL" }, decision_inbox: { forged: true },
+      generation_governor: null, runtime: null, intent: null, topology: null, control_frame: null,
+    })).toThrow("Invalid Coding Harness Host result");
 
     let calls = 0;
     const server = new HostIpcServer(secret, () => { calls += 1; return { stopped: false }; });
@@ -106,6 +212,32 @@ describe("Coding Harness Host IPC", () => {
     assertHostResponse(secret, invalidResponse);
     expect(invalidResponse).toMatchObject({ ok: false, error: { code: "HOST_RESULT_INVALID" } });
     expect(calls).toBe(1);
+  });
+
+  it("round-trips exact active Goal UTF-8 text without NFC normalization", () => {
+    const text = "e\u0301";
+
+    expect(parseHostApplicationRequest("active_goal_input", { text })).toEqual({
+      method: "active_goal_input",
+      params: { text },
+    });
+  });
+
+  it("bounds active Goal input by raw UTF-8 bytes", () => {
+    const exactLimit = "\u00e9".repeat(65_536);
+
+    expect(parseHostApplicationRequest("active_goal_input", { text: exactLimit })).toEqual({
+      method: "active_goal_input",
+      params: { text: exactLimit },
+    });
+    expect(() => parseHostApplicationRequest("active_goal_input", { text: `${exactLimit}a` }))
+      .toThrow("active_goal_input params are invalid");
+    expect(() => parseHostApplicationRequest("active_goal_input", { text: "" }))
+      .toThrow("active_goal_input params are invalid");
+    expect(() => parseHostApplicationRequest("active_goal_input", { text: " \t\r\n" }))
+      .toThrow("active_goal_input params are invalid");
+    expect(() => parseHostApplicationRequest("active_goal_input", { text: "\ud800" }))
+      .toThrow("active_goal_input params are invalid");
   });
 
   it("binds each client response to the requested method result validator", async () => {

@@ -1,69 +1,66 @@
 {
-    "$schema":  "../schemas/cache-provider-evidence.schema.json",
-    "schema_version":  1,
-    "evidence_id":  "PCH-CACHE-EVIDENCE-GEEKSPACE-001",
-    "generated_at":  "2026-07-27T11:30:08.2918982+08:00",
-    "source":  {
-                   "kind":  "PREEXISTING_PI_SESSION_NORMALIZED_USAGE",
-                   "pi_version":  "0.82.1",
-                   "provider":  "geekspace",
-                   "api":  "openai-completions",
-                   "base_url":  "https://geekspace.cloud/v1",
-                   "content_retained":  false,
-                   "credentials_accessed":  false
-               },
-    "window":  {
-                   "policy":  "LATEST_PREEXISTING_PROVIDER_USAGE",
-                   "requested_samples":  200,
-                   "selected_samples":  200,
-                   "session_count":  11,
-                   "first_at":  "2026-07-21T06:53:46.3410000+00:00",
-                   "last_at":  "2026-07-26T13:58:51.2270000+00:00",
-                   "membership_sha256":  "c909bebc0ba0f2a2366c828882e280a0dad719ad305bb62a685a83f927f07fb6",
-                   "fixed_before_activation":  true
-               },
-    "usage":  {
-                  "positive_cache_read_samples":  138,
-                  "zero_cache_read_samples":  62,
-                  "uncached_input_tokens":  6208452,
-                  "cache_read_tokens":  20424704,
-                  "cache_write_tokens":  0,
-                  "effective_input_tokens":  26633156,
-                  "positive_provider_report_share":  0.69,
-                  "token_read_share":  0.76689011245982264
-              },
-    "models_observed":  [
-                            {
-                                "model":  "gpt-5.4",
-                                "samples":  1
-                            },
-                            {
-                                "model":  "gpt-5.5",
-                                "samples":  1
-                            },
-                            {
-                                "model":  "gpt-5.6-sol",
-                                "samples":  198
-                            }
-                        ],
-    "semantics":  {
-                      "positive_cache_read":  "PROVIDER_REPORTED_HIT",
-                      "zero_cache_read":  "UNOBSERVABLE",
-                      "pi_normalization":  "MISSING_CACHED_TOKENS_DEFAULTS_TO_ZERO",
-                      "request_hit_rate_claim":  "PROHIBITED"
-                  },
-    "decision":  {
-                     "result":  "ACTIVATE",
-                     "arm":  "C1_PREFIX",
-                     "provider_integration":  "geekspace-openai-completions-positive-usage-v1",
-                     "allow_payload_mutation":  false,
-                     "allow_live_canary":  false,
-                     "fallback":  "C0",
-                     "reason":  "The frozen pre-activation window contains 200 valid samples and 138 positive provider-reported Cache reads."
-                 },
-    "limitations":  [
-                        "Pi 0.82.1 maps an absent cached_tokens field to zero, so zero cannot prove a Cache miss.",
-                        "This evidence authorizes non-mutating C1 observation only; it does not authorize provider payload fields or headers.",
-                        "Positive provider-report share and token-read share are descriptive diagnostics, not a guaranteed future hit rate."
-                    ]
+  "$schema": "../schemas/cache-provider-evidence.schema.json",
+  "schema_version": 1,
+  "evidence_id": "PCH-CACHE-EVIDENCE-CODEX-LOCAL-20260801-001",
+  "generated_at": "2026-08-01T10:21:53.2859114+08:00",
+  "source": {
+    "kind": "LIVE_MINIMAL_QUALIFICATION",
+    "pi_version": "0.82.1",
+    "provider": "codex_local_access",
+    "api": "openai-responses",
+    "base_url": "http://localhost:58493/v1",
+    "content_retained": false,
+    "credentials_accessed": true,
+    "credentials_retained": false
+  },
+  "window": {
+    "policy": "FROZEN_PROVIDER_CALL_PLAN",
+    "requested_samples": 2,
+    "selected_samples": 1,
+    "session_count": 1,
+    "first_at": "2026-08-01T02:21:08.852Z",
+    "last_at": "2026-08-01T02:21:08.852Z",
+    "membership_sha256": "50C1C61FD07687682635783F01C4F6DEE09813E014AE1A786F10C66E7D09F1E0",
+    "fixed_before_activation": true,
+    "provider_call_plan_sha256": "F333D888B954226D58FBF482B0A27A43DB7DE1D6B5FF91FD484447E1F33658C3",
+    "session_file_sha256": "50C1C61FD07687682635783F01C4F6DEE09813E014AE1A786F10C66E7D09F1E0",
+    "early_stop_reason": "The first planned request reported positive Cache-read usage, so the redundant second request was cancelled under the frozen stop rule."
+  },
+  "usage": {
+    "positive_cache_read_samples": 1,
+    "zero_cache_read_samples": 0,
+    "uncached_input_tokens": 967,
+    "cache_read_tokens": 3840,
+    "cache_write_tokens": 0,
+    "effective_input_tokens": 4807,
+    "positive_provider_report_share": 1,
+    "token_read_share": 0.7988350322446433
+  },
+  "models_observed": [
+    {
+      "model": "gpt-5.6-sol",
+      "samples": 1
+    }
+  ],
+  "semantics": {
+    "positive_cache_read": "PROVIDER_REPORTED_HIT",
+    "zero_cache_read": "UNOBSERVABLE",
+    "pi_normalization": "MISSING_CACHED_TOKENS_DEFAULTS_TO_ZERO",
+    "request_hit_rate_claim": "PROHIBITED"
+  },
+  "decision": {
+    "result": "ACTIVATE",
+    "arm": "C1_PREFIX",
+    "provider_integration": "codex-local-openai-responses-positive-usage-v1",
+    "allow_payload_mutation": false,
+    "allow_live_canary": false,
+    "fallback": "C0",
+    "reason": "The frozen local-provider qualification produced one valid response with 3,840 positive provider-reported Cache-read tokens and stopped before a redundant second request."
+  },
+  "limitations": [
+    "Pi 0.82.1 maps an absent cached_tokens field to zero, so zero cannot prove a Cache miss.",
+    "This evidence authorizes non-mutating C1 observation only; it does not authorize provider payload fields or headers.",
+    "The single decisive positive observation proves eligibility for this exact runtime lineage, not a guaranteed future request hit rate.",
+    "The provider profile label is included in the Cache security partition; a different label, API, base URL, model, thinking level or context window rotates lineage."
+  ]
 }

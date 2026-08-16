@@ -14,6 +14,9 @@ import type { TaskFlowAuthorityCommand } from "../../src/task-flow/commands.js";
 import { declaredPerformanceRoot } from "../helpers/performance-root.js";
 import { GenerationGovernor } from "../../src/control/generation-governor.js";
 import { sha256Hex } from "../../src/foundation/crypto.js";
+import { withAcceptanceV2 } from "../helpers/acceptance-v2.js";
+import { passingGoalFitAssessment } from "../helpers/goal-fit.js";
+import { approvePendingTaskFlowContract } from "../helpers/task-flow-session.js";
 
 const enabled = process.env.PCH_TASK_FLOW_PERFORMANCE === "1";
 const sampleCount = 160;
@@ -58,14 +61,15 @@ describe.skipIf(!enabled)("Task Flow Kernel critical-path performance", () => {
       const admissionSamples = sample(() => classifyTaskFlowInput(
         "build: modify src/example.ts and run tests", config,
       ));
-      const contractProposal = {
+      const goalContractProposal = {
         user_outcomes: ["The local file is correct and verified"], scope: ["src/example.ts"],
         non_goals: ["No external deployment"], constraints: ["Keep the change local"],
         obligations: [{ key: "verified-output", priority: "MUST" as const,
           statement: "The final workspace passes npm test", oracle: { command: "npm test" } }],
         authorization_ceiling: "LOCAL_REVERSIBLE" as const,
       };
-      const routeProposal = {
+      const contractProposal = withAcceptanceV2(goalContractProposal);
+      const routeCoreProposal = {
         outcomes: ["The bounded change is implemented"],
         work_cells: [{
           key: "bounded-change", outcome: "Update and verify the file", obligation_keys: ["verified-output"],
@@ -74,13 +78,14 @@ describe.skipIf(!enabled)("Task Flow Kernel critical-path performance", () => {
           risk: "LOW" as const, reversible: true,
         }], near_horizon: ["bounded-change"],
       };
+      const routeProposal = { ...routeCoreProposal, goal_fit_assessment: passingGoalFitAssessment() };
       const finalizationSamples = sample(() => {
         const contract = finalizeGoalContract({
           goalId: "GOAL-TASK-FLOW-PERF", objective: "Modify and verify one file", intent: "BUILD",
           lane: "DIRECT_CELL", sourceIntakeSha256: "a".repeat(64), version: 1,
-          parentContractId: null, proposal: contractProposal, createdAtMs: 1,
+          parentContractId: null, proposal: goalContractProposal, createdAtMs: 1,
         });
-        finalizeRoute({ contract, revision: 1, parentRouteId: null, proposal: routeProposal, createdAtMs: 1 });
+        finalizeRoute({ contract, revision: 1, parentRouteId: null, proposal: routeCoreProposal, createdAtMs: 1 });
       });
       const healthInput = {
         activeObligationCount: 100, currentRecordCount: 256, unknownEffect: false,
@@ -101,6 +106,7 @@ describe.skipIf(!enabled)("Task Flow Kernel critical-path performance", () => {
       session.initialize(context);
       expect(session.startFromInput("build: modify src/example.ts and run tests", context)).toMatchObject({ action: "transform" });
       session.submitContract(contractProposal);
+      approvePendingTaskFlowContract(session);
       session.submitRoute(routeProposal);
       const store = session.resources()?.authority;
       if (!store) throw new TypeError("Task Flow performance AuthorityStore is unavailable");

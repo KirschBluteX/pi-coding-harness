@@ -4,6 +4,12 @@ import { fileURLToPath } from "node:url";
 import { Type } from "typebox";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { spawnCodingHarnessHost, type HostRpcClient, type SpawnHostOptions } from "../harness/host/client.js";
+import type { HostGoalDiscovery, HostStatus } from "../harness/host/application-protocol.js";
+import {
+  parseSessionGoalBindingMarker,
+  SESSION_GOAL_BINDING_CUSTOM_TYPE,
+  type SessionGoalBindingMarkerV1,
+} from "../task-flow/session-binding.js";
 import { sha256Hex } from "../foundation/crypto.js";
 import {
   applyContextProjection, stripOwnedProviderContextMessages,
@@ -11,7 +17,6 @@ import {
 import { retainedContextDescriptor, type RetainedContextDescriptor } from "../input-context/retained-ledger.js";
 import { ProjectionDeltaLedger, type ContextProjectionDelta } from "../input-context/projection-delta.js";
 import { registerMemoryCommands } from "../memory/commands.js";
-import { hasPotentialUserMemorySignal } from "../memory/capture-signal.js";
 import {
   generationGovernorMessageType, type GenerationGovernorSnapshot,
 } from "../control/generation-governor.js";
@@ -49,9 +54,14 @@ interface ActiveBridge {
   cacheStartedAt: number | null;
   cacheResponseStatus: number | null;
   providerTurnStarted: boolean;
-  providerBegin: Promise<{ readonly recorded: boolean; readonly cache_request_id: string | null } | null> | null;
+  providerBegin: Promise<{
+    readonly recorded: boolean;
+    readonly provider_attempt_id: string | null;
+    readonly cache_request_id: string | null;
+  } | null> | null;
   providerTail: Promise<void>;
   toolObservationTail: Promise<void>;
+  activeInputCaptureTail: Promise<void>;
   providerHistory: ProviderHistorySummary;
   toolSchemaBytes: number;
   lastStatusText: string | null;
@@ -65,6 +75,7 @@ interface ActiveBridge {
   governorDecision: GenerationGovernorSnapshot["decision"];
   runtime: RuntimeSelection;
   readonly pendingClarifications: Map<string, BridgeClarificationDecision>;
+  lastBindingReceiptSha256: string | null;
 }
 
 interface BridgeClarificationDecision {
@@ -97,50 +108,6 @@ interface RuntimeSelection {
   readonly model: string;
   readonly thinking_level: string;
   readonly context_window: number;
-}
-
-interface HostStatus {
-  readonly active: boolean;
-  readonly intent: "PLAN" | "BUILD" | null;
-  readonly topology: "SINGLE" | "MULTI" | null;
-  readonly flow: null | {
-    readonly goalId: string;
-    readonly mode: "PLAN" | "BUILD";
-    readonly phase: string;
-    readonly workCell: string | null;
-    readonly routeHealth: string;
-    readonly nextAction: string;
-    readonly blocker: string | null;
-  };
-  readonly harness: null | {
-    readonly status: string;
-    readonly nextReadyShardId: string | null;
-    readonly shards: readonly { readonly role: string; readonly status: string }[];
-  };
-  readonly cache?: {
-    readonly configured: boolean;
-    readonly enabled: boolean;
-    readonly arm: string;
-    readonly effective_arm: string;
-    readonly provider_integration: string | null;
-    readonly reason: string;
-  };
-  readonly output?: { readonly enabled: boolean; readonly mode: string };
-  readonly ui?: {
-    readonly widget: boolean;
-    readonly status: boolean;
-    readonly debounce_ms: number;
-    readonly max_widget_lines: number;
-  };
-  readonly context?: { readonly provider_turn_ledger_enabled?: boolean };
-  readonly control_frame?: { readonly control_frame_sha256?: string } | null;
-  readonly generation_governor?: GenerationGovernorSnapshot | null;
-  readonly open_clarifications?: readonly BridgeClarificationDecision[];
-  readonly plan_review?: null | {
-    readonly summary: string;
-    readonly artifact_path: string;
-    readonly route_sha256: string;
-  };
 }
 
 const emptyProviderHistory: ProviderHistorySummary = {
@@ -244,14 +211,12 @@ function governorOverlay(message: Readonly<Record<string, unknown>> | null, inse
 
 function compactStatus(status: HostStatus): string {
   if (!status.active || !status.flow) return "Coding Harness inactive";
-  const goal = ` goal=${status.flow.goalId}`;
-  const cell = status.flow.workCell ? ` cell=${status.flow.workCell}` : "";
-  const shard = status.harness?.nextReadyShardId ? ` ready=${status.harness.nextReadyShardId}` : "";
+  const title = status.session_binding?.goal_title ?? status.flow.objective.split(/\r?\n/u, 1)[0]!.slice(0, 96);
+  const state = status.presentation?.presentation_state_code ?? "AUTHORITY_UNAVAILABLE";
+  const attention = status.presentation?.attention && status.presentation.attention !== "NONE"
+    ? ` attention=${status.presentation.attention}` : "";
   const blocker = status.flow.blocker ? ` blocker=${status.flow.blocker}` : "";
-  const governor = status.generation_governor && !["CONTINUE", "TERMINAL"].includes(status.generation_governor.decision)
-    ? ` generation=${status.generation_governor.decision}` : "";
-  const clarifications = status.open_clarifications?.length ? ` clarifications=${status.open_clarifications.length}` : "";
-  return `Coding Harness ${status.intent}/${status.topology}${goal}${cell} phase=${status.flow.phase} health=${status.flow.routeHealth} next=${status.flow.nextAction}${shard}${governor}${clarifications}${blocker}`;
+  return `Coding Harness ${state} goal=${JSON.stringify(title)}${attention}${blocker}`;
 }
 
 function headlessClarificationChoices(bridge: ActiveBridge): string {
@@ -266,11 +231,21 @@ function clarificationLabels(decision: BridgeClarificationDecision): string[] {
 
 function statusWidgetLines(status: HostStatus): readonly string[] {
   if (!status.active || !status.flow) return ["Coding Harness inactive"];
+  const title = status.session_binding?.goal_title ?? status.flow.objective.split(/\r?\n/u, 1)[0]!.slice(0, 96);
+  const presentation = status.presentation;
+  const currentWork = status.current_work_cell?.title ?? "No current work cell";
+  if (!presentation) return [`Goal: ${title}`, "Authority projection unavailable"];
+  const attention = presentation.attention === "NONE" ? presentation.primary_target
+    : `${presentation.attention} · ${presentation.primary_target}`;
+  const execution = status.decision_inbox?.evidence;
   return [
-    `Goal ${status.flow.goalId} · ${status.intent}/${status.topology}`,
-    `Phase ${status.flow.phase} · WorkCell ${status.flow.workCell ?? "none"}`,
-    `Route ${status.flow.routeHealth} · Next ${status.flow.nextAction}`,
-    ...(status.flow.blocker ? [`Blocker ${status.flow.blocker}`] : []),
+    `Goal: ${title}`,
+    `${presentation.presentation_state_code} · ${presentation.lifecycle.current_stage} r${presentation.lifecycle.revision}`,
+    `Current: ${currentWork}`,
+    ...(status.flow.blocker ? [`Blocker: ${status.flow.blocker}`]
+      : status.decision_inbox?.pending.length ? [`${attention} · ${status.decision_inbox.pending.length} pending`]
+        : execution?.execution_status ? [`${attention} · ${execution.execution_status}`]
+          : [`Next: ${presentation.primary_target}`]),
   ];
 }
 
@@ -328,7 +303,8 @@ function runtimeSelection(pi: ExtensionAPI, ctx: ExtensionContext): RuntimeSelec
   };
 }
 
-type CodingCommandAction = "status" | "cache" | "continue" | "clarify" | "pause" | "resume" | "cancel" | "replan" | "exit";
+type CodingCommandAction = "status" | "cache" | "continue" | "review" | "clarify" | "pause" | "resume" | "cancel" | "replan" | "rename" | "exit";
+type CodingEntryMode = "HUB" | "NEW" | "RECOVER";
 
 function parseCommand(args: string): {
   topology?: "SINGLE" | "MULTI";
@@ -337,13 +313,37 @@ function parseCommand(args: string): {
   action?: CodingCommandAction;
   reason?: string;
   choice?: "BUILD" | "KEEP" | "REVISE";
+  reviewDecision?: "APPROVE" | "REJECT";
   confirmed?: boolean;
   clarificationSelections?: readonly { readonly questionId: string; readonly optionId: string }[];
+  entryMode?: CodingEntryMode;
+  goalId?: string;
 } {
   const trimmed = args.trim();
+  if (!trimmed) return { entryMode: "HUB" };
+  const recoverEntry = /^recover(?:\s+([A-Za-z][A-Za-z0-9_-]{0,255}))?$/iu.exec(trimmed);
+  if (recoverEntry) return { entryMode: "RECOVER", ...(recoverEntry[1] ? { goalId: recoverEntry[1] } : {}) };
+  const newEntry = /^new(?:\s+([\s\S]+))?$/iu.exec(trimmed);
+  if (newEntry) {
+    const match = /^(?:(single|multi)\s+)?(?:(plan|build)\s+)?([\s\S]*)$/iu.exec(newEntry[1]?.trim() ?? "");
+    return {
+      entryMode: "NEW",
+      ...(match?.[1] ? { topology: match[1].toUpperCase() as "SINGLE" | "MULTI" } : {}),
+      ...(match?.[2] ? { intent: match[2].toUpperCase() as "PLAN" | "BUILD" } : {}),
+      ...(match?.[3]?.trim() ? { objective: match[3].trim() } : {}),
+    };
+  }
+  const rename = /^rename\s+([\s\S]+)$/iu.exec(trimmed);
+  if (rename) return { action: "rename", reason: rename[1]!.trim() };
   const continuation = /^continue(?:\s+(build|keep|revise))?$/iu.exec(trimmed);
   if (continuation) return {
     action: "continue", ...(continuation[1] ? { choice: continuation[1].toUpperCase() as "BUILD" | "KEEP" | "REVISE" } : {}),
+  };
+  const review = /^review\s+(approve|reject)(?:\s+([\s\S]+))?$/iu.exec(trimmed);
+  if (review) return {
+    action: "review",
+    reviewDecision: review[1]!.toUpperCase() as "APPROVE" | "REJECT",
+    ...(review[2]?.trim() ? { reason: review[2].trim() } : {}),
   };
   const clarification = /^clarify\s+([\s\S]+)$/iu.exec(trimmed);
   if (clarification) {
@@ -366,10 +366,30 @@ function parseCommand(args: string): {
   if (replan) return { action: "replan", ...(replan[1]?.trim() ? { reason: replan[1].trim() } : {}) };
   const match = /^(?:(single|multi)\s+)?(?:(plan|build)\s+)?([\s\S]*)$/iu.exec(trimmed);
   return {
+    entryMode: "NEW",
     ...(match?.[1] ? { topology: match[1].toUpperCase() as "SINGLE" | "MULTI" } : {}),
     ...(match?.[2] ? { intent: match[2].toUpperCase() as "PLAN" | "BUILD" } : {}),
     ...(match?.[3]?.trim() ? { objective: match[3].trim() } : {}),
   };
+}
+
+type SessionBindingScan =
+  | { readonly kind: "NONE" }
+  | { readonly kind: "INVALID" }
+  | { readonly kind: "FOREIGN"; readonly marker: SessionGoalBindingMarkerV1 }
+  | { readonly kind: "CURRENT"; readonly marker: SessionGoalBindingMarkerV1 };
+
+function scanCurrentSessionBinding(ctx: Pick<ExtensionContext, "sessionManager">): SessionBindingScan {
+  const branch = ctx.sessionManager.getBranch();
+  for (let index = branch.length - 1; index >= 0; index -= 1) {
+    const entry = branch[index] as unknown as { readonly type?: unknown; readonly customType?: unknown; readonly data?: unknown };
+    if (entry.type !== "custom" || entry.customType !== SESSION_GOAL_BINDING_CUSTOM_TYPE) continue;
+    const marker = parseSessionGoalBindingMarker(entry.data);
+    if (!marker) return { kind: "INVALID" };
+    if (marker.session_id !== ctx.sessionManager.getSessionId()) return { kind: "FOREIGN", marker };
+    return { kind: "CURRENT", marker };
+  }
+  return { kind: "NONE" };
 }
 
 async function chooseEntry(args: string, ctx: ExtensionCommandContext) {
@@ -378,6 +398,7 @@ async function chooseEntry(args: string, ctx: ExtensionCommandContext) {
     action: parsed.action,
     ...(parsed.reason ? { reason: parsed.reason } : {}),
     ...(parsed.choice ? { choice: parsed.choice } : {}),
+    ...(parsed.reviewDecision ? { reviewDecision: parsed.reviewDecision } : {}),
     ...(parsed.confirmed ? { confirmed: true } : {}),
     ...(parsed.clarificationSelections ? { clarificationSelections: parsed.clarificationSelections } : {}),
   } as const;
@@ -404,29 +425,83 @@ async function chooseEntry(args: string, ctx: ExtensionCommandContext) {
   }
   const objective = parsed.objective ?? await ctx.ui.editor("Coding objective");
   if (!objective?.trim()) throw new TypeError("Coding objective cannot be empty");
-  return { topology, intent, objective: objective.trim() } as const;
+  return { kind: "NEW" as const, topology, intent, objective: objective.trim() };
 }
 
 async function continuePlan(
   client: HostClient,
   ctx: Pick<ExtensionContext, "hasUI" | "ui">,
   explicitChoice?: "BUILD" | "KEEP" | "REVISE",
-  suppliedReview?: HostStatus["plan_review"],
+  suppliedStatus?: HostStatus,
 ): Promise<unknown> {
-  if (explicitChoice) return client.request("continue_plan", { choice: explicitChoice });
-  if (!ctx.hasUI) throw new TypeError("Non-interactive Plan continuation requires: /coding continue <build|keep|revise>");
-  const review = suppliedReview ?? ((await client.request("status", null, 2_000) as HostStatus).plan_review ?? null);
+  const status = suppliedStatus ?? await client.request("status", null, 2_000) as HostStatus;
+  const review = status.plan_review ?? null;
+  const controlFrameSha256 = status.control_frame?.control_frame_sha256;
+  if (!review || !controlFrameSha256) throw new TypeError("Plan continuation requires a current Plan review and ControlFrame");
+  if (!explicitChoice && !ctx.hasUI) throw new TypeError("Non-interactive Plan continuation requires: /coding continue <build|keep|revise>");
   const title = review
     ? `Frozen Plan\n${review.summary}\nArtifact: ${review.artifact_path}\nSHA-256: ${review.route_sha256}`
     : "Frozen Plan";
-  const selected = await ctx.ui.select(title, [
-    "[Recommended] Enter BUILD",
-    "Keep plan only",
-    "Revise technical route",
-  ]);
+  const selected = explicitChoice ?? await ctx.ui.select(title, [
+    "[Recommended] Enter BUILD", "Keep plan only", "Revise technical route",
+  ]).then((value) => value?.startsWith("[Recommended]") ? "BUILD" : value?.startsWith("Keep") ? "KEEP" : value ? "REVISE" : undefined);
   if (!selected) throw new TypeError("Plan continuation canceled");
-  const choice = selected.startsWith("[Recommended]") ? "BUILD" : selected.startsWith("Keep") ? "KEEP" : "REVISE";
-  return client.request("continue_plan", { choice });
+  return client.request("continue_plan", {
+    control_frame_sha256: controlFrameSha256,
+    expected_route_sha256: review.route_sha256,
+    expected_plan_revision_sha256: review.plan_revision_sha256,
+    expected_stage_gate_sha256: review.stage_gate_sha256,
+    choice: selected,
+  });
+}
+
+function contractReviewTitle(review: NonNullable<HostStatus["contract_review"]>): string {
+  const rendered = JSON.stringify({
+    contract_changes: review.contract_diff,
+    requirement_changes: review.requirement_diff,
+  }, null, 2);
+  const bounded = rendered.length <= 24_000 ? rendered : `${rendered.slice(0, 24_000)}\n[display truncated]`;
+  return `Goal Contract review\nRequirement SHA-256: ${review.requirement_revision_sha256}\n${bounded}`;
+}
+
+async function resolveContractReview(
+  client: HostClient,
+  ctx: Pick<ExtensionContext, "hasUI" | "ui">,
+  review: NonNullable<HostStatus["contract_review"]>,
+  explicit?: { readonly action: "APPROVE" | "REJECT"; readonly feedback?: string },
+): Promise<unknown> {
+  let action = explicit?.action;
+  let selectedValue: unknown = action === "APPROVE" ? true : explicit?.feedback ?? false;
+  if (!action) {
+    if (!ctx.hasUI) throw new TypeError("Non-interactive Contract review requires: /coding review <approve|reject> [feedback]");
+    const selected = await ctx.ui.select(contractReviewTitle(review), [
+      "[Recommended] Approve Goal Contract",
+      "Request changes",
+      "Reject current draft",
+      "Decide later",
+    ]);
+    if (!selected || selected === "Decide later") return null;
+    if (selected.startsWith("[Recommended]")) {
+      action = "APPROVE";
+      selectedValue = true;
+    } else {
+      action = "REJECT";
+      if (selected === "Request changes") {
+        const feedback = (await ctx.ui.editor("Required Goal Contract changes"))?.trim();
+        if (!feedback) return null;
+        selectedValue = { disposition: "REQUEST_CHANGES", feedback };
+      } else {
+        selectedValue = false;
+      }
+    }
+  }
+  return client.request("resolve_contract_review", {
+    expected_decision_requirement_revision_id: review.decision_requirement_revision_id,
+    expected_requirement_revision_sha256: review.requirement_revision_sha256,
+    expected_decision_frontier_sha256: review.decision_frontier_sha256,
+    action,
+    selected_value: selectedValue,
+  });
 }
 
 export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBridgeOptions = {}): void {
@@ -436,6 +511,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
   const dataRoot = options.dataRoot ?? "~/.pi/agent/coding-harness";
   const spawnHost = options.spawnHost ?? ((input: SpawnHostOptions): HostRpcClient => spawnCodingHarnessHost(input));
   let active: ActiveBridge | null = null;
+  let recoveryFailure: { readonly marker: SessionGoalBindingMarkerV1 | null; readonly message: string } | null = null;
   const removeHarnessTools = (): void => {
     pi.setActiveTools(pi.getActiveTools().filter((name) => !harnessTools.includes(name as typeof harnessTools[number])));
   };
@@ -456,6 +532,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
       await Promise.all([
         prior.providerTail.catch(() => undefined),
         prior.toolObservationTail.catch(() => undefined),
+        prior.activeInputCaptureTail.catch(() => undefined),
       ]);
       await prior.client.close();
     }
@@ -478,6 +555,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     const settled = begin.then(async (result) => {
       if (!result || (!result.recorded && result.cache_request_id === null)) return;
       await bridge.client.request("provider_settle", {
+        provider_attempt_id: result.provider_attempt_id,
         cache_request_id: result.cache_request_id,
         usage: input.usage,
         response_status: input.responseStatus,
@@ -521,6 +599,18 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
   };
   const setProjectedStatus = (ctx: ExtensionContext, status: HostStatus): void => {
     const bridge = required();
+    const binding = status.session_binding === undefined || status.session_binding === null
+      ? null : parseSessionGoalBindingMarker(status.session_binding);
+    if (status.session_binding !== undefined && status.session_binding !== null && !binding) {
+      throw new TypeError("Host returned an invalid session Goal binding marker");
+    }
+    if (binding && binding.session_id !== bridge.sessionId) {
+      throw new TypeError("Host returned a session Goal binding for another Pi session");
+    }
+    if (binding && binding.binding_receipt_sha256 !== bridge.lastBindingReceiptSha256) {
+      pi.appendEntry(SESSION_GOAL_BINDING_CUSTOM_TYPE, binding);
+      bridge.lastBindingReceiptSha256 = binding.binding_receipt_sha256;
+    }
     if (status.open_clarifications !== undefined) {
       bridge.pendingClarifications.clear();
       for (const decision of status.open_clarifications) bridge.pendingClarifications.set(decision.id, decision);
@@ -565,25 +655,93 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     return status;
   };
 
+  const spawnBridgeHost = (ctx: Pick<ExtensionContext, "cwd">): HostClient => {
+    if (!existsSync(hostEntryPath)) {
+      throw new TypeError("Coding Harness Host build is missing; run npm run build:runtime in the package root");
+    }
+    return spawnHost({
+      entryPath: hostEntryPath, cwd: ctx.cwd, packageRoot, configPath, dataRoot,
+      timeoutMs: 8_000, maxPending: 32,
+    });
+  };
+
+  const activateBridge = (
+    client: HostClient,
+    status: HostStatus,
+    ctx: ExtensionContext,
+    runtime: RuntimeSelection,
+    alreadyPersistedReceiptSha256: string | null,
+  ): ActiveBridge => {
+    if (!status.active || !status.flow) throw new TypeError("Coding Harness Host did not return an active Goal");
+    const bridge: ActiveBridge = {
+      client, cwd: ctx.cwd, sessionId: ctx.sessionManager.getSessionId(), objective: status.flow.objective,
+      sentSystemPrompts: new Set(), runtime,
+      providerLifecycleEnabled: status.context?.provider_turn_ledger_enabled === true || status.cache?.configured === true,
+      projectionLedger: new ProjectionDeltaLedger(`${ctx.sessionManager.getSessionId()}\0${ctx.cwd}`),
+      messageDescriptors: new WeakMap(),
+      contextProjectionActive: false,
+      managedToolCalls: new Set(), captureToolCalls: new Set(),
+      contextRecoveryScanRequired: true, hasContextOverlays: false,
+      cacheStartedAt: null, cacheResponseStatus: null,
+      providerTurnStarted: false, providerBegin: null, providerTail: Promise.resolve(),
+      toolObservationTail: Promise.resolve(), activeInputCaptureTail: Promise.resolve(),
+      providerHistory: emptyProviderHistory, toolSchemaBytes: 0, lastStatusText: null,
+      pendingStatusProjection: null, statusProjectionTimer: null,
+      ui: status.ui ?? { widget: true, status: true, debounce_ms: 250, max_widget_lines: 4 },
+      turnControlFrameSha256: null, agentRunSequence: 0,
+      governorDirective: null, governorMessage: null, governorDecision: "CONTINUE",
+      pendingClarifications: new Map(),
+      lastBindingReceiptSha256: alreadyPersistedReceiptSha256,
+    };
+    active = bridge;
+    enableHarnessTools();
+    setProjectedStatus(ctx, status);
+    recoveryFailure = null;
+    return bridge;
+  };
+
   pi.registerTool({
     name: "coding_flow",
     label: "Advance Coding Harness",
-    description: "Advance only the authority-backed next action. Normal validation auto-attests and auto-closes; status, attest, complete, and reconcile are recovery operations, not routine steps.",
-    promptSnippet: "Follow next= from the latest result; do not poll status, probe PI_MODEL/PI_SESSION, or manually attest/complete normal validation",
+    description: "Advance only the authority-backed next action. Normal validation auto-attests; call complete once after final preservation review. Status, attest, and reconcile remain recovery operations.",
+    promptSnippet: "Follow next= from the latest result; do not poll status or probe PI_MODEL/PI_SESSION; after final fresh validation review preservation outcomes and call complete once",
     parameters: Type.Union([
       Type.Object({ action: Type.Literal("status") }, { additionalProperties: false, description: "Recovery inspection only; every transition result already includes compact status." }),
-      Type.Object({ action: Type.Literal("submit_build"), contract: Type.Record(Type.String(), Type.Unknown()), route: Type.Record(Type.String(), Type.Unknown()) }, {
-        additionalProperties: false,
-        description: "Combined initial freeze only while phase=CONTRACTING before any Contract or Route exists; never use after next=SUBMIT_ROUTE or next=EXECUTE_WORK.",
-      }),
       Type.Object({ action: Type.Literal("submit_contract"), contract: Type.Record(Type.String(), Type.Unknown()) }, { additionalProperties: false }),
+      Type.Object({
+        action: Type.Literal("classify_active_input"),
+        user_turn_id: Type.String(),
+        expected_user_turn_sha256: Type.String(),
+        classification: Type.Union([
+          Type.Literal("CORRECT_CURRENT"), Type.Literal("QUEUE_NEXT"), Type.Literal("CHANGE_REQUEST"),
+          Type.Literal("NEW_GOAL"), Type.Literal("INTERRUPT_NOW"), Type.Literal("DISCUSSION_ONLY"),
+        ]),
+        materiality: Type.Union([Type.Literal("LOW"), Type.Literal("MEDIUM"), Type.Literal("HIGH"), Type.Literal("CRITICAL")]),
+        change_kind: Type.Union([
+          Type.Literal("BEHAVIOR"), Type.Literal("SCOPE"), Type.Literal("ACCEPTANCE"),
+          Type.Literal("USER_PREFERENCE"), Type.Null(),
+        ]),
+        changed_subjects: Type.Array(Type.Object({
+          kind: Type.Union([Type.Literal("REQUIREMENT"), Type.Literal("DECISION"), Type.Literal("WORK_CELL")]),
+          id: Type.String(),
+        }, { additionalProperties: false }), { maxItems: 512 }),
+      }, { additionalProperties: false }),
       Type.Object({ action: Type.Literal("submit_route"), route: Type.Record(Type.String(), Type.Unknown()) }, { additionalProperties: false }),
       Type.Object({ action: Type.Literal("submit_route_revision"), patch: Type.Record(Type.String(), Type.Unknown()) }, {
         additionalProperties: false,
         description: "RouteRevision only after next=SUBMIT_ROUTE and a prior Route exists; submit replacement current/near WorkCells plus only changed metadata.",
       }),
       Type.Object({ action: Type.Literal("attest"), operation_id: Type.String(), obligation_keys: Type.Optional(Type.Array(Type.String())) }, { additionalProperties: false, description: "Crash recovery only when a committed PASS Operation lacks its automatic attestation." }),
-      Type.Object({ action: Type.Literal("complete") }, { additionalProperties: false, description: "Crash recovery only when authority explicitly remains at CLOSE_GOAL after evidence closure." }),
+      Type.Object({
+        action: Type.Literal("complete"),
+        outcome_evidence: Type.Optional(Type.Array(Type.Object({
+          obligation_key: Type.String(), operation_id: Type.String(),
+          witnesses: Type.Array(Type.Object({ path: Type.String(), locator: Type.String() }, { additionalProperties: false })),
+        }, { additionalProperties: false }))),
+      }, {
+        additionalProperties: false,
+        description: "Close once after fresh oracle evidence. When OutcomeEvidenceRequired is shown, bind each key to its PASS validation Operation and a distinct current test locator; omit outcome_evidence otherwise. Also recovers CLOSE_GOAL after a crash.",
+      }),
       Type.Object({ action: Type.Literal("reconcile"), operation_id: Type.Optional(Type.String()) }, { additionalProperties: false, description: "Use only for RECONCILE_OPERATION; omit operation_id to reconcile every unresolved Operation." }),
       Type.Object({ action: Type.Literal("control"), control: Type.Union([Type.Literal("pause"), Type.Literal("resume"), Type.Literal("replan")]), reason: Type.Optional(Type.String()) }, { additionalProperties: false }),
     ]),
@@ -591,15 +749,28 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     async execute(_id, params, _signal, _update, ctx) {
       try {
         const bridge = required();
+        await bridge.activeInputCaptureTail;
         if (params.action === "status") return accepted(compactStatus(await showStatus(ctx)));
         let result: unknown;
-        if (params.action === "submit_build") result = await bridge.client.request("submit_build", controlled(bridge, { contract: params.contract, route: params.route }));
-        else if (params.action === "submit_contract") result = await bridge.client.request("submit_contract", controlled(bridge, params.contract));
+        if (params.action === "classify_active_input") {
+          result = await bridge.client.request("classify_active_goal_input", controlled(bridge, {
+            user_turn_id: params.user_turn_id,
+            expected_user_turn_sha256: params.expected_user_turn_sha256,
+            classification: params.classification,
+            materiality: params.materiality,
+            change_kind: params.change_kind,
+            changed_subjects: params.changed_subjects,
+          }));
+        } else if (params.action === "submit_contract") {
+          result = await bridge.client.request("submit_contract", controlled(bridge, params.contract));
+          const review = (result as { status?: HostStatus }).status?.contract_review;
+          if (review && ctx.hasUI) result = await resolveContractReview(bridge.client, ctx, review) ?? result;
+        }
         else if (params.action === "submit_route") {
           result = await bridge.client.request("submit_route", controlled(bridge, params.route));
           const status = (result as { status?: HostStatus }).status;
           if (status?.flow?.nextAction === "PLAN_CONTINUATION" && ctx.hasUI) {
-            result = await continuePlan(bridge.client, ctx, undefined, status.plan_review);
+            result = await continuePlan(bridge.client, ctx, undefined, status);
           }
         } else if (params.action === "submit_route_revision") {
           result = await bridge.client.request("submit_route_revision", controlled(bridge, params.patch));
@@ -607,7 +778,8 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
           operation_id: params.operation_id,
           ...(params.obligation_keys === undefined ? {} : { obligation_keys: params.obligation_keys }),
         }));
-        else if (params.action === "complete") result = await bridge.client.request("complete", controlled(bridge));
+        else if (params.action === "complete") result = await bridge.client.request("complete", controlled(bridge,
+          params.outcome_evidence === undefined ? {} : { outcome_evidence: params.outcome_evidence }));
         else if (params.action === "reconcile") result = await bridge.client.request(
           "reconcile", controlled(bridge, params.operation_id === undefined ? {} : { operation_id: params.operation_id }),
         );
@@ -688,8 +860,8 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
   pi.registerTool({
     name: "coding_delegate",
     label: "Delegate Coding Shards",
-    description: "Define the bounded dependency graph for Multi topology or execute the next authority-ready isolated worker shard.",
-    promptSnippet: "Use only in Multi topology after the current WorkCell is authorized",
+    description: "Propose the bounded dependency graph while requested Multi is pending, or execute authority-ready isolated Worker nodes after admission.",
+    promptSnippet: "Use define in PENDING_MULTI_PROPOSAL; use run_ready only after the Host admits effective Multi",
     parameters: Type.Union([
       Type.Object({ action: Type.Literal("define"), shards: Type.Array(Type.Record(Type.String(), Type.Unknown()), { minItems: 1, maxItems: 32 }) }, { additionalProperties: false }),
       Type.Object({ action: Type.Literal("run_ready"), max_parallel: Type.Optional(Type.Integer({ minimum: 1, maximum: 8 })) }, { additionalProperties: false }),
@@ -772,12 +944,107 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     },
   });
 
+  const chooseGoalEntry = async (
+    parsed: ReturnType<typeof parseCommand>,
+    ctx: ExtensionCommandContext,
+    client: HostClient,
+  ): Promise<
+    | { readonly kind: "NEW"; readonly topology: "SINGLE" | "MULTI"; readonly intent: "PLAN" | "BUILD"; readonly objective: string }
+    | { readonly kind: "RESUME"; readonly marker: SessionGoalBindingMarkerV1 }
+    | { readonly kind: "RECOVER"; readonly goalId: string; readonly allowTransfer: boolean; readonly goalTitle: string }
+  > => {
+    const discovery = await client.request("discover_goals", {
+      cwd: ctx.cwd, session_id: ctx.sessionManager.getSessionId(),
+    }, 4_000) as HostGoalDiscovery;
+    const current = discovery.current_session_binding;
+    const candidates = discovery.recoverable;
+    if (parsed.entryMode === "HUB" && current && !ctx.hasUI) return { kind: "RESUME", marker: current };
+
+    let selectedGoalId = parsed.goalId;
+    if (parsed.entryMode === "HUB" && ctx.hasUI) {
+      const choices: { readonly label: string; readonly goalId: string | null }[] = [];
+      if (current) {
+        const candidate = candidates.find((item) => item.goal_id === current.goal_id);
+        choices.push({
+          label: `Continue ${current.goal_title} - ${candidate?.status ?? "last known"}`,
+          goalId: current.goal_id,
+        });
+      }
+      for (const candidate of candidates) {
+        if (candidate.goal_id === current?.goal_id) continue;
+        const availability = candidate.controller_live ? "In use" : "Recover";
+        choices.push({ label: `${availability} ${candidate.goal_title} - ${candidate.status}`, goalId: candidate.goal_id });
+      }
+      choices.push({ label: "Start a new Goal", goalId: null });
+      const selected = await ctx.ui.select("Coding Goals", choices.map((choice) => choice.label));
+      if (!selected) throw new TypeError("Coding Harness entry canceled");
+      const choice = choices.find((item) => item.label === selected);
+      if (!choice) throw new TypeError("Coding Harness Goal selection is invalid");
+      if (choice.goalId === null) {
+        const fresh = await chooseEntry("new", ctx);
+        if ("action" in fresh) throw new TypeError("Coding Harness new Goal selection is invalid");
+        return fresh;
+      }
+      selectedGoalId = choice.goalId;
+    }
+    if (parsed.entryMode === "HUB" && !ctx.hasUI && !current) {
+      throw new TypeError("Non-interactive usage: /coding recover <goal-id> or /coding new <single|multi> <plan|build> <objective>");
+    }
+    if (!selectedGoalId && parsed.entryMode === "RECOVER") {
+      if (!ctx.hasUI) throw new TypeError("Non-interactive recovery requires: /coding recover <goal-id>");
+      const choices = candidates.map((candidate) => `${candidate.goal_title} - ${candidate.status} - ${candidate.goal_id}`);
+      const selected = await ctx.ui.select("Recover Coding Goal", choices);
+      if (!selected) throw new TypeError("Coding Harness recovery canceled");
+      selectedGoalId = candidates[choices.indexOf(selected)]?.goal_id;
+    }
+    if (!selectedGoalId) throw new TypeError("No recoverable Coding Harness Goal was selected");
+    if (current?.goal_id === selectedGoalId) return { kind: "RESUME", marker: current };
+    const candidate = candidates.find((item) => item.goal_id === selectedGoalId);
+    if (!candidate) throw new TypeError(`Goal ${selectedGoalId} is not recoverable in this workspace`);
+    const allowTransfer = candidate.controller_session_id !== null
+      && candidate.controller_session_id !== ctx.sessionManager.getSessionId();
+    if (allowTransfer && candidate.controller_live) {
+      throw new TypeError(`Goal ${selectedGoalId} is controlled by another live session`);
+    }
+    if (allowTransfer && ctx.hasUI) {
+      const confirmed = await ctx.ui.confirm(
+        "Transfer Coding Goal control?",
+        `${candidate.goal_title} will stop auto-resuming in its previous Pi session.`,
+      );
+      if (!confirmed) throw new TypeError("Coding Harness control transfer canceled");
+    }
+    return { kind: "RECOVER", goalId: candidate.goal_id, allowTransfer, goalTitle: candidate.goal_title };
+  };
+
   pi.registerCommand("coding", {
     description: "Enter, inspect, or exit Pi Coding Harness",
     handler: async (args, ctx) => {
-      const commandAction = parseCommand(args).action;
+      const parsedCommand = parseCommand(args);
+      const commandAction = parsedCommand.action;
+      let preparedClient: HostClient | null = null;
       try {
-        const entry = await chooseEntry(args, ctx);
+        if (!commandAction && active) {
+          try { await active.client.request("status", null, 2_000); }
+          catch { await deactivate(); }
+        }
+        if (!commandAction && active) {
+          throw new TypeError("Coding Harness is already active; use /coding status or /coding exit");
+        }
+        let entry;
+        if (commandAction) {
+          entry = await chooseEntry(args, ctx);
+        } else if (parsedCommand.entryMode === "HUB" || parsedCommand.entryMode === "RECOVER") {
+          preparedClient = spawnBridgeHost(ctx);
+          try {
+            entry = await chooseGoalEntry(parsedCommand, ctx, preparedClient);
+          } catch (error) {
+            await preparedClient.close();
+            preparedClient = null;
+            throw error;
+          }
+        } else {
+          entry = await chooseEntry(args, ctx);
+        }
         if ("action" in entry && entry.action === "status") {
           if (!active) ctx.ui.notify("Coding Harness is inactive", "info");
           else ctx.ui.notify(compactStatus(await showStatus(ctx)), "info");
@@ -794,6 +1061,21 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
           const result = await continuePlan(active.client, ctx, entry.choice);
           projectResultStatus(ctx, result);
           ctx.ui.notify(resultMessage(result), "info");
+          return;
+        }
+        if ("action" in entry && entry.action === "review") {
+          if (!active) throw new TypeError("Enter Coding Harness before reviewing a Goal Contract");
+          const status = await showStatus(ctx);
+          if (!status.contract_review) throw new TypeError("No Goal Contract review is pending");
+          const result = await resolveContractReview(active.client, ctx, status.contract_review, {
+            action: entry.reviewDecision!, ...(entry.reason ? { feedback: entry.reason } : {}),
+          });
+          if (result === null) return;
+          projectResultStatus(ctx, result);
+          ctx.ui.notify(resultMessage(result), "info");
+          pi.sendUserMessage(entry.reason
+            ? `Goal Contract review feedback: ${entry.reason}\nContinue from the current Coding Harness authority state.`
+            : "Continue from the current Coding Harness authority state.");
           return;
         }
         if ("action" in entry && entry.action === "clarify") {
@@ -839,58 +1121,98 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
           ctx.ui.notify(resultMessage(result), "info");
           return;
         }
+        if ("action" in entry && entry.action === "rename") {
+          if (!active) throw new TypeError("Enter Coding Harness before renaming its Goal");
+          const status = await showStatus(ctx);
+          const receipt = status.session_binding?.binding_receipt_sha256;
+          if (!receipt) throw new TypeError("Active Goal has no current session binding");
+          const renamed = await active.client.request("rename_goal", {
+            goal_title: entry.reason, expected_binding_receipt_sha256: receipt,
+          }) as HostStatus;
+          setProjectedStatus(ctx, renamed);
+          ctx.ui.notify(`Coding Goal renamed to ${entry.reason}`, "info");
+          return;
+        }
         if ("action" in entry && entry.action === "exit") {
+          if (!active && recoveryFailure) {
+            throw new TypeError("Cannot unbind the Goal until authority recovery succeeds; retry /coding first or open a new Pi session");
+          }
+          if (active) {
+            const status = await showStatus(ctx);
+            const receipt = status.session_binding?.binding_receipt_sha256;
+            if (receipt && status.session_binding?.state === "BOUND") {
+              const exited = await active.client.request("unbind_session", {
+                expected_binding_receipt_sha256: receipt,
+              }) as HostStatus;
+              setProjectedStatus(ctx, exited);
+            }
+          }
           await deactivate();
+          recoveryFailure = null;
           ctx.ui.setStatus("coding-harness", undefined);
           ctx.ui.setWidget("coding-harness", undefined);
           ctx.ui.notify("Coding Harness exited", "info");
           return;
         }
         if ("action" in entry) throw new TypeError("Unknown /coding action");
-        if (active) {
-          try { await active.client.request("status", null, 2_000); }
-          catch { await deactivate(); }
-        }
-        if (active) throw new TypeError("Coding Harness is already active; use /coding status or /coding exit");
-        if (!existsSync(hostEntryPath)) throw new TypeError("Coding Harness Host build is missing; run npm run build:runtime in the package root");
         const runtime = runtimeSelection(pi, ctx);
-        const client = spawnHost({
-          entryPath: hostEntryPath, cwd: ctx.cwd, packageRoot, configPath, dataRoot,
-          timeoutMs: 8_000, maxPending: 32,
-        });
+        const client = preparedClient ?? spawnBridgeHost(ctx);
+        preparedClient = null;
         try {
-          const status = await client.request("enter", {
-            cwd: ctx.cwd, session_id: ctx.sessionManager.getSessionId(), objective: entry.objective,
-            intent: entry.intent, topology: entry.topology, runtime,
-          }) as HostStatus;
-          active = {
-            client, cwd: ctx.cwd, sessionId: ctx.sessionManager.getSessionId(), objective: entry.objective,
-            sentSystemPrompts: new Set(), runtime,
-            providerLifecycleEnabled: status.context?.provider_turn_ledger_enabled === true || status.cache?.configured === true,
-            projectionLedger: new ProjectionDeltaLedger(`${ctx.sessionManager.getSessionId()}\0${ctx.cwd}`),
-            messageDescriptors: new WeakMap(),
-            contextProjectionActive: false,
-            managedToolCalls: new Set(), captureToolCalls: new Set(),
-            contextRecoveryScanRequired: true, hasContextOverlays: false,
-            cacheStartedAt: null, cacheResponseStatus: null,
-            providerTurnStarted: false, providerBegin: null, providerTail: Promise.resolve(),
-            toolObservationTail: Promise.resolve(),
-            providerHistory: emptyProviderHistory, toolSchemaBytes: 0, lastStatusText: null,
-            pendingStatusProjection: null, statusProjectionTimer: null,
-            ui: status.ui ?? { widget: true, status: true, debounce_ms: 250, max_widget_lines: 4 },
-            turnControlFrameSha256: null, agentRunSequence: 0,
-            governorDirective: null, governorMessage: null, governorDecision: "CONTINUE",
-            pendingClarifications: new Map(),
+          const enterParams = entry.kind === "NEW" ? {
+            entry_mode: "NEW",
+            cwd: ctx.cwd,
+            session_id: ctx.sessionManager.getSessionId(),
+            objective: entry.objective,
+            intent: entry.intent,
+            topology: entry.topology,
+            runtime,
+          } : entry.kind === "RESUME" ? {
+            entry_mode: "RESUME",
+            cwd: ctx.cwd,
+            session_id: ctx.sessionManager.getSessionId(),
+            binding_marker: entry.marker,
+            runtime,
+          } : {
+            entry_mode: "RECOVER",
+            cwd: ctx.cwd,
+            session_id: ctx.sessionManager.getSessionId(),
+            goal_id: entry.goalId,
+            allow_transfer: entry.allowTransfer,
+            runtime,
           };
-          enableHarnessTools();
-          setProjectedStatus(ctx, status);
-          if (active.pendingClarifications.size > 0) {
+          const status = await client.request("enter", enterParams) as HostStatus;
+          const branchBinding = scanCurrentSessionBinding(ctx);
+          const persistedReceipt = entry.kind === "RESUME" && branchBinding.kind === "CURRENT"
+            && branchBinding.marker.binding_receipt_sha256 === entry.marker.binding_receipt_sha256
+            ? entry.marker.binding_receipt_sha256 : null;
+          activateBridge(client, status, ctx, runtime, persistedReceipt);
+          if (entry.kind !== "NEW") {
+            const title = status.session_binding?.goal_title ?? status.flow?.objective ?? "Coding Goal";
+            const next = status.flow?.nextAction ?? "status";
+            ctx.ui.notify(`Coding Harness attached to ${title}; next=${next}`, "info");
+            return;
+          }
+          if (status.contract_review) {
             if (!ctx.hasUI) {
-              ctx.ui.notify(`Recovered clarification choices. Run /coding clarify ${headlessClarificationChoices(active)}`, "info");
+              ctx.ui.notify("Recovered Goal Contract review. Run /coding review <approve|reject> [feedback]", "info");
+              return;
+            }
+            const result = await resolveContractReview(required().client, ctx, status.contract_review);
+            if (result === null) {
+              ctx.ui.notify("Recovered Goal Contract review remains pending.", "info");
+              return;
+            }
+            projectResultStatus(ctx, result);
+            ctx.ui.notify(resultMessage(result), "info");
+          }
+          if (required().pendingClarifications.size > 0) {
+            if (!ctx.hasUI) {
+              ctx.ui.notify(`Recovered clarification choices. Run /coding clarify ${headlessClarificationChoices(required())}`, "info");
               return;
             }
             const selections: (BridgeClarificationDecision & { readonly selectedOptionId: string })[] = [];
-            for (const decision of active.pendingClarifications.values()) {
+            for (const decision of required().pendingClarifications.values()) {
               const labels = clarificationLabels(decision);
               const selected = await ctx.ui.select(`${decision.question}\n${decision.whyItMatters}`, labels);
               const index = selected === undefined ? -1 : labels.indexOf(selected);
@@ -898,12 +1220,12 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
               selections.push({ ...decision, selectedOptionId: decision.options[index]!.id });
             }
             if (selections.length > 0) {
-              const result = await active.client.request("clarify_selected", controlled(active, { decisions: selections }));
-              for (const selection of selections) active.pendingClarifications.delete(selection.id);
+              const result = await required().client.request("clarify_selected", controlled(required(), { decisions: selections }));
+              for (const selection of selections) required().pendingClarifications.delete(selection.id);
               projectResultStatus(ctx, result);
               ctx.ui.notify(resultMessage(result), "info");
             }
-            if (active.pendingClarifications.size > 0) {
+            if (required().pendingClarifications.size > 0) {
               ctx.ui.notify("Recovered clarification remains pending; Coding Harness will not start a model turn until it is resolved.", "info");
               return;
             }
@@ -921,29 +1243,83 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     },
   });
 
-  pi.on("session_start", () => removeHarnessTools());
-  pi.on("input", (event) => {
-    if (!active || event.source === "extension" || event.text.length > 16_384
-      || !hasPotentialUserMemorySignal(event.text)) return;
+  pi.on("session_start", async (_event, ctx) => {
+    removeHarnessTools();
+    recoveryFailure = null;
+    const scan = scanCurrentSessionBinding(ctx);
+    if (scan.kind === "NONE" || scan.kind === "FOREIGN") return;
+    if (scan.kind === "INVALID") {
+      recoveryFailure = { marker: null, message: "The current PCH session marker is invalid" };
+      ctx.ui.setStatus("coding-harness", "Coding Harness recovery blocked: invalid session marker");
+      ctx.ui.notify("Coding Harness recovery is blocked because the current session marker is invalid. Use /coding to retry diagnostics or open a new Pi session.", "error");
+      return;
+    }
+    const marker = scan.marker;
+    if (marker.state !== "BOUND" || !marker.auto_resume) return;
+    ctx.ui.setStatus("coding-harness", "Coding Harness recovery validating");
+    ctx.ui.setWidget("coding-harness", ["Recovery Guard · validating Goal authority"]);
+    let client: HostClient | null = null;
+    try {
+      const runtime = runtimeSelection(pi, ctx);
+      client = spawnBridgeHost(ctx);
+      const status = await client.request("enter", {
+        entry_mode: "RESUME",
+        cwd: ctx.cwd,
+        session_id: ctx.sessionManager.getSessionId(),
+        binding_marker: marker,
+        runtime,
+      }) as HostStatus;
+      activateBridge(client, status, ctx, runtime, marker.binding_receipt_sha256);
+      const next = status.flow?.nextAction ?? "status";
+      ctx.ui.notify(`Coding Harness restored ${marker.goal_title}; next=${next}`, "info");
+    } catch (error) {
+      if (client && active?.client === client) await deactivate().catch(() => undefined);
+      else if (client) await client.close().catch(() => undefined);
+      const message = error instanceof Error ? error.message : String(error);
+      recoveryFailure = { marker, message };
+      removeHarnessTools();
+      ctx.ui.setStatus("coding-harness", "Coding Harness recovery blocked");
+      ctx.ui.setWidget("coding-harness", undefined);
+      ctx.ui.notify(`Coding Harness recovery failed: ${message}. Ordinary model input is blocked in this bound session; use /coding to retry or open a new Pi session.`, "error");
+    }
+  });
+  pi.on("input", (event, ctx) => {
+    if (!active) {
+      if (recoveryFailure) {
+        ctx.ui.notify(`Coding Harness recovery remains blocked: ${recoveryFailure.message}`, "error");
+        return { action: "handled" as const };
+      }
+      return;
+    }
+    if (event.source === "extension") return;
     const bridge = active;
-    const observation = bridge.client.request("memory_observe", { text: event.text, goal_intake: false }, 2_000)
-      .then(() => undefined).catch(() => undefined);
-    bridge.toolObservationTail = Promise.all([bridge.toolObservationTail, observation]).then(() => undefined);
-    void observation;
+    const captureInput = async () => {
+      if (Buffer.byteLength(event.text, "utf8") > 131_072) {
+        throw new TypeError("Active Goal input exceeds the 131072-byte authority limit");
+      }
+      const result = await bridge.client.request("active_goal_input", { text: event.text }, 4_000);
+      if (active === bridge) projectResultStatus(ctx, result);
+    };
+    const capture = bridge.activeInputCaptureTail.then(captureInput, captureInput);
+    bridge.activeInputCaptureTail = capture;
+    void capture.catch(() => undefined);
   });
   pi.on("before_agent_start", async (event, ctx) => {
     if (!active) return;
     try {
+      const bridge = active;
+      await bridge.activeInputCaptureTail;
+      if (active !== bridge) return;
       const systemPromptSha256 = sha256Hex(event.systemPrompt);
-      const firstDelivery = !active.sentSystemPrompts.has(systemPromptSha256);
+      const firstDelivery = !bridge.sentSystemPrompts.has(systemPromptSha256);
       const usage = ctx.getContextUsage();
       const activeToolNames = new Set(pi.getActiveTools());
       const allTools = pi.getAllTools();
-      active.toolSchemaBytes = serializedBytes(allTools.filter((tool) => activeToolNames.has(tool.name)).map((tool) => ({
+      bridge.toolSchemaBytes = serializedBytes(allTools.filter((tool) => activeToolNames.has(tool.name)).map((tool) => ({
         name: tool.name, description: tool.description, parameters: tool.parameters,
       })));
-      const result = await active.client.request("turn_projection", {
-        agent_run_id: `AGENT-RUN-${++active.agentRunSequence}-${sha256Hex(typeof event.prompt === "string" ? event.prompt : "").slice(0, 16)}`,
+      const result = await bridge.client.request("turn_projection", {
+        agent_run_id: `AGENT-RUN-${++bridge.agentRunSequence}-${sha256Hex(typeof event.prompt === "string" ? event.prompt : "").slice(0, 16)}`,
         system_prompt_sha256: systemPromptSha256,
         ...(firstDelivery ? { system_prompt: event.systemPrompt } : {}),
         current_input_tokens: usage?.tokens ?? null,
@@ -953,19 +1329,19 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
         control_frame: { control_frame_sha256: string };
         generation_governor?: GenerationGovernorSnapshot;
       };
-      active.contextProjectionActive = result.context_projection_active === true;
-      active.turnControlFrameSha256 = result.control_frame.control_frame_sha256;
-      active.governorDirective = result.generation_governor?.directive ?? null;
-      active.governorMessage = makeGovernorMessage(active.governorDirective);
-      active.governorDecision = result.generation_governor?.decision ?? "CONTINUE";
+      bridge.contextProjectionActive = result.context_projection_active === true;
+      bridge.turnControlFrameSha256 = result.control_frame.control_frame_sha256;
+      bridge.governorDirective = result.generation_governor?.directive ?? null;
+      bridge.governorMessage = makeGovernorMessage(bridge.governorDirective);
+      bridge.governorDecision = result.generation_governor?.decision ?? "CONTINUE";
       if (firstDelivery) {
-        active.sentSystemPrompts.add(systemPromptSha256);
-        while (active.sentSystemPrompts.size > 2) active.sentSystemPrompts.delete(active.sentSystemPrompts.values().next().value!);
+        bridge.sentSystemPrompts.add(systemPromptSha256);
+        while (bridge.sentSystemPrompts.size > 2) bridge.sentSystemPrompts.delete(bridge.sentSystemPrompts.values().next().value!);
       }
       return result.changed ? { systemPrompt: result.system_prompt } : undefined;
     } catch (error) {
       ctx.ui.notify(`Coding Harness Host unavailable: ${error instanceof Error ? error.message : String(error)}. Managed tools are fail-closed.`, "error");
-      return undefined;
+      throw error;
     }
   });
   pi.on("context", async (event) => {
@@ -1036,7 +1412,11 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
         payload_shape_sha256: payloadShapeSha256(event.payload),
         history: bridge.providerHistory,
         tool_schema_bytes: bridge.toolSchemaBytes,
-      }, 2_000) as { recorded: boolean; cache_request_id: string | null };
+      }, 2_000) as {
+        recorded: boolean;
+        provider_attempt_id: string | null;
+        cache_request_id: string | null;
+      };
       return result;
     }).catch(() => null);
     bridge.providerTail = bridge.providerBegin.then(() => undefined);
@@ -1051,6 +1431,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
   pi.on("tool_call", async (event, ctx) => {
     if (!active || harnessTools.includes(event.toolName as typeof harnessTools[number])) return;
     try {
+      await active.activeInputCaptureTail;
       const admission = await active.client.request("tool_preflight", {
         toolCallId: event.toolCallId, toolName: event.toolName, input: event.input, cwd: ctx.cwd,
         control_frame_sha256: active.turnControlFrameSha256,

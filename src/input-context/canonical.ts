@@ -16,6 +16,7 @@ export const inputContextHashDomains = {
   providerTurnAttempt: "PCH-PROVIDER-TURN-ATTEMPT-V1",
   providerTurnContribution: "PCH-PROVIDER-TURN-CONTRIBUTION-V1",
   providerTurnRequest: "PCH-PROVIDER-TURN-REQUEST-V2",
+  providerTurnGoalBinding: "PCH-PROVIDER-TURN-GOAL-BINDING-V1",
   contextEpisodeObservation: "PCH-INPUT-CONTEXT-V1-EPISODE-OBSERVATION",
   inputContextActivation: "PCH-INPUT-CONTEXT-V1-ACTIVATION",
   queryScopeHead: "PCH-INPUT-CONTEXT-V1-QUERY-SCOPE-HEAD",

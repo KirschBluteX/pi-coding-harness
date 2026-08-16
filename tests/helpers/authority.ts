@@ -128,11 +128,12 @@ export function createGoalCommand(goalId = createId("GOAL")): CreateGoalCommand 
       specificationRoute: "TASK_SPEC",
       reasonCodes: ["MULTI_STEP"],
       confidence: "MEDIUM",
-      source: "AUTO_LOCAL_RULES",
+      source: "AUTO_STRUCTURAL",
       facts: {
         requiresPersistentWork: true, objectiveClear: true, filesKnown: false, acceptanceClear: true,
         lowRisk: false, expectedSteps: 2, productOrUserFlow: false, crossModule: false,
         highRework: false, highImpactUnknowns: 0, irreversibleOrSensitive: false,
+        semanticAssessment: "UNRESOLVED", structuralComplexity: 2,
       },
       additionalModelRequests: 0,
     },

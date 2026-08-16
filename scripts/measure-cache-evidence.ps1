@@ -121,6 +121,7 @@ $document = [ordered]@{
         base_url = $baseUrl
         content_retained = $false
         credentials_accessed = $false
+        credentials_retained = $false
     }
     window = [ordered]@{
         policy = 'LATEST_PREEXISTING_PROVIDER_USAGE'

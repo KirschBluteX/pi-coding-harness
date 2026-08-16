@@ -13,15 +13,23 @@
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "pi_version", "provider", "api", "base_url", "content_retained", "credentials_accessed"],
+      "required": ["kind", "pi_version", "provider", "api", "base_url", "content_retained", "credentials_accessed", "credentials_retained"],
       "properties": {
-        "kind": { "const": "PREEXISTING_PI_SESSION_NORMALIZED_USAGE" },
+        "kind": { "enum": ["PREEXISTING_PI_SESSION_NORMALIZED_USAGE", "LIVE_MINIMAL_QUALIFICATION"] },
         "pi_version": { "type": "string", "minLength": 1, "maxLength": 64 },
         "provider": { "type": "string", "minLength": 1, "maxLength": 256 },
         "api": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "base_url": { "type": "string", "pattern": "^https://[^\\s]+$", "maxLength": 2048 },
+        "base_url": {
+          "type": "string",
+          "maxLength": 2048,
+          "anyOf": [
+            { "pattern": "^https://[^\\s]+$" },
+            { "pattern": "^http://localhost(?::[0-9]{1,5})?(?:/[^\\s]*)?$" }
+          ]
+        },
         "content_retained": { "const": false },
-        "credentials_accessed": { "const": false }
+        "credentials_accessed": { "type": "boolean" },
+        "credentials_retained": { "const": false }
       }
     },
     "window": {
@@ -29,15 +37,34 @@
       "additionalProperties": false,
       "required": ["policy", "requested_samples", "selected_samples", "session_count", "first_at", "last_at", "membership_sha256", "fixed_before_activation"],
       "properties": {
-        "policy": { "const": "LATEST_PREEXISTING_PROVIDER_USAGE" },
+        "policy": { "enum": ["LATEST_PREEXISTING_PROVIDER_USAGE", "FROZEN_PROVIDER_CALL_PLAN"] },
         "requested_samples": { "type": "integer", "minimum": 1, "maximum": 10000 },
         "selected_samples": { "type": "integer", "minimum": 1, "maximum": 10000 },
         "session_count": { "type": "integer", "minimum": 1 },
         "first_at": { "type": "string", "format": "date-time" },
         "last_at": { "type": "string", "format": "date-time" },
         "membership_sha256": { "$ref": "#/$defs/sha256" },
-        "fixed_before_activation": { "const": true }
-      }
+        "fixed_before_activation": { "const": true },
+        "provider_call_plan_sha256": { "$ref": "#/$defs/sha256" },
+        "session_file_sha256": { "$ref": "#/$defs/sha256" },
+        "early_stop_reason": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "policy": { "const": "FROZEN_PROVIDER_CALL_PLAN" } },
+            "required": ["policy"]
+          },
+          "then": {
+            "properties": {
+              "provider_call_plan_sha256": { "$ref": "#/$defs/sha256" },
+              "session_file_sha256": { "$ref": "#/$defs/sha256" },
+              "early_stop_reason": { "type": "string", "minLength": 1, "maxLength": 2048 }
+            },
+            "required": ["provider_call_plan_sha256", "session_file_sha256", "early_stop_reason"]
+          }
+        }
+      ]
     },
     "usage": {
       "type": "object",

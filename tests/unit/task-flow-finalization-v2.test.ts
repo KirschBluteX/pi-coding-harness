@@ -42,7 +42,7 @@ describe("Task Flow v2 route finalization", () => {
       .toThrow("Route proposal.work_cells must be an array");
   });
 
-  it("rejects a generic one-item contract when the intake contains three explicit acceptance facets", () => {
+  it("does not infer an acceptance-facet count from conjunctions in the intake", () => {
     const objective = "If cleanup throws, every remaining cleanup must still run, the error must reach the boundary, and the throwing cleanup must not run again.";
     expect(() => finalizeGoalContract({
       goalId: "GOAL-ATOMIC-ACCEPTANCE", objective, intent: "BUILD", lane: "ADAPTIVE_ROUTE",
@@ -51,7 +51,36 @@ describe("Task Flow v2 route finalization", () => {
         user_outcomes: ["Cleanup works"], scope: ["src/a.ts"], authorization_ceiling: "LOCAL_REVERSIBLE",
         obligations: [{ key: "cleanup", priority: "MUST", statement: "Cleanup works", oracle: { commands: ["npm test"] } }],
       },
-    })).toThrow(/at least 3 independent user_outcomes and MUST obligations/u);
+    })).not.toThrow();
+  });
+
+  it("does not split a preservation list into authoritative outcomes by punctuation", () => {
+    const objective = "The validator must reject malformed input. Preserve browser clients, batch clients, generated output, and unrelated consumers.";
+    expect(() => finalizeGoalContract({
+      goalId: "GOAL-PRESERVATION-FACETS", objective, intent: "BUILD", lane: "ADAPTIVE_ROUTE",
+      sourceIntakeSha256: "7".repeat(64), version: 1, parentContractId: null, createdAtMs: now,
+      proposal: {
+        user_outcomes: ["Malformed input is rejected", "Existing behavior is preserved"],
+        scope: ["src"], authorization_ceiling: "LOCAL_REVERSIBLE",
+        obligations: [
+          { key: "reject-invalid", priority: "MUST", statement: "Malformed input is rejected", oracle: { command: "npm test" } },
+          { key: "preserve-all", priority: "MUST", statement: "Existing behavior is preserved", oracle: { command: "npm test" } },
+        ],
+      },
+    })).not.toThrow();
+  });
+
+  it("allows explicit Acceptance V2 mapping to decide whether outcomes share a MUST", () => {
+    expect(() => finalizeGoalContract({
+      goalId: "GOAL-OUTCOME-MUST-BINDING", objective: "Update and verify the bounded component",
+      intent: "BUILD", lane: "DIRECT_CELL", sourceIntakeSha256: "8".repeat(64),
+      version: 1, parentContractId: null, createdAtMs: now,
+      proposal: {
+        user_outcomes: ["Browser clients work", "Batch clients work"], scope: ["src/a.ts"],
+        authorization_ceiling: "LOCAL_REVERSIBLE",
+        obligations: [{ key: "all-clients", priority: "MUST", statement: "All clients work", oracle: { command: "npm test" } }],
+      },
+    })).not.toThrow();
   });
 
   it("rejects shell-composed acceptance and directs multiple checks to commands[]", () => {

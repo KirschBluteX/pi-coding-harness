@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-coding-harness.local/schemas/queued-scope-extensions.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "goal", "extensions"],
+  "properties": {
+    "$schema": { "const": "../schemas/queued-scope-extensions.schema.json" },
+    "schema_version": { "const": 1 },
+    "goal": { "$ref": "#/$defs/text" },
+    "extensions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/extension" }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1, "maxLength": 8192 },
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$" },
+    "sha256": { "type": "string", "pattern": "^[A-F0-9]{64}$" },
+    "priority": { "enum": ["P0", "P1", "P2", "P3"] },
+    "texts": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/text" }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "verificationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "result", "tests_passed", "tests_skipped", "commands"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "result": { "enum": ["PASS", "FAIL", "INCONCLUSIVE"] },
+        "tests_passed": { "type": "integer", "minimum": 0 },
+        "tests_skipped": { "type": "integer", "minimum": 0 },
+        "commands": { "$ref": "#/$defs/texts" }
+      }
+    },
+    "sourceClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpoint_id", "files", "verification_receipt"],
+      "properties": {
+        "checkpoint_id": { "$ref": "#/$defs/id" },
+        "files": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": { "$ref": "#/$defs/file" }
+        },
+        "verification_receipt": { "$ref": "#/$defs/verificationReceipt" }
+      }
+    },
+    "evidenceSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "title", "url", "sha256", "evidence_level"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/text" },
+        "url": { "type": "string", "pattern": "^https://[^\\s]+$", "maxLength": 2048 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "evidence_level": { "$ref": "#/$defs/id" }
+      }
+    },
+    "candidateExperiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "priority", "hypothesis", "acceptance"],
+      "properties": {
+        "candidate_id": { "$ref": "#/$defs/id" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "hypothesis": { "$ref": "#/$defs/text" },
+        "acceptance": { "$ref": "#/$defs/text" }
+      }
+    },
+    "workItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "priority", "scope", "depends_on", "expected_artifacts", "acceptance"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "scope": { "$ref": "#/$defs/text" },
+        "depends_on": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "expected_artifacts": { "$ref": "#/$defs/texts" },
+        "evidence_sources": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/evidenceSource" }
+        },
+        "transfer_gate": { "$ref": "#/$defs/text" },
+        "candidate_experiments": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/candidateExperiment" }
+        },
+        "acceptance": { "$ref": "#/$defs/text" }
+      }
+    },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["extension_id", "kind", "source", "status", "priority", "depends_on", "conflicts", "source_closure", "work_items", "completion_gate"],
+      "properties": {
+        "extension_id": { "$ref": "#/$defs/id" },
+        "kind": { "const": "ADDITIVE_CHANGE_REQUEST" },
+        "source": { "$ref": "#/$defs/text" },
+        "status": { "$ref": "#/$defs/id" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "depends_on": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "conflicts": { "$ref": "#/$defs/texts" },
+        "source_closure": { "$ref": "#/$defs/sourceClosure" },
+        "work_items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/workItem" }
+        },
+        "implementation_policy": { "$ref": "#/$defs/text" },
+        "completion_gate": { "$ref": "#/$defs/text" }
+      }
+    }
+  }
+}

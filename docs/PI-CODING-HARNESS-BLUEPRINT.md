@@ -22,7 +22,7 @@ using short-lived role-isolated Worker sessions when decomposition has positive 
 
 | ID | Outcome | Acceptance |
 |---|---|---|
-| PCH-G-001 | Native Pi outside Harness | Before `/coding`, Host starts=0, SQLite opens=0, RPC=0, prompt additions=0, extra model/provider requests=0. |
+| PCH-G-001 | Native Pi outside Harness | Without a current explicit `/coding` entry or a previously explicit, authority-validated same-session auto-resume binding, Host starts=0, SQLite opens=0, RPC=0, prompt additions=0, extra model/provider requests=0. Auto-resume attaches the exact Goal but never starts a model/provider request. |
 | PCH-G-002 | Fast reliable Single | A narrow Build can use one GoalContract, one DirectCell, one fresh oracle, and one delivery closure. |
 | PCH-G-003 | Useful Multi | Independent shards may run concurrently in scoped mirrors; canonical writes integrate serially with preimage and oracle checks. |
 | PCH-G-004 | Plan that can continue | Plan is reviewed in the current turn, frozen, and followed by an explicit Build/Keep/Revise choice. |
@@ -83,6 +83,16 @@ earlier drafts.
 | PCH-AUD-033 | A model timeout above the local oracle ceiling creates a predictable rejection/retry turn. | Normalize a finite tool timeout to 1-900 seconds before applying the frozen oracle policy; do not widen the authority ceiling. | Task Flow timeout-clamp regression |
 | PCH-AUD-034 | Restricting reads to only the current WorkCell prevents efficient inspection of already frozen near-horizon files. | Single Supervisor may read all frozen Route read/write roots; mutation remains restricted to the authorized WorkCell write roots. | Task Flow Route-scope regression |
 | PCH-AUD-035 | Requiring a separate fresh read before every exact edit adds model turns even when the edit carries a decisive preimage. | A bounded unique, non-empty, non-overlapping exact `oldText` set may prove current source locally; all ambiguous, broad or changed inputs keep the fresh-read gate. | Input Context evidence regression |
+| PCH-AUD-036 | A frozen oracle allowlist can reject a cheap impact-driven check, then let a narrower passing oracle close obligations while the locally discoverable regression remains untested. | Statically safe local supplemental validation runs as a managed Operation but is explicitly non-attesting; failure drives repair, while only the frozen oracle may attest obligations or close work. | Oracle policy and Task Flow supplemental-validation regressions |
+| PCH-AUD-037 | Quoted search regexes and exact built-in globs can be misclassified as external or out of scope, while an opaque formatter write cannot be reconciled safely. | Parse shell quoting before classifying operators, resolve exact grep globs to the actual file, and manage one-file or bounded same-command `gofmt -w` targets as per-file EDIT Operations with fresh-source proof and readback. Command expansion, workspace escape, mutating probe flags, pipelines, non-Go targets and batches above eight remain fail-closed. | Effect normalization, Input Context and Task Flow regressions |
+| PCH-AUD-038 | Baseline manifests can exceed the SQLite authority limit only after a Route is frozen, and a later successful authorization can retain the old preflight blocker, causing redundant RouteRevision turns. | Enforce the exact authority manifest budget before persistence and clear the transient blocker only after successful fenced authorization. | Task Flow authorization-preflight regressions |
+| PCH-AUD-039 | A model can change a shared entry point while proving only the new behavior, overlooking explicit preservation outcomes and consuming a full evaluator run to discover the regression. | The existing BUILD turn now requires direct-caller inspection and local evidence for each preservation outcome, using safe supplemental validation immediately when risk appears; no critic, planner or extra provider request is added. | Workflow-prompt and supplemental-validation regressions |
+| PCH-AUD-040 | A formatter write chained to validation is correctly denied but can fall through to a generic external-effect message, leaving the Agent without a deterministic low-cost recovery action. | Recognize a valid leading local formatter before classifying safe conjunctions, retain fail-closed external authority for the composed command, and instruct the current turn to issue one bounded formatter call for up to eight authorized Go files followed by a separate validation call. | Effect normalization and Task Flow formatter-recovery regressions |
+| PCH-AUD-041 | A bounded line-count probe can be misclassified as an external effect, consuming a Provider turn even though it neither mutates state nor crosses the frozen workspace. | Admit `wc` through the same quote-aware, expansion-denying and workspace-path checks as existing local probes; traversal and indirect file-list escape remain fail-closed. | Effect-normalization positive and escape regressions |
+| PCH-AUD-042 | A successful managed edit is already locally read back, but leaving only the pre-edit source receipt active forces another Agent read before a formatter or later mutation. | Capture the successful managed mutation postimage as the next exact-source receipt and validate its hash again at the next mutation; failed, secret-refused, missing-path, restarted or externally changed evidence is never promoted. BUILD guidance requests reread only for missing or stale source. | Input Context mutation-evidence and workflow-prompt regressions |
+| PCH-AUD-043 | A local version-metadata probe can be misclassified as an unknown external effect, forcing an unnecessary user Decision and Provider recovery turn. | Admit only the explicit read-only `git describe` subcommand through the existing quote-aware, expansion-denying, workspace-path and dangerous-option checks; arbitrary Git commands and mixed-effect shell composition remain fail-closed. | Effect-normalization positive and mixed-effect regressions |
+| PCH-AUD-044 | A passing terminal oracle can auto-close authority while the current Agent turn is still reviewing preservation coverage, rejecting a legitimate correction and allowing locally under-tested work to appear complete. | Fresh terminal oracle Operations attest immediately but keep the final WorkCell writable for preservation review. Any later mutation clears in-memory validation readiness and requires fresh oracle evidence; explicit `coding_flow complete` or the existing local `agent_settled` RPC closes only a still-ready WorkCell without another provider request. Non-terminal WorkCells retain immediate evidence-backed progression. | Task Flow terminal-review, Host settle and Bridge contract regressions |
+| PCH-AUD-045 | Forcing one provider turn per formatter target adds avoidable latency and tokens when all files are already inside one authorized WorkCell. | One safe `gofmt -w` call may contain two through eight unique workspace-relative Go files. Authority atomically prepares the batch, then preserves an independent preimage, lease/fence, OperationAttempt, reconcile locator, postimage readback and commit for every target. Any scope escape rejects the entire batch before durable prepare; Host promotes every successful postimage as fresh source evidence without another provider request. | Bounded 8/9 normalization, atomic scope rejection, per-file commit and Host postimage-reuse regressions |
 
 No known higher-order correctness or safety issue remains in the implemented scope. External effectiveness remains
 conditional where provider behavior or real workloads are required; those limits are not implementation PASSes.
@@ -140,17 +150,36 @@ is passed by environment once, deleted immediately in the child, and zeroed on s
 ### 4.1 Zero-cost inactive state
 
 At extension load, register `/coding`, `/memory` and four PCH tool definitions, then remove PCH tools from the active
-tool list. Every event handler begins with an in-memory `active` check. It performs no filesystem/config/Host work
-until explicit entry. `session_start` resets only the active tool list.
+tool list. Every ordinary event handler begins with an in-memory `active` check. It performs no
+filesystem/config/Host work until explicit entry. `session_start` resets the active tool list, then scans only the
+already-loaded current Pi branch for the latest `pi-coding-harness.session-binding.v1` custom entry. No marker means
+the inactive path ends there. A marker is an untrusted discovery hint, never execution authority: only an exact
+same-session `BOUND` head in SQLite may admit auto-resume. Invalid, stale, fork-inherited or substituted markers leave
+PCH inactive without a lease or prompt injection.
+
+The first successful explicit entry commits an immutable Goal/session binding revision and appends its non-secret
+pointer to Pi JSONL. That prior opt-in permits later same-session Host discovery. Auto-resume restores tools, typed UI
+projection and the exact authority frontier, but sends no user message, starts no Agent/Worker/provider turn and
+performs no canonical mutation beyond bounded restart reconciliation already authorized by durable receipts. A live
+controller is identified by both stable Pi session ID and an ephemeral runtime-instance nonce; a second runtime cannot
+share the first runtime's fencing token. Graceful shutdown releases the lease by CAS, while crash recovery waits for
+lease expiry. Explicit `/coding exit` appends an `UNBOUND` marker and commits the matching authority revision.
 
 ### 4.2 Entry grammar
 
 ```text
+/coding
 /coding [single|multi] [plan|build] <objective>
+/coding recover [goal-id]
+/coding new [single|multi] [plan|build] <objective>
 ```
 
-Missing values are asked in Pi UI. Recommendations are Single and Build because they have the lowest overhead for
-the common tightly coupled coding task. Noninteractive entry must supply all three values.
+With no arguments, `/coding` first offers the exact Goal bound to the current session, then other recoverable Goals in
+the current workspace, and only then new intake. Recovery is selected by Goal identity, never objective wording,
+session name, cwd similarity or browser state. Cross-session transfer is explicit, cannot steal an unexpired live
+lease and atomically supersedes the prior control binding. Missing new-intake values are asked in Pi UI.
+Recommendations are Single and Build because they have the lowest overhead for the common tightly coupled coding
+task. Noninteractive new intake must supply all three values; noninteractive recovery supplies the Goal ID.
 
 `Intent` and `Topology` are orthogonal:
 
@@ -185,17 +214,56 @@ stateDiagram-v2
 
 ### 5.1 GoalContract
 
-A contract contains objective, intent, lane, obligations, constraints, assumptions, non-goals, user decisions and
-optional target-performance contract. Each MUST obligation has a decidable local oracle. Build admits the smallest
-complete contract; Plan may include user, outcome, scope, failure path and product detail when the request actually
-requires a PRD. Admission persists the deterministic classification, requirement profile and planning depth in the
-same authority transaction. Explicit `must` clauses and semicolon-delimited measurable outcomes establish a bounded
-minimum of 1-6 independent user outcomes and MUST obligations; generic placeholders never satisfy semantic validation.
-Task text is printable NFC and at most 32,768 characters; larger specifications must be referenced as project files.
+A contract contains objective, intent, lane, obligations, constraints, assumptions, non-goals, user Decisions and an
+optional target-performance contract. Task text is printable NFC and at most 32,768 characters; larger specifications
+are referenced by hash-bound project artifacts.
 
-The exact bounded intake is persisted before planning. GoalContract freeze atomically creates an immutable
-AcceptanceLedger containing source spans/hashes, inferred outcomes, negative constraints, non-goals and links to every
-MUST obligation. Any uncovered MUST or unresolved material ambiguity rejects freeze; chat summaries cannot replace it.
+Acceptance V2 never infers authority from keyword, punctuation, conjunction count or lexical similarity. Intake first
+stores exact UTF-8 bytes and byte spans. The current Agent turn may propose semantic facets and material unknowns, but
+local code accepts only source-bound typed records:
+
+```text
+IntakeSourceV2
+ -> SourceSpanRef
+ -> AcceptanceFacetV2
+ -> ConcernAssessmentV2
+ -> ObligationV2(EvidenceRequirement)
+ -> OracleExecutionReceiptV2
+ -> OutcomeEvidenceBindingV2
+ -> WorkCellCompletionReceiptV2
+```
+
+Every material unknown is declared as a stable `DecisionRequirementV2` before it is shown. A blocking unknown always
+uses an immediate trigger, has a latest gate no later than contract freeze and must have a terminal user resolution.
+A deferred Decision records its trigger, latest resolution gate, default, reversibility and affected obligations; real
+WorkCell revision hashes are attached later by `DecisionPlanBindingV2`. Users can approve a draft, request an alternate,
+edit a Requirement, defer a reversible Decision or cancel the Goal. EDIT binds the exact successor Requirement revision
+and makes prior review receipts stale; a free-form replacement ID or an undifferentiated REJECT is not authority.
+
+`ConcernAssessmentV2` closes the applicability frontier for the selected lane. Normal behavior, failure/recovery,
+permission/security/privacy, migration/compatibility, performance/cost, UX/accessibility, rollback/operations and
+non-goals are each `APPLICABLE` with Requirement/Decision refs, `NOT_APPLICABLE` with a rationale or `DEFERRED` with a
+trigger. DirectCell uses a reduced profile, but no lane may call a draft complete merely because every already-proposed
+facet has a Requirement.
+
+Natural-language active-Goal classification is an untrusted proposal and can only preserve or reduce authority.
+Classifying a captured turn as `DISCUSSION_ONLY` does not reopen mutation until a `DispositionAuthorityReceiptV2`
+records the user's disposition; an explicit typed UI/command envelope may create that receipt without another model
+turn. A material turn creates source-bound `ADD | MODIFY | REMOVE` Acceptance and Requirement deltas. Before execution
+resumes, `ChangeAcceptanceClosureV2` proves every captured turn is absorbed by the successor Contract and that each
+changed Requirement is reachable from a current WorkCell and Host-owned oracle. Direct Plan ancestry alone is
+insufficient.
+
+`GoalFitAssessmentV2` binds outcome fidelity, obligation coverage, unnecessary design, current user Decisions,
+invalidations and gate-specific evidence. It is submitted in the current Agent turn; the Host validates the closure and
+derives the verdict without a separate provider request. A qualified Decision closure cannot mechanically imply FIT.
+Goal Fit review identity is exact-gate-instance-specific. Distinct Plan revisions may share the same Requirement revision,
+gate and Decision closure, but each Plan subject requires a fresh assessment, review and binding; prior FIT authority is
+never reused across gate subjects.
+`ContractFreezeReceiptV2` is created with expected-head CAS only after the exact Requirement revision, source/facet/
+concern closure, Decision closure and a fresh `GoalFitReviewReceipt` all match. Provider or Worker text can propose IDs but
+cannot create spans, close Decisions, attest an oracle or freeze the contract. Legacy frozen contracts remain historical;
+an unfinished V1 Goal must requalify before new execution authority is issued.
 
 ### 5.2 RouteSkeleton
 
@@ -217,6 +285,13 @@ oracles and deferred outcomes. It expands only current and near work. Validity r
    unchanged typed metadata from the frozen Route and reruns the same scope, DAG, oracle and acceptance validators;
 10. RouteRevision no-op detection compares the fully finalized logical execution projection, not raw model bytes, so
     omitting locally generated closure fields cannot manufacture a new revision.
+
+Plan entry is a two-event Host transition. `PLAN_VALIDATED` atomically freezes the current `PlanRevision`, Decision
+closure and gate-instance-bound content-addressed `GoalFitReview`, then persists the internal `COMMIT_PLAN_GATE`
+boundary. The following
+`PLAN_FROZEN` event creates `StageGateReceiptV2`, binds the preceding event head and advances execution. Its event
+sequence must be strictly greater than both the bound Plan and Goal Fit sequences. Restart resumes either boundary
+locally under the same lease/CAS/idempotency rules; neither boundary adds a provider request or a model-visible action.
 
 ### 5.3 Specification classes and execution lanes
 
@@ -280,13 +355,18 @@ tools in the real workspace; Task Flow Operations provide all required accountin
 5. hash bounded tool result and read back the postimage;
 6. commit, fail, or mark `OUTCOME_UNKNOWN`;
 7. after final write run each declared oracle once;
-8. map fresh PASS Operations to obligations and close WorkCell/Goal;
-9. when an explicit implementation Goal reaches its final WorkCell, reject closure unless the Goal contains a
+8. map fresh PASS Operations to obligations; non-terminal WorkCells advance immediately;
+9. keep the terminal WorkCell writable through the current Agent's preservation review, invalidate readiness on any
+   later mutation, and close only through one explicit local completion or the existing `agent_settled` RPC;
+10. when an explicit implementation Goal reaches its final WorkCell, reject closure unless the Goal contains a
    committed mutation; a user-confirmed no-change result requires a revised `READ_ONLY` GoalContract.
 
 During BUILD, built-in reads may inspect any path already declared by any current/near WorkCell in the frozen Route.
 Writes remain current-WorkCell scoped. A finite model-supplied validation timeout is clamped to the authoritative
 1-900 second range before oracle evaluation, avoiding a rejection-only retry without extending execution authority.
+An additional local validation command that passes the same static executable, workspace, network, output and timeout
+policy may run as supplemental evidence even when it is absent from the frozen oracle. Its receipt cannot attest a
+MUST obligation, advance final validation progress or close the WorkCell; a fresh frozen oracle remains mandatory.
 
 Input Context keeps the fresh-source gate for existing mutation targets. For exact edit tools only, local code may
 replace a separate read receipt with an optimistic preimage proof when every non-empty `oldText` occurs exactly once,
@@ -305,53 +385,120 @@ redundant tool-end call. This keeps the correctness gate while avoiding the form
 
 ## 7. Multi execution
 
-### 7.1 Admission
+### 7.1 Requested topology and Multi Benefit Gate
 
-Multi is user-selected at entry. It is useful when at least two tasks can run independently or role isolation lowers
-context interference enough to justify startup/copy cost. One IMPLEMENTER shard is valid; extra roles are not a
-ceremonial requirement. If decomposition has no expected wall-time or quality benefit, use Single.
+`single` is a hard user limit. `multi` grants permission to evaluate Multi; it is not execution authority. A requested
+Multi WorkCell first derives `PENDING_MULTI_PROPOSAL` from the current requested/effective topology and authorization
+closure. Canonical mutation is fenced in that state. The Agent submits one minimal DAG proposal; the Host persists its
+normalized nodes and exact closure in an immutable `DynamicMultiProposalReceiptV2` before any asynchronous measurement.
+While the persisted proposal has no terminal gate, the derived state is `PENDING_MULTI_ADMISSION`; a Host restart resumes
+admission from that receipt without another Agent turn. A denial enters `SINGLE_ACTIVE(reason)`. An allow enters
+`MULTI_READY`, then `MULTI_RUNNING` and a durable terminal state. Each new or materially changed WorkCell derives a new
+proposal/admission closure instead of inheriting the prior WorkCell's decision.
 
-### 7.2 Roles
+The Host writes a hash-bound `TopologyGateReceiptV2` only when all required conditions hold:
 
-| Role | Write access | Expected output |
-|---|---:|---|
-| PLANNER | no | bounded route evidence |
-| EXPLORER | no | source/API findings with locations |
-| IMPLEMENTER | declared roots | PatchSet plus concise summary |
-| VERIFIER | no | oracle evidence; never self-certifies a patch |
-| INTEGRATOR | declared roots | conflict resolution PatchSet when explicitly routed |
+| Condition | Multi requirement |
+|---|---|
+| decomposition | at least two independent or low-coupling nodes |
+| information | each TaskPacket has a sufficient exact input closure |
+| mutation | concurrent write scopes are mutually exclusive |
+| validation | node outputs can be checked independently |
+| economics | conservative benefit exceeds startup, provider, communication, conflict and serial integration cost |
+| quality | at least one of makespan, risk coverage, quality or user intervention improves without unacceptable regression |
 
-Each role receives a `TaskPacket`: goal/route/WorkCell hashes, one outcome, roots, oracle, budget, dependency artifact
-hashes, failure signatures, expiry and capability HMAC. It receives neither full Supervisor chat nor private memory.
+Small tasks, incomplete specifications, one shared core file, strong sequential dependencies or high shared-context
+needs remain effective Single. A Multi request that fails the gate creates zero Worker session, zero model-catalog
+lookup and a visible typed reason. Gate estimates are calibrated only from comparable local telemetry; no warmup or
+extra provider request is allowed.
 
-### 7.3 Runtime selection
+Concrete Strong Single executions remain immutable Schema 33 provenance. Admission never searches by current Goal,
+run, WorkCell or Plan identity and never accepts caller-supplied metrics. Schema 34 derives a workload key from exactly
+13 explicit dimensions: WorkCell semantics; Requirement, obligation and Decision content roots; oracle set; scope;
+effect policy; input content root; environment; runtime fingerprint; topology-neutral comparison config; provider
+profile; and cache epoch. A prior PASS/complete-accounting Single is usable only after the Host persists an
+`EXACT_MATCH` comparability receipt with every dimension checked independently. IDs, topology, timestamps and measured
+performance are provenance and do not enter the key. Missing comparable evidence deterministically keeps the normal
+user task Single; isolated Shadow qualification is allowed only in an explicit benchmark epoch.
 
-Default is exact Supervisor provider/model/thinking/context. A role profile may reference a model already configured
-in Pi. The Host verifies model existence and auth; unavailable profiles fall back to Supervisor and record a reason.
-No profile can mutate the user's active Pi setting.
+### 7.2 Dynamic capability DAG
 
-### 7.4 Scoped mirror and tools
+Fixed `PLANNER/EXPLORER/IMPLEMENTER/VERIFIER/INTEGRATOR` identities are V1 profile hints, not V2 topology or authority.
+The V2 scheduler creates the minimum short-lived nodes required by the current DAG and evidence closure. Nodes are
+defined by capability and output responsibility, for example `SOURCE_DISCOVERY`, `PATCH_PROPOSE`, `CONFLICT_PROPOSE`
+or `ORACLE_REQUEST`. A node is not created when its marginal output is already covered; a pending node is canceled when
+new evidence makes it irrelevant.
 
-- Copy only declared read/write roots into a fresh OS temp directory.
-- Reject symlinks/reparse traversal; ignore `.git`, `.pi`, `.coding-harness`, `node_modules`, build/cache output,
-  credentials and non-template `.env` files.
-- Default hard cap: 8,192 files and 128 MiB per Worker mirror.
-- Expose only local read/ls/grep/find and, for IMPLEMENTER/INTEGRATOR, edit/write.
-- Network, extensions, skills, prompt templates, context files and persistent session history are disabled.
-- Worker narrative is capped and scanned for secret-like values before CAS persistence.
+Dependency edges have typed readiness conditions: `EVIDENCE_ACCEPTED`, `PATCH_INTEGRATED` or `ORACLE_PASSED`. Worker
+narrative, majority vote and model agreement satisfy none of them. `VERIFIER` and `INTEGRATOR` cease to be privileged
+roles: Workers may propose observations or conflict patches, while the Host alone executes the canonical oracle and
+serial integration.
 
-### 7.5 Parallelism and integration
+### 7.3 TaskPacket V2 and communication
 
-The shard graph validator rejects cycles, scope conflicts and unmet dependencies. The Host starts up to the lower of
-configured, requested and eight ready Workers. Worker sessions run concurrently; the Integration Interface uses a
-single promise tail. Before touching canonical files, it stores a bounded PatchTransaction journal and every available
-preimage in CAS, then commits the journal binding and `INTEGRATING` state in one authority transaction. For each patch
-entry it checks current preimage, writes through the normal Operation gate, readbacks the result, and records
-`APPLIED/NO_CHANGES/CONFLICT/REJECTED/OUTCOME_UNKNOWN` bound to the journal hash. Partial apply or Host restart restores
-recognized postimages in reverse order; each canonical file mutation executes inside a short SQLite IMMEDIATE lease
-fence so takeover cannot cross the actual filesystem write, and the next file rechecks the current token. An
-external/unrecognized postimage is preserved and enters H5; a lost recovery lease writes no receipt and stops further
-restoration. Canonical oracles run after all integration, never inside an untrusted Worker narrative.
+Every node receives one immutable `TaskPacketV2`:
+
+| Closure | Required content |
+|---|---|
+| identity | Goal, Requirement, obligation, Plan, WorkCell, topology and authorization stable IDs/hashes |
+| input | exact source/dependency refs, baseline/content root and freshness |
+| Decisions | clarification, assumption, route, non-goal and topology-gate receipt refs |
+| grant | capabilities, read/write roots, effect classes, network=false, byte/tool limits, lease/fence |
+| provider | runtime source/profile/config fingerprint, ProviderCallPlan ref, budget and fallback; never credentials |
+| stop | stop generation, deadline, turn/tool/token/retry/no-progress bounds |
+| output | a versioned typed union and evidence requirements |
+| oracle | `owner=HOST`, frozen oracle-set hash and covered obligation IDs |
+
+The capability HMAC covers the complete packet, runtime binding and baseline, not an opaque subset. Large artifacts
+remain in CAS and are transferred as hash refs; Workers receive neither Supervisor chat nor private Memory. Shared
+context accepts only authority-verified records. Relay sufficiency is measured by replay: compression is rejected when
+omitted information changes a downstream decision or oracle requirement.
+
+Workers submit through one schema-validated local `submit_worker_result_v2` tool. Allowed variants are evidence
+proposal, patch proposal, Decision request, conflict proposal, blocked or stopped. Free-form assistant text is display
+only; absence of a valid typed submission is a protocol failure and cannot unlock a successor.
+
+### 7.4 Runtime, mirror and privacy
+
+The default runtime exactly inherits Supervisor provider/model/thinking/context. A user-configured capability profile
+may select another model already present and authenticated in Pi; unavailable profiles fall back explicitly and record
+the reason. No code calls `setModel`, changes the active Pi configuration or implicitly downgrades quality.
+
+- Copy only declared roots into a fresh scoped mirror; reject symlink/reparse traversal and excluded secret/build roots.
+- Apply the existing 8,192-file and 128-MiB hard cap unless a reviewed configuration narrows or widens it.
+- Grant only declared local tools. Network, extensions, skills, prompt templates, context files and persistent Worker
+  history remain disabled unless a future capability receives its own privacy and side-effect authority design.
+- Risk, privacy and capability taint propagate along every DAG edge. A tainted proposal cannot enter a less-restricted
+  node or provider closure without a new Host-approved binding.
+
+### 7.5 Scheduling, integration, oracle and stop
+
+The scheduler continuously backfills free slots from the authority DAG instead of launching one ready wave. Ordering is
+deterministic by MUST reachability, longest remaining critical path, deadline and stable ID. Read-only exploration,
+independent validation and mutually exclusive PatchSets may overlap; canonical integration remains one serial queue.
+
+```text
+WORKER_PROPOSED
+ -> PATCH_PREPARED
+ -> INTEGRATED
+ -> ORACLE_PENDING
+ -> ORACLE_PASSED
+ -> WORKCELL_COMPLETION_ELIGIBLE
+```
+
+`APPLIED` is never `SUCCEEDED`. After each PatchSet, the Host runs the frozen fresh oracle through the normal Operation
+lifecycle against the current postimage root. A receipt binds the complete integration set, obligations, environment
+and topology revision. A terminal WorkCell still requires preservation review and Acceptance V2 closure.
+
+The existing scoped mirror, sensitive-file exclusions, lease/fence/CAS, PatchSet journal, per-file preimage checks,
+unknown-outcome reconciliation and serial canonical integration are retained. Role-based result inference, patchless
+automatic success, one-shot wave scheduling, `getLastAssistantText()` as a protocol, eager five-role runtime maps and
+`APPLIED => job success` are replaced.
+
+A stop first commits `StopDirectiveV2`, increments `stop_generation`, fences late results and cancels undispatched
+nodes. Only then does the Host request bounded Worker abort/drain. User cancellation never becomes a transient retry;
+restart restores the same canceled frontier. Retry, handoff, replan and fan-out each have durable hard limits, so no
+Worker or Agent chain can loop indefinitely.
 
 ## 8. Durable authority and schema
 
@@ -380,10 +527,21 @@ restoration. Canonical oracles run after all integration, never inside an untrus
 | 017 | target-project performance measurements and verdicts |
 | 018 | exact Task Flow intake evidence and immutable AcceptanceLedger |
 | 019 | PatchTransaction preparation journal and integration binding |
+| 020 | Authority/Acceptance V2 evidence requirements, oracle execution, completion and deliverable manifests |
+| 021 | IntakeSource, Decision, Requirement revision, Goal Fit and contract-freeze authority |
+| 022 | Plan transition, stage gates, Change Request, invalidation, reuse and correction budgets |
+| 023 | dynamic capability DAG, TaskPacket V2, stop directives and Provider Invocation records |
+| 024 | active-Goal input capture, classification authority, Change Request binding and transition closure |
+| 025 | typed Goal Fit gate instances, assessments and review bindings |
+| 026 | forward-only Goal Fit review identity correction for distinct exact gate instances |
 
 Upgrade requires the exact predecessor and stored SQL SHA-256. It takes a SQLite backup, verifies backup integrity,
 applies migrations transactionally, verifies domain repositories/foreign keys/integrity, and restores the backup on
 failure. There is no backward schema migration; rollback uses the previous runtime against a pre-upgrade backup only.
+V2 uses additive tables, a single V2 writer and explicit legacy readers. Historical terminal V1 Goals remain readable.
+An unfinished V1 Goal cannot be silently backfilled with invented source spans, Decisions or oracle receipts; it must
+enter an explicit requalification path before receiving new authority. A V2 stage is not enabled until migration,
+integrity, rebuild, crash replay and arbitrary-cwd package tests all pass.
 
 ### 8.3 Recovery precedence
 
@@ -441,7 +599,9 @@ Memory, Cache, Output and Compaction submit contributions but cannot independent
 5. emit a canonical layout manifest and tool-surface plan;
 6. inject only bounded working-set content; expose deferred evidence with `coding_context`.
 
-Budgets derive from actual context window and current input usage with output reserve. The compiler degrades
+One canonical `BudgetEnvelope` derives from the actual context window, current input usage, output reserve and bounded
+unknown usage. The same envelope drives evidence selection, pressure, ProviderCallPlan admission and UI telemetry;
+pressure is monotonic in remaining headroom and zero headroom can never be `LOW`. The compiler degrades
 `EXACT -> STRUCTURAL -> DEFERRED` before failing, never drops protected authority, and falls back to Pi baseline on
 unknown projection outcome.
 
@@ -460,11 +620,17 @@ raw prompt content.
 
 ### 10.4 Provider-turn completion
 
-Bridge starts one provider owner at `before_provider_request` and settles it from the first complete assistant-message
-surface. Normal Pi delivery uses `message_end`; Pi 0.82.x recovery may require the equivalent `turn_end` fallback.
-Clearing the owner before queued settlement makes the two hooks idempotent. A subsequent provider request or shutdown
-marks only a genuinely unresolved owner `OUTCOME_UNKNOWN`; it never fabricates usage. Settlement remains ordered in the
-background and does not delay the provider request.
+Bridge opens a keyed attempt at `before_provider_request` and settles it from the first matching complete
+assistant-message surface. The key is `{provider_call_plan_id, logical_request_id, attempt_id}`; baseline Pi turns use a
+typed baseline origin rather than a fake PCH plan. Normal Pi delivery uses `message_end`; Pi 0.82.x recovery may require
+the equivalent `turn_end` fallback. Clearing the matching key before queued settlement makes duplicate hooks idempotent.
+Starting attempt B never closes pending attempt A. Only an explicit timeout, shutdown reconciliation or restart recovery
+may mark an unresolved key `OUTCOME_UNKNOWN`, and each Cache request binds the same key. Settlement remains ordered in
+the background and does not delay provider dispatch.
+
+Usage normalization belongs to the selected provider Adapter. Its contract declares `usage_semantics_id`, finality and
+mutually exclusive uncached/cache-read/cache-write/output/reasoning buckets. Unknown or aggregate-only semantics remain
+`PARTIAL` or `UNOBSERVABLE`; generic ledger code never assumes a provider's input total excludes cached tokens.
 
 ## 11. Compaction 2.1
 
@@ -474,13 +640,34 @@ next action and pending IDs. After compaction it rebuilds authority and compares
 `VERIFIED`; mismatch commits `RECOVERY_REQUIRED`, blocks mutation and requires reconciliation. A Host crash during the
 Pi-owned interval is recovered at the next boundary. No additional summarizer request is created by PCH.
 
+Provider-backed qualification against Pi 0.82.1 confirms both paths. A completed manual native Compaction stored
+`PREPARED -> PI_OWNED -> VERIFIED(EXACT_FRONTIER_RESTORED)` with SQLite integrity `ok`, no foreign-key violation and
+zero pending Cache or Provider ledger rows. A second run was terminated only after durable `PI_OWNED`; after the
+30-second execution lease expired, restart committed `VERIFIED(RECOVERY_EXACT_FRONTIER)` with zero Provider tokens and
+the same zero-pending closure. The combined receipt is
+`reports/PROVIDER-BACKED-COMPACTION-VALIDATION.json` (SHA-256
+`2EA6261EA60811166FDB3701B9FE31224FA28EF42EFA008CE655CF6F00D33C3C`). Immediate takeover of an unexpired lease remains
+forbidden because it would weaken fencing. RPC controllers must also wait for Pi's `agent_settled`; a successful
+`prompt` response proves only preflight acceptance and cannot authorize Compaction or another dependent command.
+
 ## 12. Cache v2
 
-The current release activates non-mutating `C1_PREFIX` only when the selected Pi runtime matches the verified
-`geekspace/openai-completions` base URL contract. The frozen pre-activation window contains 200 normalized provider
-responses across 11 sessions: 138 report positive `cacheRead`, 20,424,704 Cache-read tokens are attributable, and the
-descriptive token-read share is 76.69%. These values authorize observation and stable-prefix governance, not a future
-hit-rate guarantee. Pi 0.82.1 maps an absent `cached_tokens` field to zero, so positive values are `HIT` with
+The current release activates non-mutating `C1_PREFIX` only when the selected Pi runtime matches one exact,
+provider-specific contract. Supported contracts are `geekspace/openai-completions` at its verified HTTPS base URL and
+`codex-local/openai-responses` at the verified loopback relay. The configured integration ID, wire API and normalized
+base URL must match. A Pi custom-provider ID is a user-owned profile label rather than a protocol identity, so it is
+normalized and retained in the Cache security partition instead of compared with a magic literal; distinct profile
+IDs remain distinct partitions. Any unmatched API or base URL falls back to `C0`.
+
+The Geekspace pre-activation window contains 200 normalized provider responses across 11 sessions: 138 report positive
+`cacheRead`, 20,424,704 Cache-read tokens are attributable, and the descriptive token-read share is 76.69%. The
+codex-local PRD-01 epoch 007 then closed 57 ordered logical requests with 57 attributions and zero pending records:
+53 had positive provider-usage `HIT` evidence, with 2,196,224 Cache-read tokens, 112,380 uncached-input tokens and no
+additional model or provider request. On 2026-08-01, a frozen minimal qualification of the active
+`codex_local_access/openai-responses/gpt-5.6-sol/max` Pi profile reported 3,840 Cache-read tokens, 967 uncached-input
+tokens and 11 output tokens on its first request; the second planned request was cancelled immediately under the
+predeclared decisive-evidence stop rule. These values authorize observation and stable-prefix governance, not a future
+hit-rate guarantee. Pi 0.82.1 maps an absent cached-token field to zero, so positive values are `HIT` with
 `PROVIDER_USAGE` evidence while zero remains `UNOBSERVABLE`; it is never relabeled `MISS`.
 
 The integration does not alter payloads, add headers, warm up the cache, delay requests, pin a model, or issue a model
@@ -492,6 +679,10 @@ Provider/model/base URL/security changes rotate lineage. Prompt/tool/compaction 
 generations. PCH never adds warmup requests, filler tokens, undocumented headers, delayed user requests or selective
 denominators. A provider-neutral `CacheAdapter` becomes a real seam only after two independent provider integrations
 pass the same Interface contract; one implementation remains a provider-specific Module.
+
+Adapter selection and partitioning use the same Adapter-produced canonical transport identity. Conservative
+normalization may fold provider casing or a semantically empty trailing slash, but userinfo, query, API path or any
+Adapter-meaningful transport change rotates lineage. No provider-global URL normalizer may broaden reuse.
 
 ## 13. Output governance
 
@@ -528,23 +719,14 @@ PCH overhead and target-project performance are always reported separately.
 
 ## 16. User Interface
 
-Default Widget shows Goal, topology, current WorkCell, route health, next action and blocker in at most four lines.
-It is debounced and does not emit model-visible status. Replan shows trigger and invalidated/reused work through local
-status/detail projections. Commands:
+PCH keeps Pi's native chat input and one authority. The compact Widget shows the Goal title, topology,
+current WorkCell, next action and any blocker or evidence delta. Normal tool work remains silent; the
+Agent reports only decisions, blockers and final verified evidence.
 
-| Command | Effect |
-|---|---|
-| `/coding` | choose topology, intent and objective |
-| `/coding status` | local current view |
-| `/coding cache` | observational cache status |
-| `/coding continue` | Build/Keep/Revise a frozen Plan |
-| `/coding pause`, `/coding resume` | safe authority transition |
-| `/coding replan <reason>` | open technical RouteRevision |
-| `/coding cancel` | confirmed cancellation |
-| `/coding exit` | flush observations, stop Host and restore non-PCH tools |
-| `/memory ...` | local status/remember/recall/correct/forget/purge lifecycle |
-
-Four active tools exist only inside Harness: `coding_flow`, `coding_clarify`, `coding_delegate`, `coding_context`.
+Material choices use Pi's native `select` and `editor` interactions. Status text, Worker output and
+session metadata remain projections only: they cannot authorize a mutation, replace SQLite authority or
+bypass the current ControlFrame. Pause, restart and native compaction restore the same durable Decision
+state without asking the user to restate the task.
 
 ## 17. Performance budgets
 
@@ -555,7 +737,10 @@ The full numeric contract is in `docs/PERFORMANCE-BUDGET.md`. Hard principles:
 - no ordinary turn waits for telemetry/index cleanup;
 - Multi is admitted only when expected benefit exceeds Worker startup/copy/integration overhead;
 - optional Module over-budget or failure bypasses to its documented baseline without weakening authority;
-- one full verification run occurs at release/phase exit, not after every edit.
+- every vertical slice runs affected RED/GREEN tests, an independent design review when material, adversarial/fault
+  checks, affected integration and a local cost/performance comparison before the next slice broadens scope;
+- full release, installation refresh and manifest regeneration occur once at the stable release boundary, not after
+  every edit. Hash-bound reviewers recheck only changed closure members.
 
 ## 18. Lifecycle and packaging
 
@@ -571,7 +756,7 @@ different root, or absolute development paths.
 | ID | Required evidence |
 |---|---|
 | PCH-ACC-001 | clean `npm ci`, compile, lint, build and all Vitest suites |
-| PCH-ACC-002 | SQL 001-019 apply in order; immutable triggers, foreign keys and integrity pass |
+| PCH-ACC-002 | SQL 001-035 apply in order; immutable triggers, foreign keys and integrity pass |
 | PCH-ACC-003 | JSON and Markdown validators pass; blueprint is unique |
 | PCH-ACC-004 | inactive Bridge test proves zero Host/RPC/prompt/provider activity |
 | PCH-ACC-005 | Single end-to-end mutation has prepare/readback/fresh oracle/delivery |
@@ -588,16 +773,25 @@ different root, or absolute development paths.
 
 ## 20. Implemented status and evidence boundary
 
-All Modules and Interfaces in sections 3-18 are implemented in the source tree and covered by local tests. Release
-verification still has to be reproduced from the final clean root. The following are external-evidence limits, not
-missing local code:
+This blueprint is the sole current/target architecture authority, but it is not an implementation receipt. The local
+authority schema now extends through 035: Acceptance/Authority V2, Intake/Decision/Goal Fit, Plan/change invalidation,
+Dynamic Multi Execution V2, ProviderCallPlan, integration journal, Strong Single registry,
+workload comparability and persisted Dynamic Multi proposal authority all have concrete migrations and code paths.
+Their presence is not a release claim. `manifests/PROJECT-STATE.json` and immutable validation receipts state what is
+actually qualified at a checkpoint.
 
-1. Cache C1 is active for the verified `geekspace/openai-completions` contract; C2-C4 and provider mutation remain an
-   external-evidence limit, and every unmatched runtime falls back to C0.
-2. Future token/quality savings remain workload-dependent; the frozen window proves past provider attribution, not a
-   guaranteed request hit rate.
-3. Role-specific Worker models require those exact models and auth in user Pi configuration.
-4. Pi releases outside the peer range require a new compatibility probe before widening the package constraint.
+At the 2026-08-01 Dynamic Multi checkpoint, SQL 001-035 verification passes, the persisted-proposal crash/restart path,
+cross-entity exact Strong Single comparability, pending-mutation fence and continuous Host scheduler pass their affected
+tests, and TypeScript compilation passes. Full clean-root, lifecycle, installed arbitrary-cwd, desktop active-Goal,
+provider-backed cache/compaction and Terraform STRESS gates remain mandatory before an unrestricted release claim.
+The 2026-08-01 user decision defers Terraform STRESS, PCH Multi provider reruns and the four-run comparison; those gates
+remain explicitly open while non-benchmark release, lifecycle and installed-package verification proceeds. Lexical heuristics remain
+a prohibited authority route; semantic lowering and Host/local evidence, not added keywords, must close those gaps.
+
+Cache C1 has positive provider-usage evidence only for the exact contracts and lineages recorded in
+`manifests/CACHE-PROVIDER-EVIDENCE.json`; unmatched runtimes remain C0. Future token, latency and quality benefits are
+workload-dependent. Pi versions outside the tested peer range and provider features such as affinity, resumable stream
+handles or server KV access remain external limits until an exact Adapter contract and frozen canary prove them.
 
 ## 21. Research basis and limits
 
@@ -622,3 +816,197 @@ Accessed 2026-07-27 unless stated otherwise:
   tool loops.
 - [Lost in the Middle](https://arxiv.org/abs/2307.03172): motivates smaller role-local context; it does not prove a
   universal optimal context size.
+
+Frontier open-model reports were reviewed as primary PREPRINT evidence and byte-bound in
+`manifests/QUEUED-SCOPE-EXTENSIONS.json`. Every claim is normalized into three layers: `REPORTED_MECHANISM` is only what
+the cited report describes, `PCH_SAFETY_EXTENSION` is a Harness design that the report does not prove, and
+`LOCAL_EXPERIMENT` is the falsification gate before either can affect the target architecture. The manifest records the
+exact source ID, digest and `latest_version_checked_at` for each report.
+
+| Source | `REPORTED_MECHANISM` | `PCH_SAFETY_EXTENSION` | `LOCAL_EXPERIMENT` | Non-transferable boundary |
+|---|---|---|---|---|
+| `KIMI-K3-2607.24653V1` [Kimi K3](https://arxiv.org/abs/2607.24653v1) `936A7A3B...F0F8` | sandbox checkpoint/fork lifecycle, straggler release, and cache/budget scheduling telemetry | PCH adds hash binding, a backend-neutral checkpoint contract, bounded release, class-aware admission and starvation guards; none is claimed as a Kimi safety guarantee | `PCH-RX-003`, `PCH-RX-004`, `PCH-RX-005` | RL staleness tolerance, Firecracker choice, KV state, thresholds and fleet speedups |
+| `DEEPSEEK-V4-2606.19348V1` [DeepSeek V4](https://arxiv.org/abs/2606.19348v1) `55B2D72F...978D` | completed immutable blocks versus a live tail, full/periodic/zero derived-state persistence, lightweight metadata references and an ordered trajectory log | PCH adds artifact-outer hydration and binds the ordered log to an effect commit frontier specifically to prevent non-idempotent effect re-execution; the report does not prove exactly-once effects | `PCH-RX-003`, `PCH-RX-005`; provider-fragment WAL remains conditional | CSA/HCA, KV tensors, seed determinism, FP4/FP8 and million-token claims |
+| `MINIMAX-MSA-2606.13392V2` [MiniMax Sparse Attention](https://arxiv.org/abs/2606.13392v2) `595D4411...2FE5` | a learned two-stage sparse-attention selector narrows candidate context before exact attention | PCH may use a local candidate index only as a hint, followed by exact source reread and a separately complete authority projection; authority lanes, hashes and CAS are PCH designs, not MiniMax claims | `PCH-RX-002` | learned hidden-state selector, GPU kernels, report speedups and any claim that Top-k is complete authority |
+| `GLM-5-2602.15763V2` [GLM-5](https://arxiv.org/abs/2602.15763v2) `E20742FF...8F0E` | asynchronous rollout generation and structured agent action/observation provenance | PCH adds the bounded proposal queue; Host-owned oracles, chained receipts and exact context closure are PCH safety mechanisms, not GLM claims | `PCH-RX-001`, `PCH-RX-004` | rollout/trainer policy lag, DSA, optimizer rules and asynchronous side-effect authority |
+| `STEP-3.5-FLASH-2602.10604V2` [Step 3.5 Flash](https://arxiv.org/abs/2602.10604v2) `0F91D0A5...2C9` | selective current-instruction retention, background telemetry and conditional session reuse | PCH permits only observable action, result and evidence envelopes to affect authority; hidden reasoning, latent state or session affinity can never authorize an effect or PASS | `PCH-RX-007` | MIS-PO/RL reward gains, proprietary router, fixed history sizes and undeclared provider KV affinity |
+| `QWEN-AGENTWORLD-2606.24597V1` [Qwen-AgentWorld](https://arxiv.org/abs/2606.24597v1) `1ACC32B7...6FE` | structured, domain-normalized initial-state/action/observation/next-state representations, executable rule anchors and controlled fault simulation | PCH hash-binds observable transitions and requires a local Host oracle; simulated observations remain untrusted proposals | `PCH-RX-001`, `PCH-RX-006` | simulated observations as truth, LLM judge authority and ungrounded sim-to-real claims |
+
+The transfer gate is strict: training algorithms, model-internal attention/KV, hardware-specific kernels, fixed
+thresholds and author-reported speedups are rejected as Harness design evidence. Runtime-shaped candidates enter only
+the seven active `PCH-RX-*` local experiments in the queued-scope manifest. Class-aware admission is measured per request
+class for queue wait, starvation and short-request latency; artifact-outer hydration records false/partial hydration and
+recomputation; live-tail skew is observable at p50/p95/p99 rather than hidden by an aggregate mean. A provider-fragment
+WAL is only a conditional candidate when the active provider exposes stable, documented, privacy-qualified fragment
+handles and replay semantics; otherwise it remains disabled and cannot become authority. A candidate is removed when it
+cannot beat its frozen local baseline without changing authority, correctness, privacy, provider request count or
+recovery. Actual provider hook/SDK payload and usage envelopes are captured directly; PCH never reconstructs a provider
+request from final prose or claims unavailable provider token IDs.
+
+## 22. Target V2 convergence contract
+
+This section binds the additive architecture review to implementation. It supersedes conflicting V1 workflow,
+authority, topology and completion semantics elsewhere in this document. V1 records remain immutable migration input;
+they do not retain authority merely because an old projection says PASS.
+
+### 22.1 End-to-end state machine
+
+```mermaid
+stateDiagram-v2
+  [*] --> IntakeCaptured
+  IntakeCaptured --> DecisionFrontier: facets and unknowns declared
+  DecisionFrontier --> DecisionFrontier: approve, reject, edit or defer
+  DecisionFrontier --> ContractReview: concerns closed and blocking Decisions resolved
+  ContractReview --> DecisionFrontier: Goal Fit asks user or reframes
+  ContractReview --> ContractFrozen: user approval plus CAS freeze
+  ContractFrozen --> PlanDraft
+  PlanDraft --> PlanReview: current and near WorkCells ready
+  PlanReview --> PlanDraft: local or contract replan
+  PlanReview --> TopologyGate: fresh Goal Fit and stage entry evidence
+  TopologyGate --> SingleBuild: Single or Multi no-benefit
+  TopologyGate --> MultiBuild: Multi benefit proven
+  SingleBuild --> Validation
+  MultiBuild --> Integration
+  Integration --> Validation: all PatchSets serially integrated
+  Validation --> DeliveryReview: fresh Host oracles pass
+  Validation --> PlanDraft: local or structural failure
+  SingleBuild --> ChangeImpact: material new input
+  MultiBuild --> ChangeImpact: material new input
+  ChangeImpact --> DecisionFrontier: affected authority revoked
+  ChangeImpact --> SingleBuild: absorption closure passes; independent work continues
+  ChangeImpact --> MultiBuild: absorption closure passes; independent work continues
+  DeliveryReview --> Succeeded: Goal Fit and completion closure pass
+  DeliveryReview --> PlanDraft: user value or maintenance gap
+  SingleBuild --> Reconciling: unknown effect
+  MultiBuild --> Reconciling: unknown effect
+  Reconciling --> PlanDraft: recovered or replanned
+  Reconciling --> Stopped: no safe route
+```
+
+Pause, restart and compaction are transitions over this same graph. They persist the exact source, Decision, Plan,
+topology, provider, effect and evidence closure; they never reconstruct authority from chat or Worker text.
+
+### 22.2 Requirement-to-delivery trace
+
+```text
+UserSource(span/hash)
+ -> AcceptanceFacetV2
+ -> ConcernAssessmentV2
+ -> DecisionRequirement/ResolutionV2
+ -> RequirementRevisionV2
+ -> ChangeAcceptanceClosureV2 (for active-Goal deltas)
+ -> GoalContractFreezeReceiptV2
+ -> DecisionPlanBindingV2
+ -> PlanRevision/StageGateReceiptV2
+ -> WorkCell/TaskPacketV2
+ -> ProviderInvocationPlan/Attempt or local Operation
+ -> WorkerProposal/PatchSet
+ -> IntegrationReceiptV2
+ -> OracleExecutionReceiptV2
+ -> OutcomeEvidenceBindingV2
+ -> WorkCellCompletionReceiptV2
+ -> DeliverableManifestV2
+```
+
+Every edge stores stable IDs, current revision hashes and invalidation provenance. A material Change Request records
+typed invalidation edges and computes only the dependent closure. A `ReuseReceiptV1` proves why an unaffected prior
+receipt remains fresh; absence of a receipt means revalidation, not optimistic reuse.
+
+### 22.3 Standard Provider Invocation Protocol
+
+Normal Supervisor turns remain Pi-owned requests. Every PCH-added Worker, evaluator or exploratory request first
+creates a `ProviderCallPlanV1` containing:
+
+- purpose, uncertainty ID, expected information gain and expected loss if skipped;
+- exact minimum input-closure hash, privacy class, allowed fields and redaction receipt;
+- provider/model/thinking/context profile source from current Pi configuration only;
+- request class, resource budget, admission reason, soft request/token/cost/latency budget and deadline;
+- cache lineage, session capability and Adapter-declared usage semantics;
+- typed success evidence, local verification, fallback, attempt/fan-out limits and stop condition.
+
+Formatting, status, Memory, output rewriting, deterministic parsing, test orchestration and local indexing are never
+provider purposes. The default is one high-quality call. Fan-out requires independent expected information and is
+canceled at evidence saturation. Provider output is always a proposal; it cannot authorize an effect, PASS, topology
+promotion or Goal close.
+
+`ProviderInvocationAttemptV1` records origin (`SUPERVISOR_BASELINE`, `PCH_PLANNED`, `WORKER`, `EVALUATOR`), exact runtime
+fingerprint, `{plan_id, logical_request_id, attempt_id}`, captured payload identity, usage finality, normalized mutually
+exclusive token buckets, cost, latency and terminal or unknown outcome. A durable keyed registry supports interleaved
+begin, reverse-order settle, retry, fan-out and restart; opening one attempt cannot settle another. Worker SDK hooks feed
+the same ledger; aggregate-only stats are marked PARTIAL and never converted from tool-call count into provider-turn
+count. Literal `additional_provider_requests: 0` remains valid only for the baseline path and is replaced by observed
+origin-aware accounting for planned calls.
+
+Cache C1 remains payload-preserving and Adapter-specific. Compound context cache, affinity and tiered persistence are
+experiments, not default behavior. Affinity is unavailable unless the current Adapter exposes a stable, attributable
+capability; local scheduling never guesses provider nodes or server KV state.
+
+### 22.4 Concurrency and attack model
+
+| Threat | Required defense and failure result |
+|---|---|
+| forged Worker PASS or consensus | typed proposal only; Host reruns current oracle; reject authority transition |
+| lead anchoring or polluted edge | source-bound refs, independent oracle and taint propagation; invalidate affected descendants |
+| stale TaskPacket or late Worker | packet closure, lease/fence and stop generation CAS; fence and reconcile |
+| concurrent same-file writes | graph rejects overlap; canonical integration remains serial |
+| external edit after prepare | per-file preimage/readback; preserve external postimage and enter reconcile |
+| secret/private Memory leakage | explicit privacy closure, redaction receipt, scoped mirror and provider plan; stop before dispatch |
+| provider response replacement/append | request/attempt binding and terminal finality; mark unknown, never fabricate usage or PASS |
+| simulator or judge reward hacking | executable anchors, strict typed output isolation and real-oracle holdout |
+| infinite retry/handoff/fan-out | durable family budgets, no-progress counter and terminal StopDirective |
+| irreversible global action | authority reconstructs the complete Goal/Decision/risk graph immediately before execution |
+
+Advisory concurrency control may be compared with scoped mirrors only in a frozen experiment. It cannot replace the
+current correctness boundary until conflict, crash, privacy and replay tests show no regression.
+
+### 22.5 Benchmark and rollout card
+
+Deterministic tests run before any paid provider epoch:
+
+1. ambiguous interactive requirements that reveal constraints progressively;
+2. 1/5/10/25/50/100 consecutive Change Requests with restart and compaction at every boundary;
+3. Strong Single vs Multi on identical provider/model/profile, context and evidence budget;
+4. 1/2/4/8 nodes, fixed-role V1 vs dynamic DAG, barrier vs continuous backfill;
+5. independent, same-file and cross-module contract writes plus stale TaskPackets;
+6. Worker crash, Host restart, provider timeout, relay drift, partial integration and unknown effects;
+7. malicious Worker, forged verifier, polluted communication edge and infinite handoff;
+8. specification round-trip, maintainer handoff, desktop UI cancellation/accessibility and performance regression;
+9. compaction relay sufficiency and authority-aware two-stage retrieval against exhaustive context;
+10. controlled action/observation faults: partial results, invalid operations and long-context state dependencies.
+
+Metrics include correctness, obligation coverage, makespan, critical-path idle, provider requests/tokens/cost, unique
+information ratio, repeated reads, communication bytes, conflicts/rework, stale work, user interventions, recovery
+time, security events and maintainer understanding time. A quality failure dominates any speed or cost gain.
+
+The rollout card freezes source/runtime/provider hashes, prompt/tool surface, workload, evaluator, budgets, cache
+lineage, random seed and stop conditions. OrchBench-style deterministic DAG simulation and replay run first. A paid
+provider run occurs only when the candidate can change a decision and local gates pass. The four-way Terraform STRESS
+comparison is Codex native Single, Codex native delegation, PCH effective Single and PCH dynamic Multi. PCH runs use
+streaming diagnosis: stop on a decisive PCH defect, repair the general mechanism, rerun a new immutable epoch, and
+compare only the final passing epochs.
+
+### 22.6 Refactor and migration order
+
+The landing phase is not constrained to local patches. It may retain, deepen, replace, merge or delete V1 modules when
+the target contract, forward migration and tests prove the change. Execute these vertical slices in order:
+
+1. **P0 Authority/Acceptance**: schema 020, Host-derived oracle/evidence/completion, source spans and removal of lexical
+   acceptance authority. No later slice may build on caller-supplied PASS.
+2. **P0 Intake/Decision/Goal Fit**: schemas 021/024 plus the next forward migration, concern completeness, typed
+   disposition, draft revisions, precise approve/alternate/edit/defer/cancel, Goal Fit assessment, Change absorption,
+   exact freeze and compaction closure.
+3. **P0 Plan/Change/Invalidation**: schemas 022/024 plus the next forward migration, fresh Plan transition,
+   DecisionPlanBinding, stage gates, material Change Request, local reuse and durable correction budgets.
+4. **P0 Dynamic Multi**: schema 023, benefit gate, TaskPacket V2, typed results, continuous scheduler, fresh oracle and
+   durable stop. Preserve scoped mirrors and serial integration; remove fixed-role authority behavior.
+5. **P1 Provider/Context/Cache**: canonical BudgetEnvelope, keyed invocation-attempt registry, Adapter usage semantics
+   and ProviderCallPlan; run `PCH-RX-*` experiments before enabling two-stage retrieval, compound cache, sandbox
+   checkpoint or affinity.
+6. **P1 UX/Recovery/Delivery**: Decision Inbox projection, structured diffs, exact resume, deliverable manifest and
+   maintainer handoff.
+7. **Qualification**: affected and full local gates, clean install/arbitrary cwd, PRD-01 only when allowed by frozen
+   state, Terraform four-way comparison and release verification.
+
+Each slice uses `RED -> GREEN -> independent review -> adversarial/fault -> affected integration -> cost/performance`.
+Any source hash changed during a parallel review invalidates only that finding's changed closure. A failed architecture
+assumption updates RouteDecision and project state before the next slice; it is not preserved to avoid refactoring.

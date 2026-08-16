@@ -15,12 +15,12 @@ import {
   type AuthorityTransactionMeta,
 } from "./authority-transaction-kernel.js";
 import { LeaseManager, type LeaseToken } from "./lease.js";
-import { migrateCoreStore } from "./migrate.js";
+import { assertSupportedMigrationVersion, migrateCoreStore, SUPPORTED_MIGRATION_VERSION } from "./migrate.js";
 import { migrateExperimentStore } from "./experiment-migrate.js";
 import { migrateMemoryStore, type MemoryMigrationOptions } from "./memory-migrate.js";
 import { migrateInputContextStore } from "../input-context/migrate.js";
 import { migrateTaskFlowStore } from "../task-flow/migrate.js";
-import { migrateHarnessStore } from "../harness/migrate.js";
+import { HARNESS_MIGRATION_VERSION, migrateHarnessStore } from "../harness/migrate.js";
 import { migrateHarnessPostStore } from "../harness/post-migrate.js";
 import { HarnessCompactionRepository, type HarnessCompactionHead } from "../context/compaction-v21/repository.js";
 import type { HarnessCompactionAttempt, HarnessCompactionTransition } from "../context/compaction-v21/domain.js";
@@ -28,12 +28,42 @@ import { CacheV2Repository } from "../cache-v2/repository.js";
 import type { CacheLogicalRequestPrepareV2, CacheLogicalRequestV2, CacheRequestAttributionV2, CacheSecurityPartitionV2, StablePrefixFamilyV2 } from "../cache-v2/domain.js";
 import { HarnessRepository, type HarnessCurrentView, type HarnessIntegritySummary, type HarnessShardExecutionView } from "../harness/repository.js";
 import type { HarnessAuthorityCommand } from "../harness/commands.js";
-import { buildAcceptanceLedger } from "../task-flow/acceptance-ledger.js";
 import {
-  TaskFlowRepository, type ActiveTaskFlowGoal, type TaskFlowCurrentView,
+  ExecutionV2Repository, type ExecutionGraphTerminalPreparationV2, type ExecutionNodeOraclePreparationV2,
+  type ExecutionV2IntegritySummary, type ExecutionV2Preparation,
+  type ExecutionIntegrationRecoveryV2, type ExpiredExecutionNodeAttemptV2,
+  type ExecutionV2Projection, type WorkerPatchSetClosureV2,
+} from "../harness/execution-v2/repository.js";
+import type { ExecutionV2AuthorityCommand } from "../harness/execution-v2/commands.js";
+import type { TaskPacketV2 } from "../harness/execution-v2/domain.js";
+import { ProviderCallPlanV1Repository, type ProviderCallPlanIntegritySummaryV1 } from "../provider-v2/repository.js";
+import type { ProviderCallPlanV1 } from "../provider-v2/domain.js";
+import type { ProviderInvocationTransitionV1, ProviderRedactionReceiptV1 } from "../provider-v2/invocation.js";
+import { finalizeAcceptanceV2 } from "../acceptance-v2/finalize.js";
+import { AcceptanceAuthorityV2Repository } from "../acceptance-v2/repository.js";
+import { AcceptanceEvidenceV2Repository } from "../acceptance-v2/evidence-repository.js";
+import { AcceptanceCompletionV2Repository } from "../acceptance-v2/completion-repository.js";
+import { AcceptanceDeliveryV2Repository } from "../acceptance-v2/delivery-repository.js";
+import { deriveInitialIntakeDraftV2 } from "../intake-v2/initial-draft.js";
+import { decisionFrontierSha256V2 } from "../intake-v2/finalize.js";
+import { IntakeAuthorityV2Repository, intakeAuthorityZeroSha256 } from "../intake-v2/repository.js";
+import { PlanAuthorityV2Repository, planAuthorityZeroSha256 } from "../plan-v2/repository.js";
+import { activeGoalInputClosureSha256V2 } from "../plan-v2/active-goal-input.js";
+import type { PlanStageGateV2 } from "../plan-v2/stage-gate.js";
+import { finalizeGoalContract } from "../task-flow/finalize.js";
+import {
+  TaskFlowRepository, type ActiveTaskFlowGoal, type TaskFlowChangedFile, type TaskFlowCurrentView,
   type TaskFlowIntegritySummary, type TaskFlowOperationSnapshot,
 } from "../task-flow/repository.js";
-import type { TaskFlowAuthorityCommand } from "../task-flow/commands.js";
+import type { HostTaskFlowUserInputCommand, TaskFlowAuthorityCommand } from "../task-flow/commands.js";
+import {
+  SessionGoalBindingRepository,
+  type SessionGoalBindingMarkerV1,
+  type SessionGoalBindingReason,
+  type SessionGoalBindingState,
+  type SessionGoalBindingV1,
+  type SessionGoalCandidateV1,
+} from "../task-flow/session-binding.js";
 import {
   InputContextRepository, type InputContextIntegritySummary, type WorkingSetEnvelopeRecord,
 } from "../input-context/repository.js";
@@ -42,6 +72,7 @@ import type {
   ContextProjectionReceiptRecord, ContextRetentionRootRecord, ContextWorkingSetRecord,
   EvidenceValidityTransitionRecord, ProjectKnowledgeClaimRecord, ProjectSourceManifestRecord,
   ProviderTurnAttemptRecord, ProviderTurnLedgerRecord, ProviderTurnRequestRecord,
+  ProviderTurnGoalBindingRecord,
   ReadEvidenceReceiptRecord, ToolSurfacePlanRecord,
 } from "../input-context/domain.js";
 import { rebuildGoalSnapshot, verifyAuthorityIntegrity, type GoalSnapshot } from "./projections.js";
@@ -100,10 +131,27 @@ import {
   type IntakeClassificationRecord,
 } from "../planning/intake-classifier.js";
 
+function reducesHarnessCapabilityWhileInputPending(command: HarnessAuthorityCommand): boolean {
+  if (command.type === "TRANSITION_WORKER_RUN") {
+    return ["FAILED", "ABORTED", "TIMED_OUT", "FENCED"].includes(command.transition.state);
+  }
+  if (command.type === "TRANSITION_SINGLE_SHARD") return ["FAIL", "CANCEL"].includes(command.action);
+  if (command.type === "CONTROL_MANAGED_RUN") return ["PAUSE", "CANCEL", "FAIL"].includes(command.action);
+  return false;
+}
+
 export type { AuthorityActor } from "./authority-transaction-kernel.js";
 
 export interface MutationMeta extends AuthorityTransactionMeta {
   readonly lease?: LeaseToken;
+}
+
+export interface HostTaskFlowUserInputMeta {
+  readonly expectedVersion: number;
+  readonly idempotencyKey: string;
+  readonly lease: LeaseToken;
+  readonly sessionId: string;
+  readonly turnId: string;
 }
 
 export interface CreateGoalCommand {
@@ -363,6 +411,15 @@ export interface AuthorityStoreOptions {
   readonly clock?: Clock;
 }
 
+export class LifecycleUpgradeRequiredError extends Error {
+  readonly code = "LIFECYCLE_UPGRADE_REQUIRED" as const;
+
+  constructor(readonly currentVersion: number, readonly requiredVersion: number) {
+    super(`Authority schema ${currentVersion} requires a verified lifecycle backup and upgrade to ${requiredVersion}`);
+    this.name = "LifecycleUpgradeRequiredError";
+  }
+}
+
 function commandGoalId(command: AuthorityCommand): string {
   return command.goalId;
 }
@@ -386,8 +443,17 @@ export class AuthorityStore {
   private readonly memoriesV3: MemoryV3Repository;
   private readonly memoryCaptureV31: MemoryCaptureV31Repository;
   private readonly taskFlow: TaskFlowRepository;
+  private readonly sessionGoalBindings: SessionGoalBindingRepository;
+  private readonly acceptanceV2: AcceptanceAuthorityV2Repository;
+  private readonly acceptanceEvidenceV2: AcceptanceEvidenceV2Repository;
+  private readonly acceptanceCompletionV2: AcceptanceCompletionV2Repository;
+  private readonly acceptanceDeliveryV2: AcceptanceDeliveryV2Repository;
+  private readonly intakeV2: IntakeAuthorityV2Repository;
+  private readonly planV2: PlanAuthorityV2Repository;
   private readonly inputContext: InputContextRepository;
   private readonly harness: HarnessRepository;
+  private readonly executionV2: ExecutionV2Repository;
+  private readonly providerV2: ProviderCallPlanV1Repository;
   private readonly harnessCompaction: HarnessCompactionRepository;
   private readonly cacheV2: CacheV2Repository;
   private readonly targetPerformance: TargetPerformanceRepository;
@@ -413,8 +479,17 @@ export class AuthorityStore {
     this.memoriesV3 = new MemoryV3Repository(connection);
     this.memoryCaptureV31 = new MemoryCaptureV31Repository(connection);
     this.taskFlow = new TaskFlowRepository(connection);
+    this.sessionGoalBindings = new SessionGoalBindingRepository(connection);
+    this.acceptanceV2 = new AcceptanceAuthorityV2Repository(connection);
+    this.acceptanceEvidenceV2 = new AcceptanceEvidenceV2Repository(connection);
+    this.acceptanceCompletionV2 = new AcceptanceCompletionV2Repository(connection);
+    this.acceptanceDeliveryV2 = new AcceptanceDeliveryV2Repository(connection);
+    this.intakeV2 = new IntakeAuthorityV2Repository(connection);
+    this.planV2 = new PlanAuthorityV2Repository(connection);
     this.inputContext = new InputContextRepository(connection);
     this.harness = new HarnessRepository(connection);
+    this.executionV2 = new ExecutionV2Repository(connection);
+    this.providerV2 = new ProviderCallPlanV1Repository(connection);
     this.harnessCompaction = new HarnessCompactionRepository(connection);
     this.cacheV2 = new CacheV2Repository(connection);
     this.targetPerformance = new TargetPerformanceRepository(connection);
@@ -427,6 +502,13 @@ export class AuthorityStore {
       : { path: options.databasePath, busyTimeoutMs: options.busyTimeoutMs };
     const connection = openAuthorityConnection(databaseOptions);
     try {
+      const openedVersion = assertSupportedMigrationVersion(connection);
+      const opensCurrentHarness = options.harnessMigrationPath !== undefined
+        && options.harnessMigrationPath !== false;
+      if (openedVersion > 0 && openedVersion < SUPPORTED_MIGRATION_VERSION
+        && (opensCurrentHarness || openedVersion >= HARNESS_MIGRATION_VERSION)) {
+        throw new LifecycleUpgradeRequiredError(openedVersion, SUPPORTED_MIGRATION_VERSION);
+      }
       migrateCoreStore(connection, options.migrationPath ?? resolve("schemas", "sql", "001_core.sql"));
       if (options.experimentsMigrationPath !== false) {
         migrateExperimentStore(connection, options.experimentsMigrationPath ?? resolve("schemas", "sql", "002_experiments.sql"));
@@ -449,11 +531,22 @@ export class AuthorityStore {
       store.memoriesV3.verifyIntegrity();
       store.memoryCaptureV31.verifyIntegrity();
       if (store.taskFlow.available()) store.taskFlow.verifyIntegrity();
+      if (store.sessionGoalBindings.available()) store.sessionGoalBindings.verifyIntegrity();
+      if (store.acceptanceV2.available()) {
+        store.acceptanceV2.verifyIntegrity();
+        store.acceptanceEvidenceV2.verifyIntegrity();
+        store.acceptanceCompletionV2.verifyIntegrity();
+        store.acceptanceDeliveryV2.verifyIntegrity();
+      }
+      if (store.intakeV2.available()) store.intakeV2.verifyIntegrity();
+      if (store.planV2.available()) store.planV2.verifyIntegrity();
       if (store.inputContext.available()) store.inputContext.verifyIntegrity();
       if (store.harness.available()) {
         store.harness.verifyIntegrity();
         store.harnessCompaction.verifyIntegrity();
       }
+      if (store.executionV2.available()) store.executionV2.verifyIntegrity();
+      if (store.providerV2.available()) store.providerV2.verifyIntegrity();
       store.targetPerformance.verifyIntegrity();
       store.captureStartupIntegrityReceipt();
       return store;
@@ -467,17 +560,24 @@ export class AuthorityStore {
     closeAuthorityConnection(this.connection);
   }
 
-  acquireLease(goalId: string, ownerSessionId: string, ttlMs: number): LeaseToken {
-    return this.leases.acquire(goalId, ownerSessionId, this.clock.now(), ttlMs);
+  acquireLease(goalId: string, ownerSessionId: string, ttlMs: number, ownerInstanceId = ownerSessionId): LeaseToken {
+    return this.leases.acquire(goalId, ownerSessionId, this.clock.now(), ttlMs, ownerInstanceId);
   }
 
   renewLease(token: LeaseToken, ttlMs: number, lastProgressEventSequence: number): LeaseToken {
     return this.leases.renew(token, this.clock.now(), ttlMs, lastProgressEventSequence);
   }
 
+  releaseLease(token: LeaseToken): void {
+    this.leases.release(token, this.clock.now());
+  }
+
   withLeaseFence<T>(token: LeaseToken, effect: () => T): T {
     return runImmediateTransaction(this.connection, () => {
       this.leases.assertCurrent(token, this.clock.now());
+      if (this.planV2.available() && this.planV2.hasPendingActiveGoalUserTurn(token.goalId)) {
+        throw new AuthorityIntegrityError("Active Goal user turn classification is pending; canonical effect is fenced");
+      }
       return effect();
     });
   }
@@ -926,13 +1026,84 @@ export class AuthorityStore {
   }
 
   transactTaskFlow(command: TaskFlowAuthorityCommand, meta: MutationMeta, onFault?: (point: TransactionFaultPoint) => void): CommandResult {
+    return this.transactTaskFlowCommand(command, meta, onFault, null);
+  }
+
+  transactTaskFlowUserInput(
+    command: HostTaskFlowUserInputCommand,
+    meta: HostTaskFlowUserInputMeta,
+    onFault?: (point: TransactionFaultPoint) => void,
+  ): CommandResult {
+    return this.transactTaskFlowCommand(command, {
+      expectedVersion: meta.expectedVersion,
+      idempotencyKey: meta.idempotencyKey,
+      actor: "USER",
+      lease: meta.lease,
+    }, onFault, { sessionId: meta.sessionId, turnId: meta.turnId });
+  }
+
+  private transactTaskFlowCommand(
+    command: TaskFlowAuthorityCommand | HostTaskFlowUserInputCommand,
+    meta: MutationMeta,
+    onFault: ((point: TransactionFaultPoint) => void) | undefined,
+    hostUserInput: { readonly sessionId: string; readonly turnId: string } | null,
+  ): CommandResult {
+    if (command.type === "FINALIZE_GOAL_CONTRACT_INTAKE" || command.type === "FINALIZE_TASK_FLOW_PLAN") {
+      assertExactCommandKeys(command as unknown as Readonly<Record<string, unknown>>, ["type", "goalId"], command.type);
+    }
     const goalId = command.goalId;
     const commandSha256 = canonicalJsonSha256(command);
     return this.transactionKernel.execute(
       { goalId, commandSha256, meta },
       {
         mutate: ({ currentVersion, nowMs, sequence }) => {
-          let acceptanceLedgerSha256: string | null = null;
+          let frozenContract: {
+            readonly contractId: string;
+            readonly contractSha256: string;
+            readonly version: number;
+            readonly authorityRootId: string;
+            readonly authorityRootSha256: string;
+            readonly requirementRevisionId: string;
+            readonly decisionRequirementRevisionIds: readonly string[];
+          } | null = null;
+          let derivedEvidence: ReturnType<AcceptanceEvidenceV2Repository["recordOracleEvidence"]> = [];
+          const oracleDescriptorIds: string[] = [];
+          let completionV2: ReturnType<AcceptanceCompletionV2Repository["recordWorkCellCompletion"]> | null = null;
+          let deliverableV2: ReturnType<AcceptanceDeliveryV2Repository["recordDeliverable"]> | null = null;
+          let contractReviewResolution: ReturnType<IntakeAuthorityV2Repository["captureStructuredUserDecisionAction"]> | null = null;
+          let activeGoalUserTurnCapture: ReturnType<PlanAuthorityV2Repository["captureActiveGoalUserTurn"]> | null = null;
+          let activeGoalInputClassification: ReturnType<PlanAuthorityV2Repository["classifyActiveGoalUserTurn"]> | null = null;
+          let activeGoalChangeRequest: ReturnType<PlanAuthorityV2Repository["captureActiveGoalChangeRequest"]> | null = null;
+          let activeGoalChangeTransitions: ReturnType<PlanAuthorityV2Repository["recordActiveGoalChangeTransitions"]> = [];
+          let intakeFinalization: {
+            readonly decisionClosureId: string;
+            readonly goalFitReviewId: string;
+            readonly contractFreezeReceiptId: string;
+            readonly contractFreezeReceiptSha256: string;
+          } | null = null;
+          let planReview: {
+            readonly planRevisionId: string;
+            readonly planRevisionSha256: string;
+            readonly gate: "PLAN_ENTRY" | "MATERIAL_CHANGE";
+            readonly decisionClosureId: string;
+            readonly decisionClosureSha256: string;
+            readonly goalFitReviewId: string;
+            readonly goalFitReviewSha256: string;
+            readonly changeAcceptanceClosureId: string | null;
+            readonly changeAcceptanceClosureSha256: string | null;
+          } | null = null;
+          let planFinalization: {
+            readonly planRevisionId: string;
+            readonly planRevisionSha256: string;
+            readonly gate: "PLAN_ENTRY" | "MATERIAL_CHANGE";
+            readonly decisionClosureId: string;
+            readonly decisionClosureSha256: string;
+            readonly goalFitReviewId: string;
+            readonly stageGateReceiptId: string;
+            readonly stageGateReceiptSha256: string;
+            readonly changeAcceptanceClosureId: string | null;
+            readonly changeAcceptanceClosureSha256: string | null;
+          } | null = null;
           if (command.type === "ADMIT_TASK_FLOW") {
             if (currentVersion !== 0 || this.repository.goalExists(goalId)) throw new VersionConflictError(0, Math.max(1, currentVersion));
             if (!/^[a-f0-9]{64}$/u.test(command.workspace.workspaceHmac)) throw new AuthorityIntegrityError("workspaceHmac must be lowercase SHA-256");
@@ -942,10 +1113,6 @@ export class AuthorityStore {
             if (classificationIssues.length > 0) throw new AuthorityIntegrityError(`Goal intake classification is invalid: ${classificationIssues.join("; ")}`);
             const compatibilityIssues = validateGoalClassificationCompatibility(command.classification, command.requirementProfile, command.planningDepth);
             if (compatibilityIssues.length > 0) throw new AuthorityIntegrityError(`Goal intake classification is inconsistent: ${compatibilityIssues.join("; ")}`);
-            if (!Number.isSafeInteger(command.acceptanceFacetMinimum)
-              || command.acceptanceFacetMinimum < 1 || command.acceptanceFacetMinimum > 6) {
-              throw new AuthorityIntegrityError("Goal acceptanceFacetMinimum must be an integer from 1 through 6");
-            }
             if (command.classification.specificationRoute === "PRD" && command.lane !== "ADAPTIVE_ROUTE") {
               throw new AuthorityIntegrityError("PRD Task Flow admission requires ADAPTIVE_ROUTE");
             }
@@ -959,7 +1126,7 @@ export class AuthorityStore {
               goalId, intent: command.intent, lane: command.lane, sourceIntakeSha256: command.sourceIntakeSha256,
               activationSha256: command.activationSha256, nowMs,
             });
-            const sourceText = command.sourceText?.normalize("NFC") ?? objective;
+            const sourceText = command.sourceText ?? objective;
             if (!sourceText || sourceText.length > 131_072) throw new AuthorityIntegrityError("Task Flow source intake text is invalid");
             if (command.sourceText !== undefined && sha256Hex(sourceText) !== command.sourceIntakeSha256) {
               throw new AuthorityIntegrityError("Task Flow source intake bytes do not match sourceIntakeSha256");
@@ -972,27 +1139,371 @@ export class AuthorityStore {
             if (!meta.lease || meta.lease.goalId !== goalId) throw new AuthorityIntegrityError(`${command.type} requires the current Goal lease`);
             this.leases.assertCurrent(meta.lease, nowMs);
             this.taskFlow.assertMutableGoal(goalId);
-            if (command.type === "SUBMIT_GOAL_CONTRACT") {
+            if (command.type !== "CAPTURE_ACTIVE_GOAL_USER_TURN"
+              && command.type !== "CLASSIFY_ACTIVE_GOAL_USER_TURN" && command.type !== "CONTROL_TASK_FLOW"
+              && this.planV2.hasPendingActiveGoalUserTurn(goalId)) {
+              throw new AuthorityIntegrityError("Active Goal user turn classification is pending; Task Flow mutation is fenced");
+            }
+            if (command.type === "CAPTURE_ACTIVE_GOAL_USER_TURN") {
+              if (!hostUserInput || meta.actor !== "USER" || meta.lease.ownerSessionId !== hostUserInput.sessionId) {
+                throw new AuthorityIntegrityError("Active Goal input requires Host-captured USER authority");
+              }
+              const view = this.taskFlow.currentView(goalId);
+              if (!view) throw new AuthorityIntegrityError("Active Goal input requires the current Task Flow projection");
+              const plan = this.planV2.readCurrentPlan(goalId);
+              const stageGate = this.planV2.readCurrentExecutionStageGate(goalId);
+              const closure = {
+                goal_id: goalId,
+                goal_version: currentVersion,
+                contract_sha256: view.contract?.record_sha256 ?? null,
+                route_sha256: view.route?.record_sha256 ?? null,
+                plan_revision_id: plan?.revision.plan_revision_id ?? null,
+                plan_revision_sha256: plan?.revision.record_sha256 ?? null,
+                stage_gate_sha256: stageGate?.record_sha256 ?? null,
+                execution_authorization_sha256: view.authorization?.record_sha256 ?? null,
+              };
+              if (activeGoalInputClosureSha256V2(closure) !== command.expectedInputClosureSha256) {
+                throw new AuthorityIntegrityError("Active Goal input closure CAS is stale");
+              }
+              const eventHeadSha256 = this.repository.eventHead(goalId).eventSha256;
+              if (eventHeadSha256 === null) throw new AuthorityIntegrityError("Active Goal input lacks an event predecessor");
+              activeGoalUserTurnCapture = this.planV2.captureActiveGoalUserTurn({
+                closure,
+                source: command.sourceText,
+                session_id: hostUserInput.sessionId,
+                turn_id: hostUserInput.turnId,
+                event_head_sha256: eventHeadSha256,
+                created_at_ms: nowMs,
+              }, sequence);
+            } else if (command.type === "CLASSIFY_ACTIVE_GOAL_USER_TURN") {
+              if (meta.actor !== "RUNTIME") {
+                throw new AuthorityIntegrityError("Active Goal input classification requires Host RUNTIME validation");
+              }
+              const eventHeadSha256 = this.repository.eventHead(goalId).eventSha256;
+              if (eventHeadSha256 === null) throw new AuthorityIntegrityError("Active Goal input classification lacks an event predecessor");
+              activeGoalInputClassification = this.planV2.classifyActiveGoalUserTurn({
+                user_turn_id: command.userTurnId,
+                expected_user_turn_sha256: command.expectedUserTurnSha256,
+                classification: command.classification,
+                materiality: command.materiality,
+                change_kind: command.changeKind,
+                changed_subjects: command.changedSubjects,
+                event_head_sha256: eventHeadSha256,
+                created_at_ms: nowMs,
+              }, sequence);
+              if (["CORRECT_CURRENT", "CHANGE_REQUEST", "INTERRUPT_NOW"]
+                .includes(activeGoalInputClassification.classification)) {
+                activeGoalChangeRequest = this.planV2.captureActiveGoalChangeRequest(
+                  activeGoalInputClassification.classification_id, sequence,
+                );
+                this.taskFlow.openContractRevision(goalId, sequence, nowMs);
+              }
+            } else if (command.type === "SUBMIT_GOAL_CONTRACT") {
               const intake = this.taskFlow.intakeEvidence(goalId);
-              const acceptanceLedger = buildAcceptanceLedger({
-                source: intake.sourceText, sourceFidelity: intake.fidelity, contract: command.contract,
+              if (intake.fidelity !== "EXACT") {
+                throw new AuthorityIntegrityError("Acceptance V2 cannot freeze a LEGACY_HASH_ONLY intake");
+              }
+              const context = this.taskFlow.contractFinalizationContext(goalId);
+              const contract = finalizeGoalContract({
+                goalId,
+                objective: context.objective,
+                intent: context.intent,
+                lane: context.lane,
+                sourceIntakeSha256: context.sourceIntakeSha256,
+                version: context.version,
+                parentContractId: context.parentContractId,
+                proposal: command.proposal,
+                createdAtMs: nowMs,
               });
-              this.taskFlow.insertContract(command.contract, acceptanceLedger, sequence);
-              acceptanceLedgerSha256 = acceptanceLedger.record_sha256;
+              const predecessor = this.repository.eventHead(goalId).eventSha256;
+              if (predecessor === null) throw new AuthorityIntegrityError("Acceptance V2 contract freeze lacks an event predecessor");
+              const acceptance = finalizeAcceptanceV2({
+                goalId,
+                source: intake.sourceText,
+                contract,
+                facets: command.acceptanceFacets,
+                authority: {
+                  qualification_basis: "NATIVE_EXACT",
+                  predecessor_authority_head_sha256: predecessor,
+                  parent_source_revision_id: context.parentSourceRevisionId,
+                },
+              });
+              const parentRequirementSha256 = this.intakeV2.rebuildGoalProjection(goalId)
+                ?.requirement.revision.record_sha256 ?? intakeAuthorityZeroSha256;
+              this.taskFlow.insertContractCore(contract, sequence);
+              this.acceptanceV2.insert(acceptance, sequence);
+              this.taskFlow.publishContract(contract, sequence);
+              const initialIntake = deriveInitialIntakeDraftV2(acceptance);
+              const requirement = this.intakeV2.appendRequirementProposal({
+                goal_id: goalId,
+                expected_parent_requirement_sha256: parentRequirementSha256,
+                proposal_origin: "CURRENT_AGENT_TYPED_PROPOSAL",
+                items: initialIntake.requirements,
+                created_at_ms: nowMs,
+              }, sequence);
+              const decisions = this.intakeV2.appendDecisionProposals({
+                requirement_revision_id: requirement.revision.requirement_revision_id,
+                proposals: initialIntake.decisions,
+              }, sequence);
+              frozenContract = {
+                contractId: contract.contract_id,
+                contractSha256: contract.record_sha256,
+                version: contract.version,
+                authorityRootId: acceptance.authority.authority_root_id,
+                authorityRootSha256: acceptance.authority.record_sha256,
+                requirementRevisionId: requirement.revision.requirement_revision_id,
+                decisionRequirementRevisionIds: decisions.map((decision) => decision.decision_requirement_revision_id),
+              };
+            } else if (command.type === "RESOLVE_GOAL_CONTRACT_REVIEW") {
+              if (!hostUserInput || meta.actor !== "USER" || meta.lease.ownerSessionId !== hostUserInput.sessionId) {
+                throw new AuthorityIntegrityError("Goal Contract review requires Host-captured USER input authority");
+              }
+              const intake = this.intakeV2.rebuildGoalProjection(goalId);
+              const draftReview = intake?.decisions.find((decision) => decision.kind === "DRAFT_REVIEW");
+              if (!intake || !draftReview
+                || draftReview.decision_requirement_revision_id !== command.expectedDecisionRequirementRevisionId
+                || intake.requirement.revision.record_sha256 !== command.expectedRequirementRevisionSha256
+                || decisionFrontierSha256V2(intake.decisions) !== command.expectedDecisionFrontierSha256) {
+                throw new AuthorityIntegrityError("Goal Contract review Decision CAS is stale");
+              }
+              contractReviewResolution = this.intakeV2.captureStructuredUserDecisionAction({
+                decision_requirement_revision_id: draftReview.decision_requirement_revision_id,
+                action: command.action,
+                at_gate: "CONTRACT_REVIEW",
+                selected_value: command.selectedValue,
+                edited_requirement_revision_id: command.action === "EDIT" ? command.editedRequirementRevisionId : null,
+                deferred_trigger_sha256: command.action === "DEFER" ? command.deferredTriggerSha256 : null,
+                session_id: hostUserInput.sessionId,
+                turn_id: hostUserInput.turnId,
+                created_at_ms: nowMs,
+              }, sequence);
+              this.taskFlow.resolveContractReview(goalId, command.action, sequence);
+            } else if (command.type === "FINALIZE_GOAL_CONTRACT_INTAKE") {
+              if (meta.actor !== "RUNTIME") {
+                throw new AuthorityIntegrityError("Goal Contract Intake finalization requires Host RUNTIME authority");
+              }
+              const intake = this.intakeV2.rebuildGoalProjection(goalId);
+              const draftReview = intake?.decisions.find((decision) => decision.kind === "DRAFT_REVIEW");
+              const approval = draftReview ? intake?.resolutions
+                .filter((resolution) => resolution.decision_requirement_revision_id === draftReview.decision_requirement_revision_id)
+                .sort((left, right) => right.resolution_revision - left.resolution_revision)[0] : undefined;
+              if (!intake || !draftReview || approval?.action !== "APPROVE" || approval.authority_actor !== "USER") {
+                throw new AuthorityIntegrityError("Goal Contract Intake finalization requires the current USER draft approval");
+              }
+              const currentContractSha256 = this.taskFlow.currentView(goalId)?.contract?.record_sha256;
+              if (!currentContractSha256) {
+                throw new AuthorityIntegrityError("Goal Contract Intake finalization lacks its current Contract");
+              }
+              const submittedAssessment = this.taskFlow.readSubmittedGoalFitAssessment(
+                goalId, "GOAL_CONTRACT_DRAFTED", currentContractSha256,
+              );
+              const closure = this.intakeV2.recordDecisionClosure(
+                intake.requirement.revision.requirement_revision_id, "CONTRACT_FREEZE", nowMs, sequence,
+              );
+              const review = this.intakeV2.recordGoalFitReview({
+                requirement_revision_id: intake.requirement.revision.requirement_revision_id,
+                decision_closure_id: closure.closure.decision_closure_id,
+                gate_subject: {
+                  kind: "REQUIREMENT_REVISION",
+                  id: intake.requirement.revision.requirement_revision_id,
+                  record_sha256: intake.requirement.revision.record_sha256,
+                },
+                assessment: submittedAssessment,
+                created_at_ms: nowMs,
+              }, sequence);
+              if (review.review.verdict !== "FIT") {
+                throw new AuthorityIntegrityError("Goal Contract Intake finalization did not pass Goal Fit review");
+              }
+              const predecessorFreeze = this.intakeV2.readLatestContractFreeze(goalId)?.record_sha256
+                ?? intakeAuthorityZeroSha256;
+              const freeze = this.intakeV2.freezeContract({
+                goal_id: goalId,
+                expected_predecessor_freeze_sha256: predecessorFreeze,
+                created_at_ms: nowMs,
+              }, sequence);
+              this.taskFlow.finalizeContractIntake(goalId, freeze.record_sha256, sequence);
+              intakeFinalization = {
+                decisionClosureId: closure.closure.decision_closure_id,
+                goalFitReviewId: review.review.goal_fit_review_id,
+                contractFreezeReceiptId: freeze.contract_freeze_receipt_id,
+                contractFreezeReceiptSha256: freeze.record_sha256,
+              };
             } else if (command.type === "OPEN_GOAL_CONTRACT_REVISION") {
               if (!/^[a-f0-9]{64}$/u.test(command.reasonSha256)) throw new AuthorityIntegrityError("Contract revision reason hash is invalid");
               this.taskFlow.openContractRevision(goalId, sequence, nowMs);
-            } else if (command.type === "SUBMIT_ROUTE_SKELETON") this.taskFlow.insertRoute(command.route, command.contract, sequence);
+            } else if (command.type === "SUBMIT_ROUTE_SKELETON") {
+              this.taskFlow.insertRoute(command.route, command.contract, sequence);
+            }
+            else if (command.type === "FINALIZE_TASK_FLOW_PLAN") {
+              if (meta.actor !== "RUNTIME") {
+                throw new AuthorityIntegrityError("Task Flow Plan finalization requires Host RUNTIME authority");
+              }
+              this.taskFlow.assertPlanFinalizationBoundary(goalId);
+              const currentRoute = this.taskFlow.currentView(goalId)?.route;
+              if (!currentRoute) throw new AuthorityIntegrityError("Task Flow Plan finalization lacks its current Route");
+              const submittedAssessment = this.taskFlow.readSubmittedGoalFitAssessment(
+                goalId, "ROUTE_SKELETON_FROZEN", currentRoute.record_sha256,
+              );
+              const currentPlan = this.planV2.readCurrentPlan(goalId);
+              const plan = this.planV2.freezeCurrentPlan({
+                goal_id: goalId,
+                expected_predecessor_plan_sha256: currentPlan?.revision.record_sha256 ?? planAuthorityZeroSha256,
+                created_at_ms: nowMs,
+              }, sequence);
+              const gate = this.planV2.qualifyCurrentPlanEntryGate(goalId);
+              const closure = this.intakeV2.recordDecisionClosure(
+                plan.revision.requirement_revision_id, gate, nowMs, sequence,
+              );
+              const eventHeadSha256 = this.repository.eventHead(goalId).eventSha256;
+              if (eventHeadSha256 === null) {
+                throw new AuthorityIntegrityError("Task Flow Plan finalization lacks an event predecessor");
+              }
+              const changeAcceptance = gate === "MATERIAL_CHANGE"
+                ? this.planV2.recordChangeAcceptance({
+                    goal_id: goalId,
+                    decision_closure_id: closure.closure.decision_closure_id,
+                    event_head_sha256: eventHeadSha256,
+                    created_at_ms: nowMs,
+                  }, sequence)
+                : null;
+              const review = this.intakeV2.recordGoalFitReview({
+                requirement_revision_id: plan.revision.requirement_revision_id,
+                decision_closure_id: closure.closure.decision_closure_id,
+                gate_subject: changeAcceptance === null
+                  ? {
+                      kind: "PLAN_REVISION",
+                      id: plan.revision.plan_revision_id,
+                      record_sha256: plan.revision.record_sha256,
+                    }
+                  : {
+                      kind: "CHANGE_ACCEPTANCE_CLOSURE",
+                      id: changeAcceptance.closure.change_acceptance_closure_id,
+                      record_sha256: changeAcceptance.closure.record_sha256,
+                    },
+                assessment: submittedAssessment,
+                created_at_ms: nowMs,
+              }, sequence);
+              if (review.review.verdict !== "FIT") {
+                throw new AuthorityIntegrityError("Task Flow Plan finalization did not pass Goal Fit review");
+              }
+              planReview = {
+                planRevisionId: plan.revision.plan_revision_id,
+                planRevisionSha256: plan.revision.record_sha256,
+                gate,
+                decisionClosureId: closure.closure.decision_closure_id,
+                decisionClosureSha256: closure.closure.record_sha256,
+                goalFitReviewId: review.review.goal_fit_review_id,
+                goalFitReviewSha256: review.review.record_sha256,
+                changeAcceptanceClosureId: changeAcceptance?.closure.change_acceptance_closure_id ?? null,
+                changeAcceptanceClosureSha256: changeAcceptance?.closure.record_sha256 ?? null,
+              };
+              this.taskFlow.stagePlanGate(goalId, planReview, sequence);
+            } else if (command.type === "COMMIT_TASK_FLOW_PLAN_GATE") {
+              if (meta.actor !== "RUNTIME") {
+                throw new AuthorityIntegrityError("Task Flow Plan gate commit requires Host RUNTIME authority");
+              }
+              this.taskFlow.assertPlanGateCommitBoundary(goalId);
+              const staged = this.taskFlow.readStagedPlanGate(goalId);
+              const eventHeadSha256 = this.repository.eventHead(goalId).eventSha256;
+              if (eventHeadSha256 === null) throw new AuthorityIntegrityError("Task Flow Plan gate commit lacks an event predecessor");
+              if (eventHeadSha256 !== staged.planValidatedEventSha256) {
+                throw new AuthorityIntegrityError("Task Flow Plan gate commit is not the direct successor of its staged authority event");
+              }
+              const gate = this.planV2.recordCurrentStageGate({
+                goal_id: goalId,
+                plan_revision_id: staged.planRevisionId,
+                plan_revision_sha256: staged.planRevisionSha256,
+                gate: staged.gate,
+                decision_closure_id: staged.decisionClosureId,
+                decision_closure_sha256: staged.decisionClosureSha256,
+                goal_fit_review_id: staged.goalFitReviewId,
+                goal_fit_review_sha256: staged.goalFitReviewSha256,
+                change_acceptance_closure_id: staged.changeAcceptanceClosureId,
+                change_acceptance_closure_sha256: staged.changeAcceptanceClosureSha256,
+                event_head_sha256: eventHeadSha256,
+                created_at_ms: nowMs,
+              }, sequence);
+              if (gate.gate !== staged.gate) {
+                throw new AuthorityIntegrityError("Task Flow committed StageGate differs from its staged gate");
+              }
+              const changeAcceptance = staged.gate === "MATERIAL_CHANGE"
+                ? this.planV2.readCurrentChangeAcceptance(goalId)
+                : null;
+              if (staged.gate === "MATERIAL_CHANGE") {
+                if (!changeAcceptance) {
+                  throw new AuthorityIntegrityError("Task Flow MATERIAL_CHANGE gate lost its Change Acceptance closure");
+                }
+                activeGoalChangeTransitions = this.planV2.recordActiveGoalChangeTransitions({
+                  goal_id: goalId,
+                  successor_stage_gate: gate,
+                }, sequence);
+                if (activeGoalChangeTransitions.length !== changeAcceptance.closure.request_count) {
+                  throw new AuthorityIntegrityError("Task Flow MATERIAL_CHANGE transition count differs from Change Acceptance");
+                }
+              }
+              this.taskFlow.finalizePlan(goalId, staged.gate, gate.record_sha256, sequence);
+              planFinalization = {
+                planRevisionId: gate.plan_revision_id,
+                planRevisionSha256: gate.plan_revision_sha256,
+                gate: staged.gate,
+                decisionClosureId: gate.decision_closure_id,
+                decisionClosureSha256: gate.decision_closure_sha256,
+                goalFitReviewId: gate.goal_fit_review_id,
+                stageGateReceiptId: gate.stage_gate_receipt_id,
+                stageGateReceiptSha256: gate.record_sha256,
+                changeAcceptanceClosureId: changeAcceptance?.closure.change_acceptance_closure_id ?? null,
+                changeAcceptanceClosureSha256: changeAcceptance?.closure.record_sha256 ?? null,
+              };
+            }
             else if (command.type === "RECORD_WORKSPACE_BASELINE") this.taskFlow.insertBaseline(command.baseline, sequence);
             else if (command.type === "AUTHORIZE_WORK_CELL") {
               if (command.authorization.lease_generation !== meta.lease.generation || command.authorization.fencing_token !== meta.lease.fencingToken) throw new AuthorityIntegrityError("ExecutionAuthorization fencing differs from the current lease");
               this.taskFlow.authorize(command.authorization, sequence);
-            } else if (command.type === "PREPARE_OPERATION" || command.type === "PREPARE_AND_DISPATCH_OPERATION") {
-              this.taskFlow.insertOperation(command.attempt, command.prepared, command.reconcileLocator, sequence, {
-                leaseGeneration: meta.lease.generation,
-                fencingToken: meta.lease.fencingToken,
-                nowMs,
-              }, command.type === "PREPARE_AND_DISPATCH_OPERATION" ? command.dispatched : null);
+            } else if (command.type === "PREPARE_OPERATION" || command.type === "PREPARE_AND_DISPATCH_OPERATION"
+              || command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH") {
+              const operations = command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH"
+                ? command.operations
+                : [{
+                    attempt: command.attempt,
+                    prepared: command.prepared,
+                    dispatched: command.type === "PREPARE_AND_DISPATCH_OPERATION" ? command.dispatched : null,
+                    reconcileLocator: command.reconcileLocator,
+                    oracleExecution: command.oracleExecution,
+                  }];
+              if (command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH") {
+                if (operations.length < 2 || operations.length > 8) {
+                  throw new AuthorityIntegrityError("Operation batch must contain 2 through 8 entries");
+                }
+                if (new Set(operations.map((entry) => entry.attempt.attempt_id)).size !== operations.length
+                  || new Set(operations.map((entry) => entry.attempt.operation_id)).size !== operations.length
+                  || new Set(operations.map((entry) => entry.attempt.normalized_target_hmac)).size !== operations.length) {
+                  throw new AuthorityIntegrityError("Operation batch entries must have unique attempts, operations and targets");
+                }
+              }
+              for (const operation of operations) {
+                this.taskFlow.insertOperation(operation.attempt, operation.prepared, operation.reconcileLocator, sequence, {
+                  leaseGeneration: meta.lease.generation,
+                  fencingToken: meta.lease.fencingToken,
+                  nowMs,
+                }, operation.dispatched);
+                if (operation.attempt.operation_kind === "VALIDATION") {
+                  const v2 = this.connection.prepare("SELECT 1 present FROM acceptance_authority_roots_v2 WHERE goal_id=?")
+                    .get(goalId) as { readonly present: number } | undefined;
+                  if (v2 && operation.oracleExecution === null) {
+                    throw new AuthorityIntegrityError("Acceptance V2 validation requires a Host oracle execution descriptor");
+                  }
+                  if (operation.oracleExecution !== null) {
+                    const descriptor = this.acceptanceEvidenceV2.recordOracleExecutionDescriptor({
+                      attempt_id: operation.attempt.attempt_id,
+                      command: operation.oracleExecution.command,
+                      policy_sha256: operation.oracleExecution.policySha256,
+                    }, { created_at_ms: nowMs, created_event_sequence: sequence });
+                    oracleDescriptorIds.push(descriptor.descriptor_id);
+                  }
+                } else if (operation.oracleExecution !== null) {
+                  throw new AuthorityIntegrityError("Only validation Operations may carry an oracle execution descriptor");
+                }
+              }
             } else if (command.type === "TRANSITION_OPERATION") {
               this.taskFlow.assertOperationAuthorizationCurrent(command.transition.attempt_id, goalId, {
                 leaseGeneration: meta.lease.generation,
@@ -1001,7 +1512,24 @@ export class AuthorityStore {
               });
               this.taskFlow.insertOperationTransition(command.transition, sequence);
             }
-            else if (command.type === "ATTEST_EVIDENCE") this.taskFlow.insertEvidence(command.attestation, sequence);
+            else if (command.type === "ATTEST_EVIDENCE") {
+              const v2 = this.connection.prepare("SELECT 1 present FROM acceptance_authority_roots_v2 WHERE goal_id=?")
+                .get(goalId) as { readonly present: number } | undefined;
+              if (v2) throw new AuthorityIntegrityError("Acceptance V2 goals reject caller-supplied V1 evidence attestations");
+              this.taskFlow.insertEvidence(command.attestation, sequence);
+            } else if (command.type === "DERIVE_ACCEPTANCE_EVIDENCE_V2") {
+              const keys = Object.keys(command).sort();
+              if (keys.join("\0") !== ["attemptId", "goalId", "terminalTransitionId", "type"].sort().join("\0")) {
+                throw new AuthorityIntegrityError("Acceptance evidence V2 command shape rejects caller requirement authority");
+              }
+              derivedEvidence = this.acceptanceEvidenceV2.recordOracleEvidence({
+                attempt_id: command.attemptId,
+              }, { created_at_ms: nowMs, created_event_sequence: sequence });
+              if (derivedEvidence.length < 1 || derivedEvidence.length > 64
+                || derivedEvidence.some((closure) => closure.observation.terminal_transition_id !== command.terminalTransitionId)) {
+                throw new AuthorityIntegrityError("Acceptance evidence V2 terminal transition reference is stale or uncovered");
+              }
+            }
             else if (command.type === "RECORD_TASK_FLOW_HEALTH") this.taskFlow.insertRouteHealth(command.health, sequence);
             else if (command.type === "RECORD_TASK_DECISION") this.taskFlow.insertDecision(command.decision, sequence);
             else if (command.type === "CONTROL_TASK_FLOW") this.taskFlow.controlGoal(command.action, command.decision, sequence, nowMs);
@@ -1009,61 +1537,188 @@ export class AuthorityStore {
             else if (command.type === "RESOLVE_PLAN_CONTINUATION") this.taskFlow.resolvePlanContinuation({
               goalId, decision: command.decision, choice: command.choice, eventSequence: sequence, nowMs,
             });
-            else if (command.type === "COMPLETE_WORK_CELL") this.taskFlow.completeWorkCell(goalId, command.workCellId, command.completionSummarySha256, sequence, nowMs);
-            else if (command.type === "CLOSE_TASK_FLOW_GOAL") this.taskFlow.insertDeliverable(command.deliverable, sequence);
+            else if (command.type === "COMPLETE_WORK_CELL") {
+              const v2 = this.connection.prepare("SELECT 1 present FROM acceptance_authority_roots_v2 WHERE goal_id=?")
+                .get(goalId) as { readonly present: number } | undefined;
+              if (v2) throw new AuthorityIntegrityError("Acceptance V2 goals reject caller-computed V1 completion summaries");
+              this.taskFlow.completeWorkCell(goalId, command.workCellId, command.completionSummarySha256, sequence, nowMs);
+            } else if (command.type === "COMPLETE_WORK_CELL_V2") {
+              completionV2 = this.acceptanceCompletionV2.recordWorkCellCompletion({
+                goal_id: goalId, work_cell_id: command.workCellId,
+              }, { created_at_ms: nowMs, created_event_sequence: sequence });
+              this.taskFlow.completeWorkCellV2(goalId, command.workCellId, completionV2.receipt.record_sha256, sequence, nowMs);
+            }
+            else if (command.type === "CLOSE_TASK_FLOW_GOAL") {
+              const v2 = this.connection.prepare("SELECT 1 present FROM acceptance_authority_roots_v2 WHERE goal_id=?")
+                .get(goalId) as { readonly present: number } | undefined;
+              if (v2) throw new AuthorityIntegrityError("Acceptance V2 goals reject caller-shaped V1 deliverable manifests");
+              this.taskFlow.insertDeliverable(command.deliverable, sequence);
+            } else if (command.type === "CLOSE_TASK_FLOW_GOAL_V2") {
+              deliverableV2 = this.acceptanceDeliveryV2.recordDeliverable({
+                goal_id: goalId,
+              }, { created_at_ms: nowMs, created_event_sequence: sequence });
+              this.taskFlow.closeGoalV2(goalId, deliverableV2.manifest.record_sha256, sequence);
+            }
           }
-          return acceptanceLedgerSha256;
+          return { frozenContract, activeGoalUserTurnCapture, activeGoalInputClassification, activeGoalChangeRequest, activeGoalChangeTransitions, contractReviewResolution, intakeFinalization, planReview, planFinalization, derivedEvidence, completionV2, deliverableV2, oracleDescriptorIds };
         },
-        event: (acceptanceLedgerSha256) => {
+        event: ({ frozenContract, activeGoalUserTurnCapture, activeGoalInputClassification, activeGoalChangeRequest, activeGoalChangeTransitions, contractReviewResolution, intakeFinalization, planReview, planFinalization, derivedEvidence, completionV2, deliverableV2, oracleDescriptorIds }) => {
           const eventType: EventType = command.type === "ADMIT_TASK_FLOW" ? "GOAL_ADMITTED"
-        : command.type === "SUBMIT_GOAL_CONTRACT" ? "GOAL_CONTRACT_FROZEN"
+        : command.type === "CAPTURE_ACTIVE_GOAL_USER_TURN" ? "ACTIVE_GOAL_USER_TURN_CAPTURED"
+        : command.type === "CLASSIFY_ACTIVE_GOAL_USER_TURN" ? "ACTIVE_GOAL_USER_TURN_CLASSIFIED"
+        : command.type === "SUBMIT_GOAL_CONTRACT" ? "GOAL_CONTRACT_DRAFTED"
+          : command.type === "RESOLVE_GOAL_CONTRACT_REVIEW" ? "CONTRACT_REVIEW_RESOLVED"
+          : command.type === "FINALIZE_GOAL_CONTRACT_INTAKE" ? "GOAL_CONTRACT_FROZEN"
           : command.type === "OPEN_GOAL_CONTRACT_REVISION" ? "CONTRACT_REVISION_OPENED"
           : command.type === "SUBMIT_ROUTE_SKELETON" ? "ROUTE_SKELETON_FROZEN"
+            : command.type === "FINALIZE_TASK_FLOW_PLAN" ? "PLAN_VALIDATED"
+              : command.type === "COMMIT_TASK_FLOW_PLAN_GATE" ? "PLAN_FROZEN"
             : command.type === "RECORD_WORKSPACE_BASELINE" ? "WORKSPACE_BASELINE_RECORDED"
               : command.type === "AUTHORIZE_WORK_CELL" ? "WORK_CELL_AUTHORIZED"
                 : command.type === "PREPARE_OPERATION" ? "OPERATION_PREPARED"
                   : command.type === "PREPARE_AND_DISPATCH_OPERATION" ? "OPERATION_TRANSITIONED"
+                    : command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH" ? "OPERATION_TRANSITIONED"
                   : command.type === "TRANSITION_OPERATION" ? "OPERATION_TRANSITIONED"
-                    : command.type === "ATTEST_EVIDENCE" ? "EVIDENCE_ATTESTED"
+                    : command.type === "ATTEST_EVIDENCE" || command.type === "DERIVE_ACCEPTANCE_EVIDENCE_V2" ? "EVIDENCE_ATTESTED"
                       : command.type === "RECORD_TASK_FLOW_HEALTH" ? "ROUTE_HEALTH_EVALUATED"
                         : command.type === "RECORD_TASK_DECISION" ? command.decision.state === "RESOLVED" ? "DECISION_RESOLVED" : "DECISION_REQUESTED"
                           : command.type === "CONTROL_TASK_FLOW" ? "GOAL_TRANSITIONED"
                             : command.type === "RECONCILE_OPERATION" ? "OPERATION_TRANSITIONED"
                         : command.type === "RESOLVE_PLAN_CONTINUATION" ? "PLAN_CONTINUATION_RESOLVED"
-                          : command.type === "COMPLETE_WORK_CELL" ? "WORK_CELL_TRANSITIONED" : "DELIVERABLE_CLOSED";
+                          : command.type === "COMPLETE_WORK_CELL" || command.type === "COMPLETE_WORK_CELL_V2" ? "WORK_CELL_TRANSITIONED" : "DELIVERABLE_CLOSED";
           const payload = command.type === "ADMIT_TASK_FLOW" ? {
         goalId, intent: command.intent, lane: command.lane,
         specificationRoute: command.classification.specificationRoute,
         requirementProfile: command.requirementProfile, planningDepth: command.planningDepth,
-        acceptanceFacetMinimum: command.acceptanceFacetMinimum,
         sourceIntakeSha256: command.sourceIntakeSha256,
       }
-        : command.type === "SUBMIT_GOAL_CONTRACT" ? {
-          contractId: command.contract.contract_id, contractSha256: command.contract.record_sha256,
-          acceptanceLedgerSha256,
-          version: command.contract.version,
+        : command.type === "CAPTURE_ACTIVE_GOAL_USER_TURN" ? {
+          userTurnId: activeGoalUserTurnCapture!.turn.user_turn_id,
+          userTurnSha256: activeGoalUserTurnCapture!.turn.record_sha256,
+          inputClosureSha256: activeGoalUserTurnCapture!.turn.input_closure_sha256,
+          contentSha256: activeGoalUserTurnCapture!.turn.content_sha256,
         }
+        : command.type === "CLASSIFY_ACTIVE_GOAL_USER_TURN" ? {
+          classificationId: activeGoalInputClassification!.classification_id,
+          classificationSha256: activeGoalInputClassification!.record_sha256,
+          userTurnId: activeGoalInputClassification!.user_turn_id,
+          classification: activeGoalInputClassification!.classification,
+          materiality: activeGoalInputClassification!.materiality,
+          changedSubjectRootSha256: activeGoalInputClassification!.changed_subject_root_sha256,
+          changeRequestId: activeGoalChangeRequest?.change.request.change_request_id ?? null,
+          changeRequestSha256: activeGoalChangeRequest?.change.request.record_sha256 ?? null,
+          planChangeImpactSha256: activeGoalChangeRequest?.change.impact.record_sha256 ?? null,
+        }
+        : command.type === "SUBMIT_GOAL_CONTRACT" ? {
+          contractId: frozenContract!.contractId,
+          contractSha256: frozenContract!.contractSha256,
+          acceptanceAuthorityRootId: frozenContract!.authorityRootId,
+          acceptanceAuthorityRootSha256: frozenContract!.authorityRootSha256,
+          requirementRevisionId: frozenContract!.requirementRevisionId,
+            decisionRequirementRevisionIds: frozenContract!.decisionRequirementRevisionIds,
+            goalFitAssessment: command.goalFitAssessment,
+            version: frozenContract!.version,
+        }
+          : command.type === "RESOLVE_GOAL_CONTRACT_REVIEW" ? {
+            action: contractReviewResolution!.action,
+            decisionRequirementRevisionId: contractReviewResolution!.decision_requirement_revision_id,
+            decisionResolutionId: contractReviewResolution!.decision_resolution_id,
+            decisionResolutionSha256: contractReviewResolution!.record_sha256,
+          }
+          : command.type === "FINALIZE_GOAL_CONTRACT_INTAKE" ? {
+            decisionClosureId: intakeFinalization!.decisionClosureId,
+            goalFitReviewId: intakeFinalization!.goalFitReviewId,
+            contractFreezeReceiptId: intakeFinalization!.contractFreezeReceiptId,
+            contractFreezeReceiptSha256: intakeFinalization!.contractFreezeReceiptSha256,
+          }
           : command.type === "OPEN_GOAL_CONTRACT_REVISION" ? { revisionKind: command.revisionKind, reasonSha256: command.reasonSha256 }
-          : command.type === "SUBMIT_ROUTE_SKELETON" ? { routeId: command.route.route_id, routeSha256: command.route.record_sha256, revision: command.route.revision }
+          : command.type === "SUBMIT_ROUTE_SKELETON" ? {
+            routeId: command.route.route_id, routeSha256: command.route.record_sha256,
+            goalFitAssessment: command.goalFitAssessment, revision: command.route.revision,
+          }
+            : command.type === "FINALIZE_TASK_FLOW_PLAN" ? {
+              planRevisionId: planReview!.planRevisionId,
+              planRevisionSha256: planReview!.planRevisionSha256,
+              gate: planReview!.gate,
+              decisionClosureId: planReview!.decisionClosureId,
+              decisionClosureSha256: planReview!.decisionClosureSha256,
+              goalFitReviewId: planReview!.goalFitReviewId,
+              goalFitReviewSha256: planReview!.goalFitReviewSha256,
+              changeAcceptanceClosureId: planReview!.changeAcceptanceClosureId,
+              changeAcceptanceClosureSha256: planReview!.changeAcceptanceClosureSha256,
+            }
+              : command.type === "COMMIT_TASK_FLOW_PLAN_GATE" ? {
+              planRevisionId: planFinalization!.planRevisionId,
+              planRevisionSha256: planFinalization!.planRevisionSha256,
+              gate: planFinalization!.gate,
+              decisionClosureId: planFinalization!.decisionClosureId,
+              decisionClosureSha256: planFinalization!.decisionClosureSha256,
+              goalFitReviewId: planFinalization!.goalFitReviewId,
+              stageGateReceiptId: planFinalization!.stageGateReceiptId,
+              stageGateReceiptSha256: planFinalization!.stageGateReceiptSha256,
+              changeAcceptanceClosureId: planFinalization!.changeAcceptanceClosureId,
+              changeAcceptanceClosureSha256: planFinalization!.changeAcceptanceClosureSha256,
+              activeGoalChangeTransitionCount: activeGoalChangeTransitions.length,
+              activeGoalChangeTransitionRootSha256: canonicalJsonSha256({
+                domain: "PCH-ACTIVE-GOAL-CHANGE-TRANSITION-ROOT-V2",
+                members: activeGoalChangeTransitions.map((transition) => ({
+                  transition_id: transition.transition_id,
+                  record_sha256: transition.record_sha256,
+                })).sort((left, right) => left.transition_id.localeCompare(right.transition_id)),
+              }),
+            }
             : command.type === "RECORD_WORKSPACE_BASELINE" ? { baselineId: command.baseline.baseline_id, baselineSha256: command.baseline.record_sha256 }
               : command.type === "AUTHORIZE_WORK_CELL" ? { authorizationId: command.authorization.authorization_id, workCellId: command.authorization.work_cell_id }
-                : command.type === "PREPARE_OPERATION" ? { attemptId: command.attempt.attempt_id, operationId: command.attempt.operation_id, transitionSha256: command.prepared.transition_sha256 }
-                  : command.type === "PREPARE_AND_DISPATCH_OPERATION" ? {
-                    attemptId: command.attempt.attempt_id,
-                    operationId: command.attempt.operation_id,
-                    state: command.dispatched.state,
-                    preparedTransitionSha256: command.prepared.transition_sha256,
-                    transitionSha256: command.dispatched.transition_sha256,
-                  }
+                : command.type === "PREPARE_OPERATION" ? { attemptId: command.attempt.attempt_id, operationId: command.attempt.operation_id, transitionSha256: command.prepared.transition_sha256, oracleDescriptorIds }
+                   : command.type === "PREPARE_AND_DISPATCH_OPERATION" ? {
+                     attemptId: command.attempt.attempt_id,
+                     operationId: command.attempt.operation_id,
+                     state: command.dispatched.state,
+                     preparedTransitionSha256: command.prepared.transition_sha256,
+                     transitionSha256: command.dispatched.transition_sha256,
+                     oracleDescriptorIds,
+                   }
+                   : command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH" ? {
+                     batchSize: command.operations.length,
+                     attemptIds: command.operations.map((entry) => entry.attempt.attempt_id),
+                     operationIds: command.operations.map((entry) => entry.attempt.operation_id),
+                     state: "DISPATCHED",
+                     transitionSha256s: command.operations.map((entry) => entry.dispatched.transition_sha256),
+                     oracleDescriptorIds,
+                   }
                   : command.type === "TRANSITION_OPERATION" ? { attemptId: command.transition.attempt_id, state: command.transition.state, transitionSha256: command.transition.transition_sha256 }
                     : command.type === "ATTEST_EVIDENCE" ? { attestationId: command.attestation.attestation_id, result: command.attestation.result, workCellId: command.attestation.work_cell_id }
+                      : command.type === "DERIVE_ACCEPTANCE_EVIDENCE_V2" ? {
+                        attemptId: command.attemptId,
+                        terminalTransitionId: command.terminalTransitionId,
+                        evidenceRequirementIds: derivedEvidence.map((entry) => entry.pass_receipt.evidence_requirement_id),
+                        evidenceBindingIds: derivedEvidence.map((entry) => entry.evidence_binding.evidence_binding_id),
+                        evidenceBindingRootSha256: canonicalJsonSha256({
+                          domain: "PCH-ACCEPTANCE-EVIDENCE-EVENT-ROOT-V2",
+                          members: derivedEvidence.map((entry) => entry.evidence_binding.record_sha256).sort(),
+                        }),
+                        workCellId: derivedEvidence[0]!.observation.work_cell_id,
+                      }
                       : command.type === "RECORD_TASK_FLOW_HEALTH" ? { healthId: command.health.health_id, level: command.health.level, reasonCode: command.health.reason_code }
                         : command.type === "RECORD_TASK_DECISION" ? { decisionEntryId: command.decision.decision_entry_id, state: command.decision.state, decisionKey: command.decision.decision_key }
                           : command.type === "CONTROL_TASK_FLOW" ? { action: command.action, decisionEntryId: command.decision.decision_entry_id }
                             : command.type === "RECONCILE_OPERATION" ? { attemptId: command.transition.attempt_id, state: command.transition.state, disposition: command.disposition }
                         : command.type === "RESOLVE_PLAN_CONTINUATION" ? { choice: command.choice, decisionEntryId: command.decision.decision_entry_id }
                           : command.type === "COMPLETE_WORK_CELL" ? { completionSummarySha256: command.completionSummarySha256, workCellId: command.workCellId }
-                          : { deliverableId: command.deliverable.deliverable_id, result: command.deliverable.result };
+                            : command.type === "COMPLETE_WORK_CELL_V2" ? {
+                              completionReceiptId: completionV2!.receipt.completion_receipt_id,
+                              completionReceiptSha256: completionV2!.receipt.record_sha256,
+                              evidenceBindingRootSha256: completionV2!.receipt.evidence_binding_root_sha256,
+                              obligationRootSha256: completionV2!.receipt.obligation_root_sha256,
+                              workCellId: command.workCellId,
+                            }
+                            : command.type === "CLOSE_TASK_FLOW_GOAL" ? { deliverableId: command.deliverable.deliverable_id, result: command.deliverable.result }
+                              : {
+                                deliverableManifestId: deliverableV2!.manifest.deliverable_manifest_id,
+                                deliverableManifestSha256: deliverableV2!.manifest.record_sha256,
+                                completionRootSha256: deliverableV2!.manifest.completion_root_sha256,
+                                evidenceRootSha256: deliverableV2!.manifest.evidence_root_sha256,
+                              };
           return { eventType, payload };
         },
       },
@@ -1082,6 +1737,10 @@ export class AuthorityStore {
             throw new AuthorityIntegrityError(`${command.type} requires the current Goal lease`);
           }
           this.leases.assertCurrent(meta.lease, nowMs);
+          if (this.planV2.available() && this.planV2.hasPendingActiveGoalUserTurn(goalId)
+            && !reducesHarnessCapabilityWhileInputPending(command)) {
+            throw new AuthorityIntegrityError("Active Goal user turn classification is pending; Harness mutation is fenced");
+          }
         },
         mutate: ({ sequence, nowMs }) => {
           if (command.type === "CREATE_MANAGED_RUN") this.harness.createRun(command.run, command.topology, sequence);
@@ -1148,6 +1807,293 @@ export class AuthorityStore {
     );
   }
 
+  transactExecutionV2(
+    command: ExecutionV2AuthorityCommand,
+    meta: MutationMeta,
+    onFault?: (point: TransactionFaultPoint) => void,
+  ): CommandResult {
+    const goalId = command.goalId;
+    const commandSha256 = canonicalJsonSha256(command);
+    return this.transactionKernel.execute(
+      { goalId, commandSha256, meta },
+      {
+        beforeMutation: ({ nowMs }) => {
+          if (!meta.lease || meta.lease.goalId !== goalId) {
+            throw new AuthorityIntegrityError(`${command.type} requires the current Goal lease`);
+          }
+          this.leases.assertCurrent(meta.lease, nowMs);
+          if (this.planV2.available() && this.planV2.hasPendingActiveGoalUserTurn(goalId)
+            && command.type !== "STOP_EXECUTION_V2"
+            && command.type !== "RECORD_PROVIDER_INVOCATION_TRANSITION_V1") {
+            throw new AuthorityIntegrityError("Active Goal user turn classification is pending; Execution V2 mutation is fenced");
+          }
+        },
+        mutate: ({ sequence, nowMs }) => {
+          if (command.type === "RECORD_DYNAMIC_MULTI_PROPOSAL_V2") {
+            if (command.proposal.goal_id !== goalId || command.proposal.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Dynamic Multi proposal Host identity is invalid");
+            }
+            this.executionV2.recordDynamicMultiProposal(command.proposal, sequence);
+          } else if (command.type === "RECORD_TOPOLOGY_MEASUREMENTS_V2") {
+            if (command.evidenceReceipts.length !== 2 || command.receipts.length !== 2
+              || command.evidenceReceipts.some((receipt) => receipt.goal_id !== goalId || receipt.observed_at_ms !== nowMs)
+              || command.receipts.some((receipt) => receipt.goal_id !== goalId || receipt.observed_at_ms !== nowMs)) {
+              throw new AuthorityIntegrityError("Topology measurement Host identity is invalid");
+            }
+            this.executionV2.recordTopologyMeasurements(
+              command.evidenceReceipts, command.receipts, sequence, command.comparability,
+            );
+          } else if (command.type === "ADMIT_AND_COMMIT_EXECUTION_GRAPH_V2") {
+            if (command.gate.goal_id !== goalId || command.graph.goal_id !== goalId
+              || command.gate.run_id !== command.graph.run_id
+              || command.topology.run_id !== command.gate.run_id
+              || command.topology.requested_topology !== command.gate.requested_topology
+              || command.topology.effective_topology !== command.gate.effective_topology
+              || command.topology.reason_code !== command.gate.reason_code
+              || command.topology.decision_sha256 !== command.gate.record_sha256
+              || command.topology.config_sha256 !== command.gate.config_sha256
+              || command.graph.topology_gate_receipt_id !== command.gate.topology_gate_receipt_id
+              || command.graph.topology_gate_receipt_sha256 !== command.gate.record_sha256
+              || command.gate.created_at_ms !== nowMs || command.topology.created_at_ms !== nowMs
+              || command.graph.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Atomic topology admission and execution graph identity is invalid");
+            }
+            this.executionV2.recordAdmission(command.baseline, command.candidate, command.gate, sequence);
+            this.harness.reviseTopology(command.topology, sequence);
+            this.executionV2.commitGraph(command.graph, sequence);
+          } else if (command.type === "RECORD_TOPOLOGY_ADMISSION_V2") {
+            if (command.gate.goal_id !== goalId || command.gate.created_at_ms !== nowMs
+              || command.topology.run_id !== command.gate.run_id
+              || command.topology.requested_topology !== command.gate.requested_topology
+              || command.topology.effective_topology !== command.gate.effective_topology
+              || command.topology.reason_code !== command.gate.reason_code
+              || command.topology.decision_sha256 !== command.gate.record_sha256
+              || command.topology.config_sha256 !== command.gate.config_sha256
+              || command.topology.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Topology admission Host identity is invalid");
+            }
+            this.executionV2.recordAdmission(command.baseline, command.candidate, command.gate, sequence);
+            this.harness.reviseTopology(command.topology, sequence);
+          } else if (command.type === "COMMIT_EXECUTION_GRAPH_V2") {
+            if (command.graph.goal_id !== goalId || command.graph.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Execution graph Host identity is invalid");
+            }
+            this.executionV2.commitGraph(command.graph, sequence);
+          } else if (command.type === "LEASE_EXECUTION_NODE_V2") {
+            const providerPlan = command.providerPlan;
+            const redaction = command.redaction;
+            const invocation = command.invocation;
+            if (command.packet.goal_id !== goalId || command.lease.goal_id !== goalId
+              || command.packet.created_at_ms !== nowMs || command.lease.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Execution node dispatch Host identity is invalid");
+            }
+            if (this.providerV2.available()) {
+              if (!providerPlan || !redaction || !invocation
+                || providerPlan.goal_id !== goalId || redaction.goal_id !== goalId || invocation.goal_id !== goalId
+                || providerPlan.created_at_ms !== nowMs || redaction.created_at_ms !== nowMs
+                || invocation.created_at_ms !== nowMs || invocation.state !== "PREPARED"
+                || providerPlan.packet_id !== command.packet.packet_id
+                || redaction.packet_id !== command.packet.packet_id || invocation.packet_id !== command.packet.packet_id
+                || providerPlan.record_sha256 !== command.packet.provider_call_plan_sha256
+                || providerPlan.provider_call_plan_id !== command.packet.provider_call_plan_id
+                || invocation.provider_call_plan_sha256 !== providerPlan.record_sha256
+                || redaction.record_sha256 !== providerPlan.redaction_receipt_sha256) {
+                throw new AuthorityIntegrityError("Execution node dispatch Provider authority is invalid");
+              }
+              this.providerV2.recordRedaction(redaction, sequence);
+              this.providerV2.record(providerPlan, sequence);
+            }
+            this.executionV2.leaseNode(command.packet, command.lease, sequence, nowMs);
+            if (invocation) this.providerV2.recordInvocation(invocation, sequence);
+          } else if (command.type === "RECORD_PROVIDER_INVOCATION_TRANSITION_V1") {
+            if (command.transition.goal_id !== goalId || command.transition.created_at_ms !== nowMs
+              || command.transition.state === "PREPARED") {
+              throw new AuthorityIntegrityError("Provider invocation terminal Host identity is invalid");
+            }
+            this.providerV2.recordInvocation(command.transition, sequence);
+          } else if (command.type === "RECORD_EXECUTION_NODE_ATTEMPT_OUTCOME_V2") {
+            if (command.outcome.goal_id !== goalId || command.outcome.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Execution node attempt outcome Host identity is invalid");
+            }
+            this.executionV2.recordAttemptOutcome(command.outcome, sequence);
+          } else if (command.type === "SUBMIT_WORKER_PROPOSAL_V2") {
+            if (command.proposal.goal_id !== goalId || command.proposal.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Worker proposal Host observation time is invalid");
+            }
+            if (command.providerTerminal) {
+              const terminal = command.providerTerminal;
+              if (terminal.goal_id !== goalId || terminal.created_at_ms !== nowMs || terminal.state !== "SETTLED"
+                || terminal.packet_id !== command.proposal.packet_id
+                || terminal.packet_sha256 !== command.proposal.packet_sha256
+                || terminal.success_evidence_sha256 !== command.proposal.record_sha256) {
+                throw new AuthorityIntegrityError("Atomic Provider settlement and Worker proposal identity is invalid");
+              }
+              this.providerV2.recordInvocation(terminal, sequence);
+            }
+            this.executionV2.submitProposal(command.proposal, command.patchSet, command.artifacts, sequence, nowMs);
+          } else if (command.type === "RECORD_HOST_ORACLE_RECEIPT_V2") {
+            if (command.receipt.goal_id !== goalId || command.receipt.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Host OracleReceipt identity is invalid");
+            }
+            this.executionV2.recordHostOracleReceipt(command.receipt, sequence, nowMs);
+          } else if (command.type === "RECORD_HOST_NODE_RECEIPT_V2") {
+            if (command.receipt.goal_id !== goalId || command.receipt.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Host node receipt identity is invalid");
+            }
+            this.executionV2.recordHostReceipt(command.receipt, sequence, nowMs);
+          } else if (command.type === "PREPARE_EXECUTION_INTEGRATION_V2") {
+            if (command.attempt.goal_id !== goalId || command.attempt.created_at_ms !== nowMs
+              || command.prepared.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Execution integration preparation Host identity is invalid");
+            }
+            this.executionV2.prepareIntegration(command.attempt, command.prepared, command.journal, sequence, nowMs);
+          } else if (command.type === "TRANSITION_EXECUTION_INTEGRATION_V2") {
+            if (command.transition.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Execution integration transition Host observation time is invalid");
+            }
+            this.executionV2.transitionIntegration(command.transition, sequence, nowMs);
+          } else if (command.type === "RECORD_EXECUTION_GRAPH_TERMINAL_V2") {
+            if (command.receipt.goal_id !== goalId || command.receipt.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Execution graph terminal receipt identity is invalid");
+            }
+            this.executionV2.recordGraphTerminal(command.receipt, sequence);
+          } else if (command.type === "RECORD_STRONG_SINGLE_ROLLOUT_V1") {
+            if (command.receipt.goal_id !== goalId) {
+              throw new AuthorityIntegrityError("Strong Single rollout Goal identity is invalid");
+            }
+            this.executionV2.recordStrongSingleRollout(command.receipt, sequence, command.workloadBinding);
+          } else {
+            if (command.stop.goal_id !== goalId || command.stop.created_at_ms !== nowMs) {
+              throw new AuthorityIntegrityError("Execution stop Host identity is invalid");
+            }
+            this.executionV2.stopExecution(command.stop, sequence);
+          }
+        },
+        event: () => {
+          const eventType: EventType = command.type === "RECORD_DYNAMIC_MULTI_PROPOSAL_V2"
+            ? "DYNAMIC_MULTI_PROPOSAL_RECORDED"
+            : command.type === "RECORD_TOPOLOGY_MEASUREMENTS_V2"
+              ? "TOPOLOGY_MEASUREMENTS_RECORDED"
+            : command.type === "RECORD_TOPOLOGY_ADMISSION_V2"
+              ? "TOPOLOGY_ADMISSION_RECORDED"
+            : command.type === "COMMIT_EXECUTION_GRAPH_V2" || command.type === "ADMIT_AND_COMMIT_EXECUTION_GRAPH_V2"
+              ? "EXECUTION_GRAPH_COMMITTED"
+              : command.type === "LEASE_EXECUTION_NODE_V2"
+                ? "EXECUTION_NODE_LEASED"
+                : command.type === "RECORD_PROVIDER_INVOCATION_TRANSITION_V1"
+                  ? "PROVIDER_INVOCATION_TRANSITIONED"
+                : command.type === "RECORD_EXECUTION_NODE_ATTEMPT_OUTCOME_V2"
+                  ? "EXECUTION_NODE_ATTEMPT_OUTCOME_RECORDED"
+                  : command.type === "SUBMIT_WORKER_PROPOSAL_V2"
+                    ? "EXECUTION_WORKER_PROPOSAL_SUBMITTED"
+                  : command.type === "RECORD_HOST_ORACLE_RECEIPT_V2"
+                    ? "EXECUTION_HOST_ORACLE_RECEIPT_RECORDED"
+                  : command.type === "RECORD_HOST_NODE_RECEIPT_V2"
+                    ? "EXECUTION_HOST_RECEIPT_RECORDED"
+                    : command.type === "PREPARE_EXECUTION_INTEGRATION_V2"
+                      ? "EXECUTION_INTEGRATION_PREPARED"
+                      : command.type === "TRANSITION_EXECUTION_INTEGRATION_V2"
+                        ? "EXECUTION_INTEGRATION_TRANSITIONED"
+                        : command.type === "RECORD_EXECUTION_GRAPH_TERMINAL_V2"
+                          ? "EXECUTION_GRAPH_TERMINAL_RECORDED"
+                          : command.type === "RECORD_STRONG_SINGLE_ROLLOUT_V1"
+                            ? "STRONG_SINGLE_ROLLOUT_RECORDED"
+                            : "EXECUTION_STOPPED";
+          const payload: Readonly<Record<string, unknown>> = command.type === "RECORD_DYNAMIC_MULTI_PROPOSAL_V2"
+            ? { proposalId: command.proposal.dynamic_multi_proposal_receipt_id,
+              proposalSha256: command.proposal.record_sha256, runId: command.proposal.run_id,
+              workCellId: command.proposal.work_cell_id, graphProposalSha256: command.proposal.graph_proposal_sha256 }
+            : command.type === "RECORD_TOPOLOGY_MEASUREMENTS_V2"
+              ? {
+              measurementEvidenceIds: command.evidenceReceipts.map(
+                (receipt) => receipt.topology_measurement_evidence_receipt_id,
+              ),
+              measurementEvidenceSha256s: command.evidenceReceipts.map((receipt) => receipt.record_sha256),
+              measurementIds: command.receipts.map((receipt) => receipt.topology_measurement_receipt_id),
+              measurementSha256s: command.receipts.map((receipt) => receipt.record_sha256),
+              comparabilitySha256: command.comparability?.record_sha256 ?? null,
+            }
+            : command.type === "ADMIT_AND_COMMIT_EXECUTION_GRAPH_V2"
+              ? { gateId: command.gate.topology_gate_receipt_id, gateSha256: command.gate.record_sha256,
+              effectiveTopology: command.gate.effective_topology, verdict: command.gate.verdict,
+              topologyRevision: command.topology.revision, topologySha256: command.topology.record_sha256,
+              graphId: command.graph.execution_graph_revision_id, graphSha256: command.graph.record_sha256,
+              nodeRootSha256: command.graph.node_root_sha256, edgeRootSha256: command.graph.edge_root_sha256 }
+            : command.type === "RECORD_TOPOLOGY_ADMISSION_V2"
+              ? { gateId: command.gate.topology_gate_receipt_id, gateSha256: command.gate.record_sha256,
+                effectiveTopology: command.gate.effective_topology, verdict: command.gate.verdict,
+                topologyRevision: command.topology.revision, topologySha256: command.topology.record_sha256 }
+              : command.type === "COMMIT_EXECUTION_GRAPH_V2"
+                ? { graphId: command.graph.execution_graph_revision_id, graphSha256: command.graph.record_sha256,
+                  nodeRootSha256: command.graph.node_root_sha256, edgeRootSha256: command.graph.edge_root_sha256 }
+              : command.type === "LEASE_EXECUTION_NODE_V2"
+                ? { graphId: command.packet.graph_revision_id, nodeId: command.packet.node_id,
+                  packetId: command.packet.packet_id, leaseId: command.lease.execution_node_lease_id,
+                  generation: command.lease.generation, fencingToken: command.lease.fencing_token,
+                  providerCallPlanId: command.providerPlan?.provider_call_plan_id ?? null,
+                  providerCallPlanSha256: command.providerPlan?.record_sha256 ?? null,
+                  redactionReceiptId: command.redaction?.redaction_receipt_id ?? null,
+                  redactionReceiptSha256: command.redaction?.record_sha256 ?? null,
+                  providerInvocationId: command.invocation?.provider_invocation_id ?? null,
+                  providerInvocationPreparedSha256: command.invocation?.record_sha256 ?? null }
+                : command.type === "RECORD_PROVIDER_INVOCATION_TRANSITION_V1"
+                  ? { providerInvocationId: command.transition.provider_invocation_id,
+                    providerInvocationTransitionSha256: command.transition.record_sha256,
+                    state: command.transition.state, packetId: command.transition.packet_id }
+                : command.type === "RECORD_EXECUTION_NODE_ATTEMPT_OUTCOME_V2"
+                  ? { graphId: command.outcome.graph_revision_id, nodeId: command.outcome.node_id,
+                    outcomeId: command.outcome.execution_node_attempt_outcome_id,
+                    basis: command.outcome.basis, disposition: command.outcome.disposition, attempt: command.outcome.attempt,
+                    generation: command.outcome.lease_generation, fencingToken: command.outcome.fencing_token }
+                    : command.type === "SUBMIT_WORKER_PROPOSAL_V2"
+                    ? { graphId: command.proposal.graph_revision_id, nodeId: command.proposal.node_id,
+                      proposalId: command.proposal.proposal_id, kind: command.proposal.kind,
+                      patchSetId: command.patchSet?.patch_set_id ?? null,
+                      patchSetSha256: command.patchSet?.record_sha256 ?? null,
+                      providerInvocationId: command.providerTerminal?.provider_invocation_id ?? null,
+                      providerInvocationTransitionSha256: command.providerTerminal?.record_sha256 ?? null,
+                      state: command.providerTerminal?.state ?? null }
+                    : command.type === "RECORD_HOST_ORACLE_RECEIPT_V2"
+                      ? { graphId: command.receipt.graph_revision_id, nodeId: command.receipt.node_id,
+                        oracleReceiptId: command.receipt.host_oracle_receipt_id,
+                        oracleReceiptSha256: command.receipt.record_sha256,
+                        result: command.receipt.result, freshness: command.receipt.freshness }
+                    : command.type === "RECORD_HOST_NODE_RECEIPT_V2"
+                      ? { graphId: command.receipt.graph_revision_id, nodeId: command.receipt.node_id,
+                        receiptId: command.receipt.host_node_receipt_id, kind: command.receipt.kind }
+                      : command.type === "PREPARE_EXECUTION_INTEGRATION_V2"
+                        ? { graphId: command.attempt.graph_revision_id, nodeId: command.attempt.node_id,
+                          attemptId: command.attempt.integration_attempt_id,
+                          transitionId: command.prepared.integration_transition_id,
+                          journalSha256: command.journal.journal_sha256,
+                          generation: command.attempt.lease_generation,
+                          fencingToken: command.attempt.fencing_token }
+                        : command.type === "TRANSITION_EXECUTION_INTEGRATION_V2"
+                          ? { attemptId: command.transition.integration_attempt_id,
+                            transitionId: command.transition.integration_transition_id,
+                            ordinal: command.transition.ordinal, state: command.transition.state,
+                            postimageRootSha256: command.transition.postimage_root_sha256 }
+                          : command.type === "RECORD_EXECUTION_GRAPH_TERMINAL_V2"
+                            ? { graphId: command.receipt.graph_revision_id,
+                              terminalReceiptId: command.receipt.execution_graph_terminal_receipt_id,
+                              terminalStatus: command.receipt.terminal_status,
+                              nodeFrontierRootSha256: command.receipt.node_frontier_root_sha256 }
+                            : command.type === "RECORD_STRONG_SINGLE_ROLLOUT_V1"
+                              ? { rolloutReceiptId: command.receipt.rollout_receipt_id,
+                                rolloutReceiptSha256: command.receipt.record_sha256,
+                                 runId: command.receipt.run_id, workCellId: command.receipt.work_cell_id,
+                                 providerReceiptRootSha256: command.receipt.provider_receipt_root_sha256,
+                                 workloadBindingSha256: command.workloadBinding?.record_sha256 ?? null }
+                              : { graphId: command.stop.graph_revision_id, stopId: command.stop.execution_stop_id,
+                                stopGeneration: command.stop.stop_generation, scope: command.stop.scope,
+                                reason: command.stop.reason };
+          return { eventType, payload };
+        },
+      },
+      onFault,
+    );
+  }
+
   transactTaskFlowHarness(
     taskFlowCommand: Extract<TaskFlowAuthorityCommand, { readonly type: "CONTROL_TASK_FLOW" | "RESOLVE_PLAN_CONTINUATION" }>,
     harnessCommand: Extract<HarnessAuthorityCommand, { readonly type: "CONTROL_MANAGED_RUN" }>,
@@ -1156,7 +2102,7 @@ export class AuthorityStore {
     if (taskFlowCommand.goalId !== harnessCommand.goalId) {
       throw new AuthorityIntegrityError("Task Flow and ManagedRun transaction Goal binding differs");
     }
-    return runImmediateTransaction(this.connection, () => {
+    const transact = () => {
       const taskFlow = this.transactTaskFlow(taskFlowCommand, {
         ...meta, idempotencyKey: `${meta.idempotencyKey}:task-flow`,
       });
@@ -1164,11 +2110,125 @@ export class AuthorityStore {
         ...meta, expectedVersion: taskFlow.goalVersion,
         idempotencyKey: `${meta.idempotencyKey}:managed-run`,
       });
-    });
+    };
+    return this.connection.isTransaction ? transact() : runImmediateTransaction(this.connection, transact);
   }
 
   readSnapshot(goalId: string): GoalSnapshot {
     return rebuildGoalSnapshot(this.connection, goalId);
+  }
+
+  readExecutionV2(runId: string, availableSlots = 1): ExecutionV2Projection | null {
+    return this.executionV2.readProjection(runId, availableSlots);
+  }
+
+  readExecutionV2Preparation(goalId: string, runId: string): ExecutionV2Preparation {
+    return this.executionV2.readPreparation(goalId, runId);
+  }
+
+  readStrongSingleRolloutPreparation(goalId: string, runId: string) {
+    return this.executionV2.readStrongSingleRolloutPreparation(goalId, runId);
+  }
+
+  readComparableWorkload(
+    preparation: Parameters<ExecutionV2Repository["comparableWorkload"]>[0],
+    runtime: Parameters<ExecutionV2Repository["comparableWorkload"]>[1],
+  ) {
+    return this.executionV2.comparableWorkload(preparation, runtime);
+  }
+
+  readDynamicMultiProposal(runId: string, workCellId: string) {
+    return this.executionV2.readDynamicMultiProposal(runId, workCellId);
+  }
+
+  prepareWorkloadComparability(
+    input: Parameters<ExecutionV2Repository["prepareWorkloadComparability"]>[0],
+  ) {
+    return this.executionV2.prepareWorkloadComparability(input);
+  }
+
+  readStrongSingleWorkloadBindingByRollout(rolloutReceiptId: string) {
+    return this.executionV2.readStrongSingleWorkloadBindingByRollout(rolloutReceiptId);
+  }
+
+  readStrongSingleRolloutCompletion(
+    preparation: Parameters<ExecutionV2Repository["readStrongSingleRolloutCompletion"]>[0],
+  ) {
+    return this.executionV2.readStrongSingleRolloutCompletion(preparation);
+  }
+
+  readStrongSingleRollout(
+    lookup: Parameters<ExecutionV2Repository["readStrongSingleRollout"]>[0],
+  ) {
+    return this.executionV2.readStrongSingleRollout(lookup);
+  }
+
+  readTopologyAdmissionMeasurements(
+    closure: Parameters<ExecutionV2Repository["readTopologyAdmissionMeasurements"]>[0],
+  ) {
+    return this.executionV2.readTopologyAdmissionMeasurements(closure);
+  }
+
+  readWorkerPatchSetClosure(patchSetId: string): WorkerPatchSetClosureV2 | null {
+    return this.executionV2.readWorkerPatchSetClosure(patchSetId);
+  }
+
+  readExecutionIntegrationRecovery(runId: string): ExecutionIntegrationRecoveryV2 | null {
+    return this.executionV2.readIntegrationRecovery(runId);
+  }
+
+  readExecutionStopPreparation(runId: string) {
+    return this.executionV2.readStopPreparation(runId);
+  }
+
+  readExecutionGraphTerminalPreparation(runId: string): ExecutionGraphTerminalPreparationV2 {
+    return this.executionV2.readGraphTerminalPreparation(runId);
+  }
+
+  readExecutionNodeOraclePreparation(runId: string, nodeId: string): ExecutionNodeOraclePreparationV2 {
+    return this.executionV2.readNodeOraclePreparation(runId, nodeId);
+  }
+
+  readExpiredExecutionNodeAttempts(runId: string, nowMs = this.clock.now()): readonly ExpiredExecutionNodeAttemptV2[] {
+    return this.executionV2.readExpiredNodeAttempts(runId, nowMs);
+  }
+
+  isCurrentExecutionNodePacket(packet: TaskPacketV2): boolean {
+    return this.executionV2.isCurrentNodePacket(packet);
+  }
+
+  verifyExecutionV2Integrity(): ExecutionV2IntegritySummary {
+    return this.executionV2.verifyIntegrity();
+  }
+
+  readProviderCallPlan(providerCallPlanId: string): ProviderCallPlanV1 | null {
+    return this.providerV2.read(providerCallPlanId);
+  }
+
+  readProviderRedaction(redactionReceiptId: string): ProviderRedactionReceiptV1 | null {
+    return this.providerV2.readRedaction(redactionReceiptId);
+  }
+
+  readProviderInvocation(providerInvocationId: string, ordinal?: 0 | 1): ProviderInvocationTransitionV1 | null {
+    return this.providerV2.readInvocation(providerInvocationId, ordinal);
+  }
+
+  readProviderInvocationByPacket(packetId: string): ProviderInvocationTransitionV1 | null {
+    return this.providerV2.readInvocationByPacket(packetId);
+  }
+
+  readProviderGoalUsageSummary(
+    goalId: string,
+  ): ReturnType<ProviderCallPlanV1Repository["readGoalUsageSummary"]> {
+    return this.providerV2.readGoalUsageSummary(goalId);
+  }
+
+  readProviderRunInvocationCount(goalId: string, runId: string): number {
+    return this.providerV2.readRunInvocationCount(goalId, runId);
+  }
+
+  verifyProviderV2Integrity(): ProviderCallPlanIntegritySummaryV1 {
+    return this.providerV2.verifyIntegrity();
   }
 
   readGoalForSession(workspaceId: string, originSessionId: string): GoalRow | null {
@@ -1529,12 +2589,28 @@ export class AuthorityStore {
     return this.inputContext.readProviderTurnLedger(promptRequestId);
   }
 
+  readGoalProviderTurnUsage(
+    goalId: string,
+  ): ReturnType<InputContextRepository["readGoalProviderTurnUsage"]> {
+    return this.inputContext.readGoalProviderTurnUsage(goalId);
+  }
+
+  readRunProviderTurnUsage(
+    scope: Parameters<InputContextRepository["readRunProviderTurnUsage"]>[0],
+  ): ReturnType<InputContextRepository["readRunProviderTurnUsage"]> {
+    return this.inputContext.readRunProviderTurnUsage(scope);
+  }
+
   appendProviderTurnAttempt(attempt: ProviderTurnAttemptRecord) {
     return this.inputContext.appendProviderTurnAttempt(attempt);
   }
 
-  beginProviderTurn(request: ProviderTurnRequestRecord, started: ProviderTurnAttemptRecord) {
-    return this.inputContext.beginProviderTurn(request, started);
+  beginProviderTurn(
+    request: ProviderTurnRequestRecord,
+    started: ProviderTurnAttemptRecord,
+    binding?: ProviderTurnGoalBindingRecord,
+  ) {
+    return this.inputContext.beginProviderTurn(request, started, binding);
   }
 
   readProviderTurnAttempts(promptRequestId: string, limit?: number): ProviderTurnAttemptRecord[] {
@@ -1661,6 +2737,101 @@ export class AuthorityStore {
     return this.taskFlow.acceptanceLedger(contractId);
   }
 
+  readTaskFlowAcceptanceV2(contractId: string): ReturnType<AcceptanceAuthorityV2Repository["read"]> {
+    return this.acceptanceV2.read(contractId);
+  }
+
+  readOraclePassEvidenceByAttempt(
+    attemptId: string,
+  ): ReturnType<AcceptanceEvidenceV2Repository["passEvidenceByAttempt"]> {
+    return this.acceptanceEvidenceV2.passEvidenceByAttempt(attemptId);
+  }
+
+  readTaskFlowIntakeV2(goalId: string): ReturnType<IntakeAuthorityV2Repository["rebuildGoalProjection"]> {
+    return this.intakeV2.rebuildGoalProjection(goalId);
+  }
+
+  readTaskFlowContract(contractId: string): ReturnType<TaskFlowRepository["contractById"]> {
+    return this.taskFlow.contractById(contractId);
+  }
+
+  readTaskFlowRequirementV2(requirementRevisionId: string): ReturnType<IntakeAuthorityV2Repository["readRequirementRevision"]> {
+    return this.intakeV2.readRequirementRevision(requirementRevisionId);
+  }
+
+  readTaskFlowPlanV2(goalId: string): ReturnType<PlanAuthorityV2Repository["readCurrentPlan"]> {
+    return this.planV2.readCurrentPlan(goalId);
+  }
+
+  readRecentTaskFlowChangesV2(
+    goalId: string, limit = 16,
+  ): ReturnType<PlanAuthorityV2Repository["readRecentChangeRequests"]> {
+    return this.planV2.readRecentChangeRequests(goalId, limit);
+  }
+
+  readTaskFlowCompletionEvidenceV2(
+    goalId: string,
+  ): ReturnType<AcceptanceCompletionV2Repository["readGoalEvidenceSummary"]> {
+    return this.acceptanceCompletionV2.readGoalEvidenceSummary(goalId);
+  }
+
+  readSubmittedTaskFlowGoalFitAssessment(
+    goalId: string, eventType: "GOAL_CONTRACT_DRAFTED" | "ROUTE_SKELETON_FROZEN", subjectSha256: string,
+  ): ReturnType<TaskFlowRepository["readSubmittedGoalFitAssessment"]> {
+    return this.taskFlow.readSubmittedGoalFitAssessment(goalId, eventType, subjectSha256);
+  }
+
+  readTaskFlowPlanStageGateV2(
+    goalId: string,
+    gate: PlanStageGateV2,
+  ): ReturnType<PlanAuthorityV2Repository["readCurrentStageGate"]> {
+    return this.planV2.readCurrentStageGate(goalId, gate);
+  }
+
+  readTaskFlowCurrentPlanStageGateV2(
+    goalId: string,
+  ): ReturnType<PlanAuthorityV2Repository["readCurrentExecutionStageGate"]> {
+    return this.planV2.readCurrentExecutionStageGate(goalId);
+  }
+
+  readPendingActiveGoalUserTurns(
+    goalId: string,
+  ): ReturnType<PlanAuthorityV2Repository["readPendingActiveGoalUserTurns"]> {
+    return this.planV2.readPendingActiveGoalUserTurns(goalId);
+  }
+
+  readActiveGoalUserTurn(
+    userTurnId: string,
+  ): ReturnType<PlanAuthorityV2Repository["readActiveGoalUserTurn"]> {
+    return this.planV2.readActiveGoalUserTurn(userTurnId);
+  }
+
+  readActiveGoalUserTurnClassification(
+    classificationId: string,
+  ): ReturnType<PlanAuthorityV2Repository["readActiveGoalUserTurnClassification"]> {
+    return this.planV2.readActiveGoalUserTurnClassification(classificationId);
+  }
+
+  readActiveGoalChangeRequestByTurn(
+    userTurnId: string,
+  ): ReturnType<PlanAuthorityV2Repository["readActiveGoalChangeRequestByTurn"]> {
+    return this.planV2.readActiveGoalChangeRequestByTurn(userTurnId);
+  }
+
+  readActiveGoalChangeTransitionByTurn(
+    userTurnId: string,
+  ): ReturnType<PlanAuthorityV2Repository["readActiveGoalChangeTransitionByTurn"]> {
+    return this.planV2.readActiveGoalChangeTransitionByTurn(userTurnId);
+  }
+
+  hasPendingActiveGoalUserTurn(goalId: string): boolean {
+    return this.planV2.hasPendingActiveGoalUserTurn(goalId);
+  }
+
+  verifyTaskFlowPlanV2Integrity(): ReturnType<PlanAuthorityV2Repository["verifyIntegrity"]> {
+    return this.planV2.verifyIntegrity();
+  }
+
   readLatestTaskFlowRouteRef(goalId: string): ReturnType<TaskFlowRepository["latestRouteRef"]> {
     return this.taskFlow.latestRouteRef(goalId);
   }
@@ -1669,8 +2840,52 @@ export class AuthorityStore {
     return this.taskFlow.activeGoal(workspaceId, originSessionId);
   }
 
+  readActiveTaskFlowGoalById(workspaceId: string, goalId: string): ActiveTaskFlowGoal | null {
+    return this.taskFlow.activeGoalById(workspaceId, goalId);
+  }
+
+  readSessionGoalBinding(goalId: string): SessionGoalBindingV1 | null {
+    return this.sessionGoalBindings.currentForGoal(goalId);
+  }
+
+  readSessionGoalBindingForSession(workspaceId: string, sessionId: string): SessionGoalBindingV1 | null {
+    return this.sessionGoalBindings.currentForSession(workspaceId, sessionId);
+  }
+
+  readRecoverableSessionGoals(workspaceId: string): readonly SessionGoalCandidateV1[] {
+    return this.sessionGoalBindings.recoverable(workspaceId);
+  }
+
+  transitionSessionGoalBinding(input: {
+    readonly goalId: string;
+    readonly workspaceId: string;
+    readonly sessionId: string;
+    readonly state: SessionGoalBindingState;
+    readonly goalTitle: string;
+    readonly reasonCode: SessionGoalBindingReason;
+    readonly expectedReceiptSha256: string | null;
+  }): SessionGoalBindingV1 {
+    return this.sessionGoalBindings.transition({ ...input, nowMs: this.clock.now() });
+  }
+
+  validateSessionGoalBindingMarker(
+    marker: SessionGoalBindingMarkerV1,
+    expectedWorkspaceId: string,
+    expectedSessionId: string,
+  ): SessionGoalBindingV1 {
+    return this.sessionGoalBindings.validateMarker(marker, expectedWorkspaceId, expectedSessionId);
+  }
+
+  verifySessionGoalBindingIntegrity(): { readonly revisions: number; readonly heads: number } {
+    return this.sessionGoalBindings.verifyIntegrity();
+  }
+
   readTaskFlowGoalVersion(goalId: string): number {
     return this.taskFlow.goalVersion(goalId);
+  }
+
+  readTaskFlowChangedFiles(goalId: string): readonly TaskFlowChangedFile[] {
+    return this.taskFlow.changedFiles(goalId);
   }
 
   readNextTaskFlowWorkCell(goalId: string): ReturnType<TaskFlowRepository["nextReadyWorkCell"]> {
@@ -1881,5 +3096,16 @@ export class AuthorityStore {
     const value = Number(row?.data_version);
     if (!Number.isSafeInteger(value) || value < 1) throw new AuthorityIntegrityError("SQLite data_version is invalid");
     this.startupIntegrityDataVersion = value;
+  }
+}
+function assertExactCommandKeys(
+  command: Readonly<Record<string, unknown>>,
+  expected: readonly string[],
+  label: string,
+): void {
+  const actual = Object.keys(command).sort();
+  const required = [...expected].sort();
+  if (actual.length !== required.length || actual.some((key, index) => key !== required[index])) {
+    throw new AuthorityIntegrityError(`${label} contains unexpected or missing fields`);
   }
 }

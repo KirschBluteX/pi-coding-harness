@@ -5,7 +5,16 @@ $ErrorActionPreference = 'Stop'
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $rootPath = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
 $outputPath = Join-Path $rootPath 'manifests\MIGRATION-MANIFEST.json'
-$excludedDirectories = @('node_modules', 'dist', '.tmp', 'reports', '.git')
+$package = Get-Content -LiteralPath (Join-Path $rootPath 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$excludedDirectories = @($package.codingHarness.releaseExcludedDirectories)
+$excludedFiles = @($package.codingHarness.releaseExcludedFiles)
+if ($excludedDirectories.Count -eq 0 -or @($excludedDirectories | Where-Object {
+    -not ($_ -is [string]) -or -not $_ -or $_ -match '\\' -or
+    $_.StartsWith('/') -or $_.EndsWith('/') -or $_ -match '(^|/)\.\.?($|/)' -or $_ -match '//'
+}).Count -gt 0) { throw 'package.json releaseExcludedDirectories is invalid.' }
+if ($excludedFiles.Count -eq 0 -or @($excludedFiles | Where-Object {
+    -not ($_ -is [string]) -or -not $_ -or $_ -match '[/\\]'
+}).Count -gt 0) { throw 'package.json releaseExcludedFiles is invalid.' }
 $deferredFiles = @(
     'manifests/MIGRATION-MANIFEST.json',
     'manifests/SOURCE-HASHES.json',
@@ -17,10 +26,24 @@ $sequence = 0
 
 function Get-SelectedFiles([string]$Directory) {
     foreach ($item in Get-ChildItem -LiteralPath $Directory -Force) {
-        if ($excludedDirectories -contains $item.Name) { continue }
+        if ($item.PSIsContainer -and (Test-ExcludedDirectory $item.FullName)) { continue }
         if ($item.PSIsContainer) { Get-SelectedFiles $item.FullName }
-        elseif ($item.Name -notlike '.MIGRATION-MANIFEST.tmp.*' -and $item.Name -notlike '.SOURCE-HASHES.tmp.*') { $item }
+        elseif (-not (Test-ExcludedFile $item.Name) -and
+            $item.Name -notlike '.MIGRATION-MANIFEST.tmp.*' -and
+            $item.Name -notlike '.SOURCE-HASHES.tmp.*') { $item }
     }
+}
+
+function Test-ExcludedFile([string]$Name) {
+    foreach ($pattern in $excludedFiles) {
+        if ($Name -like $pattern) { return $true }
+    }
+    return $false
+}
+
+function Test-ExcludedDirectory([string]$FullName) {
+    $relative = $FullName.Substring($rootPath.Length).TrimStart('\', '/').Replace('\', '/')
+    return $excludedDirectories -contains $relative
 }
 
 function Add-Entry([hashtable]$Values) {
@@ -37,7 +60,8 @@ function Get-Category([string]$Relative) {
     if ($Relative -eq 'manifests/CACHE-PROVIDER-EVIDENCE.json') { return 'RUNTIME_EVIDENCE' }
     if ($Relative.StartsWith('docs/')) { return 'ARCHITECTURE_REPORT' }
     if ($Relative.StartsWith('schemas/')) { return 'SCHEMA_REFERENCE' }
-    if ($Relative.StartsWith('LICENSES/') -or $Relative -eq 'LICENSE') { return 'LICENSE' }
+    if ($Relative.StartsWith('LICENSES/') -or
+        $Relative -in @('LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md')) { return 'LICENSE' }
     if ($Relative.StartsWith('tests/') -or $Relative.StartsWith('fixtures/') -or $Relative.StartsWith('scripts/verify-')) { return 'VALIDATION' }
     if ($Relative.StartsWith('src/') -or $Relative.StartsWith('scripts/')) { return 'CODE' }
     if ($Relative -in @('package.json','package-lock.json')) { return 'DEPENDENCY_TREE' }
@@ -108,12 +132,26 @@ foreach ($directory in $excludedDirectories) {
     }
 }
 
+foreach ($pattern in $excludedFiles) {
+    Add-Entry @{
+        source = Join-Path $rootPath $pattern
+        destination = $null
+        source_sha256 = $null
+        destination_sha256 = $null
+        category = 'RUN_ARTIFACT'
+        purpose = 'Excluded known generated file from the source release closure.'
+        disposition = 'EXCLUDED'
+        rewritten = $false
+        reason = 'Recreated locally and intentionally absent from the public source release.'
+    }
+}
+
 $document = [ordered]@{
     '$schema' = '../schemas/migration-manifest.schema.json'
     schema_version = 1
     generated_at = [DateTimeOffset]::Now.ToString('o')
     target_root = '.'
-    selection_policy = 'Project-owned source, tests, schemas, current documentation, lifecycle scripts and license evidence are copied; dependencies, build output, reports, runtime state and version-control metadata are excluded.'
+    selection_policy = 'Project-owned source, tests, schemas, current documentation, lifecycle scripts and license evidence are copied; dependencies, known generated files, build output, reports, runtime state and version-control metadata are excluded.'
     entries = $entries.ToArray()
     summary = [ordered]@{
         candidate_count = $entries.Count

@@ -1,66 +1,131 @@
+<div align="center">
+
 # Pi Coding Harness
 
-Pi Coding Harness (PCH) 是一个显式启用的 Pi Coding Agent 外层执行框架。它把普通 Pi
-会话转换为面向软件工程的、可恢复、可审计的执行环境，同时保留未启用时的原生 Pi 体验。
+### Reliable, recoverable execution for Pi Coding Agent
 
-PCH is an opt-in durability and orchestration layer for Pi Coding Agent. It keeps small tasks direct, isolates
-parallel Workers when Multi is explicitly selected, and requires durable evidence before canonical mutation is
-accepted.
+An opt-in execution layer for durable task state, evidence-gated changes,
+recoverable workflows, and isolated multi-agent coordination.
 
-**Architecture:** [visual system overview](docs/ARCHITECTURE.md) ·
-**Specification:** [normative implementation blueprint](docs/PI-CODING-HARNESS-BLUEPRINT.md) ·
-**Usage:** [用户指南](docs/USER-GUIDE.md)
+[![CI](https://github.com/KirschBluteX/pi-coding-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/KirschBluteX/pi-coding-harness/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-## 核心行为
+[Architecture](docs/ARCHITECTURE.md) ·
+[User guide](docs/USER-GUIDE.md) ·
+[Implementation blueprint](docs/PI-CODING-HARNESS-BLUEPRINT.md) ·
+[简体中文](README.zh-CN.md)
 
-- 只有用户运行 `/coding` 后才启动独立 Host、SQLite、CAS、上下文投影和工作流工具。
-- `Single` 由当前 Pi Agent 直接执行，适合小型或强耦合工作。
-- `Multi` 将可分解工作交给角色隔离的临时 Worker，并在受控镜像中产生 PatchSet；主 Host
-  校验 preimage、scope、lease 和 oracle 后才集成到真实工作区。
-- `Build` 使用最小 GoalContract 直接推进，不强制完整 PRD。
-- `Plan` 生成并复审可执行路线，冻结后在 Pi UI 询问是否进入 Build、保留或修订。
-- provider、model、thinking level 和 context window 始终继承用户当前 Pi 配置。
-- Memory、Input Context、Compaction、Cache 和 Output 可独立关闭并有失败回退。
+</div>
 
-唯一权威设计是 [docs/PI-CODING-HARNESS-BLUEPRINT.md](docs/PI-CODING-HARNESS-BLUEPRINT.md)。
-实施顺序见 [docs/IMPLEMENTATION-PLAYBOOK.md](docs/IMPLEMENTATION-PLAYBOOK.md)，用户命令见
-[docs/USER-GUIDE.md](docs/USER-GUIDE.md)。
+Pi Coding Harness (PCH) turns an explicitly activated Pi Coding Agent session
+into an auditable software-engineering runtime. It keeps small tasks direct,
+persists workflow authority in SQLite, isolates parallel workers, and accepts
+workspace changes only after scope, lease, preimage, and fresh-oracle checks.
 
-## 架构概览 / Architecture at a glance
+> **Status: research preview.** The local correctness, lifecycle, fault, and
+> integration surfaces are extensively tested. Provider-backed stress comparisons
+> and one live cold-restart recovery path remain explicitly outside the current
+> release claim; see [Evidence boundaries](#evidence-boundaries).
+
+## Why PCH
+
+Coding agents are good at producing candidate changes. Long-running engineering
+work needs stronger guarantees around who owns state, what may be changed, what
+survives a restart, and which evidence is fresh enough to authorize integration.
+
+PCH provides five concrete boundaries:
+
+- **Durable authority** - SQLite WAL, immutable events and receipts, versioned
+  state machines, leases, fencing tokens, and CAS-backed artifacts.
+- **Safe multi-agent execution** - role-isolated, short-lived workers operate in
+  scoped mirrors and return untrusted PatchSets for serial verification.
+- **Recoverable workflows** - Goal, Route, WorkCell, Operation, and Evidence state
+  identifies a deterministic next action after interruption or Host restart.
+- **Evidence-gated mutation** - canonical workspace changes require matching
+  preimages, declared scope, current authority, and a fresh project oracle.
+- **Zero-cost inactive path** - PCH does not start its Host, open SQLite, inject
+  prompts, or add provider requests until the user explicitly enters `/coding`.
+
+## Architecture at a glance
 
 ```mermaid
 flowchart LR
-  U["User in Pi"] --> B["Passive Bridge"]
-  B -->|"/coding"| H["Lazy PCH Host"]
-  H --> T["Task Flow"]
-  H --> A["SQLite WAL and CAS authority"]
-  T --> S["Single native execution"]
-  T --> M["Multi scoped Workers"]
-  M --> I["Serial verified integration"]
-  S --> A
-  I --> A
+  U["User in Pi"] --> B["Passive extension bridge"]
+  B -->|"/coding"| H["Authenticated PCH Host"]
+  H --> T["Task Flow authority"]
+  H --> D["SQLite WAL + CAS"]
+  T --> S["Single: native workspace execution"]
+  T --> M["Multi: scoped worker mirrors"]
+  M --> P["Untrusted PatchSets"]
+  P --> V["Lease + scope + preimage + oracle gates"]
+  S --> D
+  V --> D
 ```
 
-Single 直接复用当前 Pi Agent 与真实工作区；Multi 只把 hash-bound TaskPacket 交给隔离 Worker，
-Worker 输出经过 preimage、scope、lease、fencing token 和 fresh oracle 校验后才串行集成。
-[完整英文架构说明](docs/ARCHITECTURE.md) 展示 Task Flow、模块拓扑、Single/Multi、持久权威、恢复路径、
-安全模型和已验证性能证据。
+Single keeps strongly coupled work in the current Pi Agent and real workspace.
+Multi lowers only explicitly decomposed work into hash-bound TaskPackets for
+isolated `PLANNER`, `EXPLORER`, `IMPLEMENTER`, `VERIFIER`, and `INTEGRATOR`
+roles. Worker output never becomes authority by narration alone.
 
-| Release evidence | Result |
-|---|---|
-| Runtime | Node `24.18.0`, SQLite `3.53.1`, authority schema `19` |
-| Aggregate | `489` passed, `6` conditional skips, `0` failures |
-| Inactive path | `0` Host starts / SQLite opens / RPCs / prompt injections / PCH-added model or provider requests |
-| Lifecycle | install, upgrade, uninstall, arbitrary-cwd and self-contained PASS |
+## Implemented system surfaces
 
-## 环境
+| Surface | What is implemented |
+| --- | --- |
+| Task lifecycle | Intake, GoalContract, route revision, staged plans, operation prepare/observe/commit/reconcile, pause/resume/replan, final acceptance |
+| Authority | Forward-only SQLite schemas, immutable event chain, CAS, leases, fencing, idempotency, recovery projections |
+| Multi-agent | Dynamic topology proposal, scoped mirrors, bounded execution, durable integration journal, workload comparability gates |
+| Context | Input-context compiler, retained evidence, protected projections, compaction receipts, provider-turn ledger |
+| Memory | Encrypted vault, indexed retrieval, conflict handling, correction, expiration, forgetting, and deletion |
+| Verification | Unit, integration, fault-injection, lifecycle, performance-contract, source-closure, and arbitrary-CWD checks |
 
-- Windows PowerShell 5.1 或 PowerShell 7
-- Node.js `>=22.22.3 <23` 或 `>=24.15.0`，且内置 SQLite 必须包含 WAL-reset 修复
+## Quick start
+
+### Requirements
+
+- Windows PowerShell 5.1 or PowerShell 7
+- Node.js `>=22.22.3 <23` or `>=24.15.0`
 - npm `11.x`
 - Pi Coding Agent `>=0.81.0 <=0.82.1`
 
-## 本地开发
+The selected Node.js runtime must include the SQLite WAL-reset fix. PCH checks
+the actual runtime fingerprint instead of trusting the Node version string alone.
+
+### Install from source
+
+```powershell
+git clone https://github.com/KirschBluteX/pi-coding-harness.git
+cd pi-coding-harness
+npm ci
+
+# Preview installation without changing local Pi state.
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
+
+# Build, migrate local authority safely, and register the local Pi package.
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
+
+# Read-only health check.
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
+```
+
+## Usage
+
+```text
+/coding
+/coding single build fix the parser boundary and run its tests
+/coding multi plan design a staged modular refactor
+/coding status
+/coding pause
+/coding resume
+/coding replan the current API assumption is invalid
+/coding exit
+```
+
+Single and Multi support Plan and Build, clarification, route correction,
+recovery, Memory, Input Context, Compaction, Output, cache telemetry, and
+performance gates. Provider, model, thinking level, and context window always
+come from the user's active Pi configuration.
+
+## Development
 
 ```powershell
 npm ci
@@ -71,48 +136,44 @@ npm run build
 npm run verify
 ```
 
-## 安装
+The full verification command also checks SQL/JSON/Markdown contracts,
+lifecycle behavior, arbitrary-CWD imports, performance contracts, and the
+self-contained source closure.
 
-```powershell
-# 先做无副作用预演
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
+## Evidence boundaries
 
-# 构建、迁移本地 authority，并向 Pi 注册本地 package
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
+The repository separates observed evidence from claims:
 
-# 只读诊断
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
-```
+- Automated correctness includes unit, integration, fault, lifecycle, schema,
+  and source-closure suites. The exact current count is recorded in
+  `manifests/PROJECT-STATE.json` after a release verification run.
+- The inactive path is tested for zero PCH Host starts, SQLite opens, RPCs,
+  prompt injections, and PCH-added model/provider requests.
+- Cache status remains `C0` unless a provider integration reports attributable
+  positive evidence; a zero cache-read value is treated as unknown, not a miss.
+- Natural compaction at the production context window, provider-backed stress,
+  and comparative Single/Multi model runs are not claimed until their deferred
+  experiments are executed.
 
-升级会先备份每个 authority database，再做 1 到 19 的 forward-only migration。默认卸载只移除
-Pi package 注册并保留数据；`-DeleteData` 必须同时满足安装标记与显式 PowerShell 确认。
+See [PROJECT-STATUS.md](PROJECT-STATUS.md) for the current development frontier
+and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the complete evidence model.
 
-## 使用
+## Security and privacy
 
-```text
-/coding
-/coding single build 修复解析器的边界错误并运行测试
-/coding multi plan 为模块化重构生成路线
-/coding status
-/coding pause
-/coding resume
-/coding replan 当前 API 假设已被证伪
-/coding exit
-```
+Runtime data defaults to `~/.pi/agent/coding-harness`. Worker mirrors exclude
+credentials, `.env`, Git internals, dependencies, build output, and operational
+state. Workers cannot authorize side effects; only the Host may integrate a
+verified proposal. Memory text is encrypted at rest, while telemetry stores
+bounded hashes, counts, and reason codes instead of raw provider payloads.
 
-未进入 PCH 时，扩展只注册命令和工具定义；不会启动 Host、打开 SQLite、注入 prompt、执行
-provider hook RPC 或产生额外模型请求。
+Please report security issues through the process in [SECURITY.md](SECURITY.md).
 
-## 数据与隐私
+## Contributing
 
-默认数据根为 `~/.pi/agent/coding-harness`。SQLite WAL、不可变 event/receipt 和内容寻址 CAS
-是持久权威；聊天、Widget 和 Markdown 只属于可重建投影。Worker 不复制 `.env`、凭据、
-`.git`、依赖或构建输出，且不能联网。Memory Vault 的正文加密保存，索引只保存受限检索材料。
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), the
+[review gates](docs/REVIEW-GATES.md), and the single normative
+[implementation blueprint](docs/PI-CODING-HARNESS-BLUEPRINT.md).
 
-## 事实边界
-
-- Cache 对已验证的 `geekspace/openai-completions` 运行时启用不修改 payload 的 `C1_PREFIX`；其他
-  provider、API 或 base URL 自动回退 `C0`。正 `cacheRead` 可确认为命中，零值保持未知，不宣称固定命中率。
-- Input Context 只治理 PCH 附加上下文和按需证据，不声称删除 Pi 原生聊天历史。
-- Output 使用稳定短策略和本地 UI 去重，不通过额外 rewrite 模型请求缩短回复。
-- 用户项目性能优化只有在有代表性 workload、正确性 oracle 和可逆候选时才进入试验。
+Pi Coding Harness is licensed under Apache-2.0. Pi Coding Agent notices remain
+under their original MIT terms; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

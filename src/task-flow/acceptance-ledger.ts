@@ -70,7 +70,9 @@ function sealLink(facetId: string, obligationId: string | null, relation: Accept
 
 function mustAt(obligations: readonly TaskObligationRecord[], index: number): TaskObligationRecord {
   const must = obligations.filter((entry) => entry.priority === "MUST");
-  return must[Math.min(index, must.length - 1)]!;
+  const obligation = must[index];
+  if (!obligation) throw new TypeError("AcceptanceLedger cannot collapse multiple user outcomes onto one MUST obligation");
+  return obligation;
 }
 
 export function buildAcceptanceLedger(input: {
@@ -147,6 +149,16 @@ export function assertAcceptanceLedger(value: AcceptanceLedgerRecord, contract: 
     .map((entry) => entry.obligation_id));
   if (contract.obligations.some((entry) => entry.priority === "MUST" && !covered.has(entry.obligation_id))) {
     throw new TypeError("AcceptanceLedger leaves a MUST obligation without source-bound coverage");
+  }
+  const outcomeFacetIds = new Set(value.facets
+    .filter((entry) => entry.kind === "SOURCE_EXPLICIT" || entry.kind === "INFERRED_OUTCOME")
+    .map((entry) => entry.facet_id));
+  const outcomeLinks = value.links.filter((entry) => entry.relation === "COVERS" && outcomeFacetIds.has(entry.facet_id));
+  const linkedFacets = new Set(outcomeLinks.map((entry) => entry.facet_id));
+  const linkedObligations = new Set(outcomeLinks.map((entry) => entry.obligation_id));
+  if (linkedFacets.size !== outcomeFacetIds.size || outcomeLinks.length !== outcomeFacetIds.size
+    || linkedObligations.size !== outcomeLinks.length) {
+    throw new TypeError("AcceptanceLedger user outcomes require one-to-one MUST coverage");
   }
   if (value.unresolved_facet_ids.some((id) => !facetIds.has(id))) throw new TypeError("AcceptanceLedger unresolved facet is unknown");
   const body = omitProperty(value, "record_sha256");

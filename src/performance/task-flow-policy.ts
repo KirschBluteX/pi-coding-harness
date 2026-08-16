@@ -49,10 +49,6 @@ export interface TargetPerformanceContract {
 }
 
 const targetPerformanceDirective = /\bTargetPerformance\s*=\s*(OPTIMIZE|NON_REGRESSION)\b/iu;
-const performanceSignal = /(?:\bperformance\b|\blatency\b|\bthroughput\b|\bbenchmark(?:ing)?\b|\bprofil(?:e|er|ing)\b|\bmemory usage\b|\bcpu usage\b|\bfaster\b|\bspeed\s*up\b|性能|延迟|吞吐|基准测试|性能分析|内存占用|CPU\s*占用|提速)/iu;
-const optimizeSignal = /(?:\boptimi[sz](?:e|ation)\b|\bimprov(?:e|ement)\b|\bfaster\b|\bspeed\s*up\b|\breduc(?:e|tion)\b|\blower\b|优化|提升|降低|减少|加速)/iu;
-const nonRegressionSignal = /(?:\bpreserv(?:e|ing)\b|\bmaintain(?:ing)?\b|\bnon[- ]regression\b|\bno\s+(?:performance|latency|throughput|memory|cpu)\s+regression\b|\bmust\s+not\s+regress\b|保持|不得降低|不能降低|不可降低|不劣化|无回归)/iu;
-const negatedPerformanceAction = /(?:\b(?:do\s+not|don't|must\s+not|should\s+not|no\s+need\s+to)\s+(?:optimi[sz]e|improve|increase|reduce|lower|benchmark|profile)\b|(?:不要|不得|无需|不需要)(?:进行)?(?:性能)?(?:优化|提升|降低|减少|加速|基准测试|性能分析))/giu;
 
 function object(value: unknown, label: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new TypeError(`${label} must be an object`);
@@ -127,10 +123,6 @@ export function targetPerformanceDemand(textValue: string): TargetPerformanceDem
   const normalized = textValue.normalize("NFC");
   const directive = normalized.match(targetPerformanceDirective)?.[1]?.toUpperCase();
   if (directive === "OPTIMIZE" || directive === "NON_REGRESSION") return directive;
-  const clauses = normalized.split(/[\r\n.!?;。！？；]+/u)
-    .map((clause) => clause.replace(negatedPerformanceAction, " "));
-  if (clauses.some((clause) => performanceSignal.test(clause) && optimizeSignal.test(clause))) return "OPTIMIZE";
-  if (clauses.some((clause) => performanceSignal.test(clause) && nonRegressionSignal.test(clause))) return "NON_REGRESSION";
   return "NONE";
 }
 

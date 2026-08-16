@@ -14,7 +14,7 @@
     "schema_version": { "const": 1 },
     "product": { "const": "Pi Coding Harness" },
     "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
-    "authority_schema": { "const": 19 },
+    "authority_schema": { "const": 35 },
     "status": { "enum": ["IMPLEMENTING", "VERIFYING", "PASS", "FAIL", "BLOCKED"] },
     "state_generation": { "type": "integer", "minimum": 1 },
     "current_phase": { "type": "string", "minLength": 1, "maxLength": 80 },

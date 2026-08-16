@@ -30,23 +30,44 @@ export function openAuthorityConnection(options: AuthorityDatabaseOptions): Auth
       throw new UnsafePathError("Authority database cannot be a symlink");
     }
   }
-  const connection = new DatabaseSync(databasePath, {
-    readOnly: options.readOnly ?? false,
-    timeout: options.busyTimeoutMs ?? 5_000,
-    enableForeignKeyConstraints: true,
-    enableDoubleQuotedStringLiterals: false,
-    allowExtension: false,
-  });
-  connection.exec("PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; PRAGMA synchronous=FULL; PRAGMA wal_autocheckpoint=0;");
-  if (!options.readOnly) {
-    const journal = connection.prepare("PRAGMA journal_mode=WAL").get() as { journal_mode?: unknown } | undefined;
-    const journalMode = journal?.journal_mode;
-    if (databasePath !== ":memory:" && (typeof journalMode !== "string" || journalMode.toLowerCase() !== "wal")) {
-      connection.close();
-      throw new AuthorityIntegrityError("Authority database failed to enter WAL mode");
+  let connection: DatabaseSync | undefined;
+  try {
+    connection = new DatabaseSync(databasePath, {
+      readOnly: options.readOnly ?? false,
+      timeout: options.busyTimeoutMs ?? 5_000,
+      enableForeignKeyConstraints: true,
+      enableDoubleQuotedStringLiterals: false,
+      allowExtension: false,
+    });
+    connection.exec("PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; PRAGMA synchronous=FULL; PRAGMA wal_autocheckpoint=0;");
+    if (!options.readOnly) {
+      const journal = connection.prepare("PRAGMA journal_mode=WAL").get() as { journal_mode?: unknown } | undefined;
+      const journalMode = journal?.journal_mode;
+      if (databasePath !== ":memory:" && (typeof journalMode !== "string" || journalMode.toLowerCase() !== "wal")) {
+        throw new AuthorityIntegrityError("Authority database failed to enter WAL mode");
+      }
     }
+    return connection;
+  } catch (error) {
+    if (connection) {
+      try { connection.close(); } catch { /* Preserve the initialization failure. */ }
+    }
+    const rollbackJournalPathLength = databasePath.length + "-journal".length + 1;
+    const sqliteCode = error instanceof Error
+      ? (error as Error & { code?: unknown }).code
+      : undefined;
+    if (process.platform === "win32"
+      && databasePath !== ":memory:"
+      && rollbackJournalPathLength > 260
+      && sqliteCode === "ERR_SQLITE_ERROR"
+      && error instanceof Error
+      && /unable to open database file/u.test(error.message.toLowerCase())) {
+      throw new UnsafePathError(
+        `Authority database path length ${databasePath.length} cannot safely accommodate SQLite WAL sidecars on Windows; shorten the configured data root or user-home path`,
+      );
+    }
+    throw error;
   }
-  return connection;
 }
 
 export function closeAuthorityConnection(connection: AuthorityConnection): void {

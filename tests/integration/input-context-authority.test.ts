@@ -19,7 +19,10 @@ import {
 import { InputContextRepository } from "../../src/input-context/repository.js";
 import { makeExecutionSubjectRef } from "../../src/task-flow/domain.js";
 import { createTestAuthority, type TestAuthority } from "../helpers/authority.js";
-import { taskAdmissionMetadata, taskContract, taskFlowMemoryMigrations } from "../helpers/task-flow.js";
+import { passingGoalFitAssessment } from "../helpers/goal-fit.js";
+import {
+  taskAcceptanceFacets, taskAdmissionMetadata, taskContractProposal, taskFlowMemoryMigrations,
+} from "../helpers/task-flow.js";
 
 interface Fixture {
   readonly authority: TestAuthority;
@@ -52,12 +55,17 @@ function createFixture(): Fixture {
     workspace: { workspaceId: "WS-TEST-001", workspaceHmac: sha256Hex("workspace"), filesystemKind: "LOCAL_TEST", localLockingVerified: true },
     originSessionId: "SESSION-INPUT-CONTEXT-001", objective: "Verify Input Context authority",
     intent: "BUILD", lane: "DIRECT_CELL", sourceIntakeSha256: sha256Hex("input"), activationSha256: sha256Hex("activation"),
+    sourceText: "input",
     ...taskAdmissionMetadata("DIRECT_CELL"),
   }, { expectedVersion: 0, idempotencyKey: "admit-input-context", actor: "RUNTIME" });
   const lease = authority.store.acquireLease(goalId, "SESSION-INPUT-CONTEXT-001", 60_000);
-  const contract = taskContract(goalId, authority.clock.now());
-  const submitted = authority.store.transactTaskFlow({ type: "SUBMIT_GOAL_CONTRACT", goalId, contract },
+  const submitted = authority.store.transactTaskFlow({
+    type: "SUBMIT_GOAL_CONTRACT", goalId, proposal: taskContractProposal(), acceptanceFacets: taskAcceptanceFacets(),
+    goalFitAssessment: passingGoalFitAssessment(),
+  },
     { expectedVersion: admitted.goalVersion, idempotencyKey: "contract-input-context", actor: "RUNTIME", lease });
+  const contract = authority.store.readTaskFlowView(goalId)?.contract;
+  if (!contract) throw new Error("Input Context fixture contract was not frozen");
   const connection = openAuthorityConnection({ path: authority.databasePath });
   const fixture = {
     authority, connection, repository: new InputContextRepository(connection), goalId,

@@ -6,6 +6,7 @@ import { LeaseConflictError, StaleFencingTokenError } from "../foundation/errors
 export interface LeaseToken {
   readonly goalId: string;
   readonly ownerSessionId: string;
+  readonly ownerInstanceId: string | null;
   readonly generation: number;
   readonly fencingToken: number;
   readonly expiresAtMs: number;
@@ -15,6 +16,7 @@ function token(row: LeaseRow): LeaseToken {
   return {
     goalId: row.goalId,
     ownerSessionId: row.ownerSessionId,
+    ownerInstanceId: row.ownerInstanceId,
     generation: row.generation,
     fencingToken: row.fencingToken,
     expiresAtMs: row.expiresAtMs,
@@ -32,8 +34,15 @@ export class LeaseManager {
     this.repository = new AuthorityRepository(connection);
   }
 
-  acquire(goalId: string, ownerSessionId: string, nowMs: number, ttlMs: number): LeaseToken {
+  acquire(
+    goalId: string,
+    ownerSessionId: string,
+    nowMs: number,
+    ttlMs: number,
+    ownerInstanceId = ownerSessionId,
+  ): LeaseToken {
     assertLeaseDuration(ttlMs);
+    if (!ownerInstanceId.trim() || ownerInstanceId.length > 256) throw new TypeError("Lease runtime instance ID is invalid");
     return runImmediateTransaction(this.connection, () => {
       this.repository.goal(goalId);
       const current = this.repository.lease(goalId);
@@ -41,25 +50,32 @@ export class LeaseManager {
         const created: LeaseRow = {
           goalId,
           ownerSessionId,
+          ownerInstanceId,
           generation: 1,
           fencingToken: 1,
           acquiredAtMs: nowMs,
           expiresAtMs: nowMs + ttlMs,
+          releasedAtMs: null,
           lastProgressEventSequence: Math.max(1, this.repository.goalVersion(goalId)),
           rowVersion: 1,
         };
         this.repository.insertLease(created);
-        return token(created);
+        return token(this.repository.lease(goalId) ?? created);
       }
-      if (current.ownerSessionId === ownerSessionId && current.expiresAtMs > nowMs) return token(current);
-      if (current.expiresAtMs > nowMs) throw new LeaseConflictError(`Goal ${goalId} is owned by another live session`);
+      const currentIsLive = current.releasedAtMs === null && current.expiresAtMs > nowMs;
+      const sameRuntime = current.ownerSessionId === ownerSessionId
+        && (current.ownerInstanceId === null || current.ownerInstanceId === ownerInstanceId);
+      if (sameRuntime && currentIsLive) return token(current);
+      if (currentIsLive) throw new LeaseConflictError(`Goal ${goalId} is owned by another live session or runtime instance`);
       const replacement: LeaseRow = {
         ...current,
         ownerSessionId,
+        ownerInstanceId,
         generation: current.generation + 1,
         fencingToken: current.fencingToken + 1,
         acquiredAtMs: nowMs,
         expiresAtMs: nowMs + ttlMs,
+        releasedAtMs: null,
         lastProgressEventSequence: Math.max(1, this.repository.goalVersion(goalId)),
         rowVersion: current.rowVersion + 1,
       };
@@ -96,11 +112,25 @@ export class LeaseManager {
     });
   }
 
+  release(currentToken: LeaseToken, nowMs: number): void {
+    runImmediateTransaction(this.connection, () => {
+      const current = this.assertCurrent(currentToken, nowMs);
+      const released: LeaseRow = { ...current, releasedAtMs: nowMs, rowVersion: current.rowVersion + 1 };
+      if (!this.repository.replaceLease(current, released)) {
+        throw new StaleFencingTokenError(`Lease release lost CAS for ${current.goalId}`);
+      }
+    });
+  }
+
   assertCurrent(currentToken: LeaseToken, nowMs: number): LeaseRow {
     const current = this.repository.lease(currentToken.goalId);
-    if (!current || current.ownerSessionId !== currentToken.ownerSessionId || current.generation !== currentToken.generation || current.fencingToken !== currentToken.fencingToken) {
+    const instanceMismatch = current?.ownerInstanceId !== null
+      && current?.ownerInstanceId !== currentToken.ownerInstanceId;
+    if (!current || current.ownerSessionId !== currentToken.ownerSessionId || instanceMismatch
+      || current.generation !== currentToken.generation || current.fencingToken !== currentToken.fencingToken) {
       throw new StaleFencingTokenError(`Stale fencing token for ${currentToken.goalId}`);
     }
+    if (current.releasedAtMs !== null) throw new StaleFencingTokenError(`Lease released for ${currentToken.goalId}`);
     if (current.expiresAtMs <= nowMs) throw new StaleFencingTokenError(`Lease expired for ${currentToken.goalId}`);
     return current;
   }

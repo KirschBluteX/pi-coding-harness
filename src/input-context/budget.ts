@@ -28,7 +28,8 @@ export function allocateContextBudget(input: ContextBudgetInput): ContextBudget 
   boundedInteger(input.currentInputTokens, "currentInputTokens");
   const headroom = Math.max(0, input.contextWindowTokens - input.currentInputTokens - input.outputReserveTokens);
   const evidenceTokens = Math.min(input.hardEvidenceTokens, headroom);
-  const ratio = input.contextWindowTokens === 0 ? 1 : input.currentInputTokens / input.contextWindowTokens;
+  const ratio = input.contextWindowTokens === 0 ? 1
+    : Math.min(1, (input.currentInputTokens + input.outputReserveTokens) / input.contextWindowTokens);
   return {
     evidenceTokens,
     source: "KNOWN_WINDOW",

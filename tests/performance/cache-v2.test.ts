@@ -37,7 +37,7 @@ describe.skipIf(process.env.PCH_CACHE_V2_PERFORMANCE !== "1")("Cache v2 local pe
         },
       });
       const selected = {
-        provider: "geekspace", api: "openai-completions", base_url: "https://geekspace.cloud/v1",
+        provider: "codex-local", api: "openai-responses", base_url: "http://localhost:58493/v1",
         model: "user-configured-model", thinking_level: "user-configured", context_window: 100_000,
       };
       const seed = {
@@ -96,7 +96,7 @@ describe.skipIf(process.env.PCH_CACHE_V2_PERFORMANCE !== "1")("Cache v2 local pe
         scope: "SQLite-backed Cache C1 accounting only; no provider request is issued by this benchmark.",
         inputs: [
           "tests/performance/cache-v2.test.ts", "src/cache-v2/runtime.ts", "src/cache-v2/repository.ts",
-          "src/cache-v2/geekspace-openai-completions.ts", "schemas/sql/014_cache_v2.sql", "config/default.json",
+          "src/cache-v2/codex-local-openai-responses.ts", "schemas/sql/014_cache_v2.sql", "config/default.json",
         ].map(sourceEvidence),
         sample_counts: { warmup: 10, measured: 100 }, metrics, budgets, checks,
         additional_model_requests: 0, additional_provider_requests: 0,

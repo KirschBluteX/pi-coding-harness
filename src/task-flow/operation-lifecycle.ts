@@ -21,7 +21,6 @@ import {
 } from "../performance/task-flow-policy.js";
 import {
   sealTaskFlowRecord,
-  type EvidenceAttestationRecord,
   type ExecutionSubjectRef,
   type OperationAttemptRecord,
   type OperationReconcileLocatorRecord,
@@ -83,6 +82,7 @@ interface PendingOperation {
   readonly normalized: NormalizedEffect;
   readonly operationKind: OperationAttemptRecord["operation_kind"];
   readonly validationCommand: string | null;
+  readonly validationEvidenceRole: "FROZEN_ORACLE" | "SUPPLEMENTAL_VALIDATION" | null;
   readonly expectedPostimageSha256: string | null;
   state: OperationState;
 }
@@ -94,6 +94,9 @@ interface ValidationAttempt {
 
 function operationKind(normalized: NormalizedEffect): OperationAttemptRecord["operation_kind"] {
   if (normalized.classificationReason === "ALLOWLISTED_LOCAL_VALIDATION") return "VALIDATION";
+  if (["ALLOWLISTED_LOCAL_FORMATTER", "ALLOWLISTED_LOCAL_FORMATTER_BATCH"].includes(normalized.classificationReason)) {
+    return "EDIT";
+  }
   if (normalized.toolName === "write") return "WRITE";
   if (normalized.toolName === "edit") return "EDIT";
   if (normalized.toolName === "coding_integrate") {
@@ -106,12 +109,41 @@ function operationKind(normalized: NormalizedEffect): OperationAttemptRecord["op
     ? "EXTERNAL" : "COMMAND";
 }
 
+function operationEffects(normalized: NormalizedEffect): readonly NormalizedEffect[] {
+  if (normalized.classificationReason !== "ALLOWLISTED_LOCAL_FORMATTER_BATCH"
+    || !normalized.normalizedTargets || normalized.normalizedTargets.length < 2) return [normalized];
+  return normalized.normalizedTargets.map((target) => {
+    const normalizedTargetSha256 = sha256Hex(target);
+    const actionSpec = {
+      ...normalized.actionSpec,
+      batch_parent_spec_sha256: normalized.specSha256,
+      classification_reason: "ALLOWLISTED_LOCAL_FORMATTER",
+      normalized_target_sha256: normalizedTargetSha256,
+    };
+    return {
+      ...normalized,
+      normalizedTarget: target,
+      normalizedTargetSha256,
+      failureClassSha256: canonicalJsonSha256({
+        classification_reason: "ALLOWLISTED_LOCAL_FORMATTER",
+        command_class: "LOCAL_FORMATTER_BATCH_TARGET",
+        target_sha256: normalizedTargetSha256,
+        tool_name: normalized.toolName,
+      }),
+      actionSpec,
+      specSha256: sha256Hex(canonicalJson(actionSpec)),
+      classificationReason: "ALLOWLISTED_LOCAL_FORMATTER",
+      normalizedTargets: [target],
+    };
+  });
+}
+
 function ceilingRank(value: WorkCellRecord["effect_classes"][number]): number {
   return value === "READ_ONLY" ? 0 : value === "LOCAL_REVERSIBLE" ? 1 : value === "EXTERNAL_IDEMPOTENT" ? 2 : 3;
 }
 
 export class TaskFlowOperationLifecycle {
-  private readonly pending = new Map<string, PendingOperation>();
+  private readonly pending = new Map<string, readonly PendingOperation[]>();
   private readonly passedValidationCommands = new Map<string, Set<string>>();
   private readonly passedValidationAttempts = new Map<string, Map<string, ValidationAttempt>>();
 
@@ -124,24 +156,31 @@ export class TaskFlowOperationLifecycle {
   prepare(invocation: ToolInvocation): TaskFlowOperationAdmission {
     const state = this.adapter.current();
     if (!state) return { allow: true, managed: false, reason: null };
-    if (state.contractRevisionRequested) {
+    const normalized = normalizeToolEffect(invocation);
+    if (state.contractRevisionRequested && normalized.effectClass !== "READ_ONLY") {
       return {
         allow: false, managed: false,
         reason: "GoalContract revision is open; submit the revised contract before any BUILD mutation.",
       };
     }
-    const normalized = normalizeToolEffect(invocation);
     if (normalized.effectClass === "READ_ONLY") {
       if (!normalized.withinWorkspace) {
         return { allow: false, managed: false, reason: "PCH denies reads outside the active workspace." };
       }
       const cell = this.currentCell(state);
       const routeReadRoots = state.view.route?.work_cells.flatMap((entry) => [...entry.read_roots, ...entry.write_roots]) ?? [];
-      if (state.view.status === "BUILDING" && cell && normalized.classificationReason === "BUILTIN_READ_TOOL"
+      if ((state.view.status === "BUILDING" || state.contractRevisionRequested)
+        && cell && normalized.classificationReason === "BUILTIN_READ_TOOL"
         && !this.adapter.targetWithinRoots(normalized.normalizedTarget, routeReadRoots)) {
         return { allow: false, managed: false, reason: "Read target is outside the frozen Route read scope." };
       }
       return { allow: true, managed: false, reason: null };
+    }
+    if (this.authority.hasPendingActiveGoalUserTurn(state.goalId)) {
+      return {
+        allow: false, managed: false,
+        reason: "Active Goal user turn classification is pending; mutation remains fenced.",
+      };
     }
     if (state.view.unresolvedOperationIds.length > 0) {
       return {
@@ -155,26 +194,34 @@ export class TaskFlowOperationLifecycle {
         reason: "PCH Task Flow is not write-authorized; complete contract/route/continuation first.",
       };
     }
-    if ([...this.pending.values()].some((operation) => !["COMMITTED", "FAILED", "RECONCILED"].includes(operation.state))) {
+    if ([...this.pending.values()].flat().some((operation) => !["COMMITTED", "FAILED", "RECONCILED"].includes(operation.state))) {
       return { allow: false, managed: false, reason: "PCH permits one mutating or validation Operation at a time." };
     }
     const cell = this.currentCell(state);
     if (!cell) return { allow: false, managed: false, reason: "Current WorkCell is missing from the current route." };
     const kind = operationKind(normalized);
+    if (normalized.classificationReason === "COMPOSED_LOCAL_FORMATTER") {
+      return {
+        allow: false, managed: false,
+        reason: "Run the bounded formatter and validation in separate tool calls.",
+      };
+    }
     if (kind === "EXTERNAL" || normalized.effectClass === "IRREVERSIBLE") {
       return {
         allow: false, managed: false,
         reason: "External, unknown, or irreversible effects require a separate user Decision and are not implicitly authorized by BUILD.",
       };
     }
-    const requiredCeiling = kind === "VALIDATION" ? "READ_ONLY"
-      : ["WRITE", "EDIT", "DELETE"].includes(kind) ? "LOCAL_REVERSIBLE" : "EXTERNAL_IDEMPOTENT";
+    const requiredCeiling = normalized.effectClass === "LOCAL_REVERSIBLE_WRITE" ? "LOCAL_REVERSIBLE"
+      : normalized.effectClass === "EXTERNAL_IDEMPOTENT_WRITE" ? "EXTERNAL_IDEMPOTENT"
+        : "IRREVERSIBLE_REQUIRES_USER";
     if (ceilingRank(requiredCeiling) > ceilingRank(state.view.authorization.effect_ceiling)
       || !cell.effect_classes.some((value) => ceilingRank(value) >= ceilingRank(requiredCeiling))) {
       return { allow: false, managed: false, reason: "Operation exceeds the current WorkCell effect ceiling." };
     }
+    const effects = operationEffects(normalized);
     if (["WRITE", "EDIT", "DELETE"].includes(kind)
-      && !this.adapter.targetWithinRoots(normalized.normalizedTarget, cell.write_roots)) {
+      && effects.some((effect) => !this.adapter.targetWithinRoots(effect.normalizedTarget, cell.write_roots))) {
       return { allow: false, managed: false, reason: "Operation target is outside the current WorkCell write scope." };
     }
     const requestedTimeoutMs = typeof invocation.input.timeout === "number"
@@ -185,6 +232,7 @@ export class TaskFlowOperationLifecycle {
       command: typeof invocation.input.command === "string" ? invocation.input.command : "",
       cwd: invocation.cwd,
       declared_commands: oracleCommands(cell.oracle),
+      allow_supplemental_validation: true,
       ...(requestedTimeoutMs === undefined ? {} : { timeout_ms: requestedTimeoutMs }),
       max_output_bytes: 50 * 1024,
     }) : null;
@@ -198,50 +246,74 @@ export class TaskFlowOperationLifecycle {
       if (!authorization) throw new AuthorityIntegrityError("ExecutionAuthorization disappeared before Operation prepare");
       const baseline = this.authority.readTaskFlowBaseline(authorization.baseline_id);
       if (!baseline) throw new AuthorityIntegrityError("ExecutionAuthorization baseline is missing");
-      const preimageSha256 = this.targetPreimage(normalized, kind);
       const subject = this.adapter.executionSubject();
-      const operationId = idFromSha256("OPERATION", sha256Hex(canonicalJson({
-        goalId: current.goalId, subject: subject.bindingSha256, tool: normalized.toolName,
-        target: normalized.normalizedTargetSha256, semanticPayload: normalized.semanticPayloadSha256,
-      })));
-      const attemptNumber = this.authority.readTaskFlowOperationAttemptCount(current.goalId, operationId) + 1;
-      const fingerprint = canonicalJsonSha256({
-        subject, normalizedTarget: normalized.normalizedTargetSha256,
-        normalizedPayload: normalized.normalizedPayloadSha256, preimageSha256,
-        baseline: baseline.record_sha256, environment: baseline.environment_sha256,
-        oracle: canonicalJsonSha256(cell.oracle), oraclePolicy: oraclePolicy ? canonicalJsonSha256(oraclePolicy) : null,
-        leaseGeneration: current.lease.generation, fencingToken: current.lease.fencingToken,
-        authorization: authorization.record_sha256,
+      const operations = effects.map((effect) => {
+        const preimageSha256 = this.targetPreimage(effect, kind);
+        const operationId = idFromSha256("OPERATION", sha256Hex(canonicalJson({
+          goalId: current.goalId, subject: subject.bindingSha256, tool: effect.toolName,
+          target: effect.normalizedTargetSha256, semanticPayload: effect.semanticPayloadSha256,
+        })));
+        const attemptNumber = this.authority.readTaskFlowOperationAttemptCount(current.goalId, operationId) + 1;
+        const fingerprint = canonicalJsonSha256({
+          subject, normalizedTarget: effect.normalizedTargetSha256,
+          normalizedPayload: effect.normalizedPayloadSha256, preimageSha256,
+          baseline: baseline.record_sha256, environment: baseline.environment_sha256,
+          oracle: canonicalJsonSha256(cell.oracle), oraclePolicy: oraclePolicy ? canonicalJsonSha256(oraclePolicy) : null,
+          leaseGeneration: current.lease.generation, fencingToken: current.lease.fencingToken,
+          authorization: authorization.record_sha256,
+        });
+        const attemptId = idFromSha256("ATTEMPT", sha256Hex(`${operationId}\0${attemptNumber}\0${fingerprint}`));
+        const attempt = sealTaskFlowRecord<OperationAttemptRecord, "record_sha256">("PCH-OPERATION-ATTEMPT-V1", {
+          schema_version: 1, attempt_id: attemptId, operation_id: operationId, goal_id: current.goalId,
+          work_cell_id: current.view.workCellId!, authorization_id: authorization.authorization_id,
+          attempt_number: attemptNumber, operation_kind: kind,
+          normalized_target_hmac: hmacSha256Hex(this.adapter.workspaceSecret(), effect.normalizedTarget),
+          normalized_payload_sha256: effect.normalizedPayloadSha256,
+          execution_fingerprint_sha256: fingerprint, baseline_sha256: baseline.record_sha256,
+          environment_sha256: baseline.environment_sha256, oracle_sha256: canonicalJsonSha256(cell.oracle),
+          idempotency_key_hmac: hmacSha256Hex(this.adapter.workspaceSecret(), `${operationId}\0${fingerprint}`),
+          created_at_ms: this.clock.now(),
+        }, "record_sha256");
+        const prepared = this.operationTransition(attemptId, 0, "PREPARED", null, null, null, "UNKNOWN", null);
+        const dispatched = this.operationTransition(
+          attemptId, 1, "DISPATCHED", null, null, null, "UNKNOWN", prepared.transition_sha256,
+        );
+        const reconcileLocator = ["WRITE", "EDIT", "DELETE"].includes(kind)
+          ? this.reconcileLocator(attempt, effect, invocation.input, preimageSha256) : null;
+        return { effect, operationId, attemptId, attempt, prepared, dispatched, reconcileLocator };
       });
-      const attemptId = idFromSha256("ATTEMPT", sha256Hex(`${operationId}\0${attemptNumber}\0${fingerprint}`));
-      const attempt = sealTaskFlowRecord<OperationAttemptRecord, "record_sha256">("PCH-OPERATION-ATTEMPT-V1", {
-        schema_version: 1, attempt_id: attemptId, operation_id: operationId, goal_id: current.goalId,
-        work_cell_id: current.view.workCellId!, authorization_id: authorization.authorization_id,
-        attempt_number: attemptNumber, operation_kind: kind,
-        normalized_target_hmac: hmacSha256Hex(this.adapter.workspaceSecret(), normalized.normalizedTarget),
-        normalized_payload_sha256: normalized.normalizedPayloadSha256,
-        execution_fingerprint_sha256: fingerprint, baseline_sha256: baseline.record_sha256,
-        environment_sha256: baseline.environment_sha256, oracle_sha256: canonicalJsonSha256(cell.oracle),
-        idempotency_key_hmac: hmacSha256Hex(this.adapter.workspaceSecret(), `${operationId}\0${fingerprint}`),
-        created_at_ms: this.clock.now(),
-      }, "record_sha256");
-      const prepared = this.operationTransition(attemptId, 0, "PREPARED", null, null, null, "UNKNOWN", null);
-      const dispatched = this.operationTransition(
-        attemptId, 1, "DISPATCHED", null, null, null, "UNKNOWN", prepared.transition_sha256,
+      const command = operations.length === 1 ? {
+        type: "PREPARE_AND_DISPATCH_OPERATION" as const, goalId: current.goalId,
+        attempt: operations[0]!.attempt, prepared: operations[0]!.prepared,
+        dispatched: operations[0]!.dispatched, reconcileLocator: operations[0]!.reconcileLocator,
+        oracleExecution: oraclePolicy ? {
+          command: oraclePolicy.command,
+          policySha256: canonicalJsonSha256(oraclePolicy),
+        } : null,
+      } : {
+        type: "PREPARE_AND_DISPATCH_OPERATION_BATCH" as const, goalId: current.goalId,
+        operations: operations.map(({ attempt, prepared, dispatched, reconcileLocator }) => ({
+          attempt, prepared, dispatched, reconcileLocator,
+          oracleExecution: oraclePolicy ? {
+            command: oraclePolicy.command,
+            policySha256: canonicalJsonSha256(oraclePolicy),
+          } : null,
+        })),
+      };
+      const commandReceipt = operations.length === 1 ? operations[0]!.attempt.record_sha256
+        : canonicalJsonSha256(operations.map((entry) => entry.attempt.record_sha256));
+      const result = this.authority.transactTaskFlow(
+        command,
+        this.adapter.mutation(`task-flow:operation:prepare-dispatch:${commandReceipt}`),
       );
-      const reconcileLocator = ["WRITE", "EDIT", "DELETE"].includes(kind)
-        ? this.reconcileLocator(attempt, normalized, invocation.input, preimageSha256) : null;
-      const result = this.authority.transactTaskFlow({
-        type: "PREPARE_AND_DISPATCH_OPERATION", goalId: current.goalId,
-        attempt, prepared, dispatched, reconcileLocator,
-      }, this.adapter.mutation(`task-flow:operation:prepare-dispatch:${attempt.record_sha256}`));
       this.adapter.accept(result);
-      this.pending.set(invocation.toolCallId, {
-        toolCallId: invocation.toolCallId, operationId, attemptId, normalized, operationKind: kind,
+      this.pending.set(invocation.toolCallId, operations.map(({ effect, operationId, attemptId }) => ({
+        toolCallId: invocation.toolCallId, operationId, attemptId, normalized: effect, operationKind: kind,
         validationCommand: kind === "VALIDATION" && typeof invocation.input.command === "string"
           ? invocation.input.command.trim().normalize("NFC") : null,
+        validationEvidenceRole: oraclePolicy?.evidence_role ?? null,
         expectedPostimageSha256: this.expectedPostimage(kind, invocation.input), state: "DISPATCHED",
-      });
+      })));
       return { allow: true, managed: true, reason: null, ...(oraclePolicy ? { oracle_policy: oraclePolicy } : {}) };
     } catch (error) {
       return {
@@ -252,13 +324,14 @@ export class TaskFlowOperationLifecycle {
   }
 
   observe(toolCallId: string, isError: boolean, text: string, reportedOutputSha256?: string): string | null {
-    const pending = this.pending.get(toolCallId);
-    if (!pending) return null;
-    if (pending.state !== "DISPATCHED") return null;
+    const pendingBatch = this.pending.get(toolCallId);
+    if (!pendingBatch?.length || pendingBatch.some((pending) => pending.state !== "DISPATCHED")) return null;
     if (reportedOutputSha256 !== undefined && !/^[a-f0-9]{64}$/u.test(reportedOutputSha256)) {
       throw new TypeError("Tool result SHA-256 is invalid");
     }
     const outputSha256 = reportedOutputSha256 ?? sha256Hex(text);
+    if (pendingBatch.length > 1) return this.observeBatch(pendingBatch, isError, outputSha256);
+    const pending = pendingBatch[0]!;
     if (isError) {
       const failure = canonicalJsonSha256({ operationId: pending.operationId, outputSha256, reason: "TOOL_RESULT_ERROR" });
       this.transitionPending(pending, "FAILED", outputSha256, null, failure, "FAIL");
@@ -320,6 +393,9 @@ export class TaskFlowOperationLifecycle {
     if (!cell || !pending.validationCommand) {
       return `PCH_OPERATION_COMMITTED operation=${pending.operationId}; automatic validation finalization is unavailable.`;
     }
+    if (pending.validationEvidenceRole === "SUPPLEMENTAL_VALIDATION") {
+      return `PCH_SUPPLEMENTAL_VALIDATION_COMMITTED operation=${pending.operationId}; result does not attest or close frozen obligations.`;
+    }
     const passed = this.passedValidationCommands.get(cell.work_cell_id) ?? new Set<string>();
     passed.add(pending.validationCommand);
     this.passedValidationCommands.set(cell.work_cell_id, passed);
@@ -355,44 +431,109 @@ export class TaskFlowOperationLifecycle {
     const attested = this.attestBatch([...byOperation].map(([operationId, obligationKeys]) => ({
       operation_id: operationId, obligation_keys: obligationKeys,
     })));
-    const completed = this.adapter.completeWork();
-    this.clearValidationProgress(cell.work_cell_id);
-    return `PCH_OPERATION_COMMITTED operation=${pending.operationId}; ${attested} ${completed}`;
+    const route = this.requiredState().view.route;
+    const isTerminalCell = route?.work_cells.at(-1)?.work_cell_id === cell.work_cell_id;
+    if (!isTerminalCell) {
+      const completed = this.adapter.completeWork();
+      this.clearValidationProgress(cell.work_cell_id);
+      return `PCH_OPERATION_COMMITTED operation=${pending.operationId}; ${attested} ${completed}`;
+    }
+    return `PCH_OPERATION_COMMITTED operation=${pending.operationId}; ${attested} `
+      + "Fresh oracle closure is ready. Review every explicit preservation outcome and verify that local evidence actually exercises the changed entry point; downstream-only tests are not preservation evidence. Make any still-needed correction and rerun stale Oracle evidence, then call coding_flow action=complete once.";
+  }
+
+  private observeBatch(
+    pendingBatch: readonly PendingOperation[], isError: boolean, outputSha256: string,
+  ): string {
+    const operationIds = pendingBatch.map((pending) => pending.operationId);
+    if (isError) {
+      const failure = canonicalJsonSha256({ operationIds, outputSha256, reason: "BATCH_TOOL_RESULT_ERROR" });
+      for (const pending of pendingBatch) this.transitionPending(pending, "FAILED", outputSha256, null, failure, "FAIL");
+      this.assessFailure(failure, false, true);
+      return `PCH_OPERATION_BATCH_FAILED operations=${pendingBatch.length}; repair the cause before a changed attempt.`;
+    }
+
+    let readbacks: readonly string[];
+    try {
+      readbacks = pendingBatch.map((pending) => this.adapter.hashTarget(pending.normalized.normalizedTarget));
+    } catch (error) {
+      const failure = canonicalJsonSha256({
+        operationIds, reason: "BATCH_READBACK_FAILED", error: error instanceof Error ? error.message : String(error),
+      });
+      for (const pending of pendingBatch) {
+        this.transitionPending(pending, "OUTCOME_UNKNOWN", outputSha256, null, failure, "UNKNOWN");
+      }
+      this.assessFailure(failure, true, false);
+      return `PCH_OPERATION_BATCH_OUTCOME_UNKNOWN operations=${pendingBatch.length}; reconcile by per-file readback before retry.`;
+    }
+
+    const mismatch = pendingBatch.findIndex((pending, index) => pending.expectedPostimageSha256 !== null
+      && pending.expectedPostimageSha256 !== readbacks[index]);
+    if (mismatch >= 0) {
+      const failure = canonicalJsonSha256({
+        operationIds, reason: "BATCH_POSTIMAGE_MISMATCH",
+        expected: pendingBatch[mismatch]!.expectedPostimageSha256, actual: readbacks[mismatch],
+      });
+      for (const [index, pending] of pendingBatch.entries()) {
+        this.transitionPending(pending, "OUTCOME_UNKNOWN", outputSha256, readbacks[index] ?? null, failure, "UNKNOWN");
+      }
+      this.assessFailure(failure, true, false);
+      return `PCH_OPERATION_BATCH_OUTCOME_UNKNOWN operations=${pendingBatch.length}; postimage mismatch requires reconciliation.`;
+    }
+
+    for (const [index, pending] of pendingBatch.entries()) {
+      const readbackSha256 = readbacks[index]!;
+      this.transitionPending(pending, "OBSERVED", outputSha256, readbackSha256, null, "PASS");
+      this.transitionPending(pending, "COMMITTED", outputSha256, readbackSha256, null, "PASS");
+    }
+    const cellId = this.currentCell(this.requiredState())?.work_cell_id;
+    if (cellId) this.clearValidationProgress(cellId);
+    return `PCH_OPERATION_BATCH_COMMITTED operations=${pendingBatch.length}; readback_root=${canonicalJsonSha256(readbacks)}.`;
   }
 
   finish(toolCallId: string, isError: boolean, text: string): void {
-    const pending = this.pending.get(toolCallId);
-    if (!pending || ["COMMITTED", "FAILED", "RECONCILED", "OUTCOME_UNKNOWN"].includes(pending.state)) return;
+    const pendingBatch = this.pending.get(toolCallId);
+    if (!pendingBatch?.length || pendingBatch.every((pending) => ["COMMITTED", "FAILED", "RECONCILED", "OUTCOME_UNKNOWN"].includes(pending.state))) return;
     if (isError) void this.observe(toolCallId, true, text);
-    else if (pending.state === "DISPATCHED") {
-      const failure = canonicalJsonSha256({ operationId: pending.operationId, reason: "MISSING_TOOL_RESULT" });
-      this.transitionPending(pending, "OUTCOME_UNKNOWN", text ? sha256Hex(text) : null, null, failure, "UNKNOWN");
+    else {
+      const unresolved = pendingBatch.filter((pending) => pending.state === "DISPATCHED");
+      if (unresolved.length === 0) return;
+      const failure = canonicalJsonSha256({
+        operationIds: unresolved.map((pending) => pending.operationId), reason: "MISSING_TOOL_RESULT",
+      });
+      for (const pending of unresolved) {
+        this.transitionPending(pending, "OUTCOME_UNKNOWN", text ? sha256Hex(text) : null, null, failure, "UNKNOWN");
+      }
       this.assessFailure(failure, true, false);
     }
   }
 
-  reconcile(operationId?: string, authorizeNext = true): string {
+  reconcile(
+    operationId?: string,
+    authorizeNext = true,
+  ): string {
     const state = this.requiredState();
     this.adapter.ensureLease();
     const unresolved = this.authority.readUnresolvedTaskFlowOperations(state.goalId)
       .filter((snapshot) => operationId === undefined || snapshot.attempt.operation_id === operationId);
     if (unresolved.length === 0) return "No unresolved Task Flow Operation requires reconciliation.";
     const results: string[] = [];
+    const reconciliationMutation = (idempotencyKey: string): MutationMeta =>
+      this.adapter.mutation(idempotencyKey);
     for (const snapshot of unresolved) {
       if (snapshot.state === "OBSERVED") {
         const locator = snapshot.reconcileLocator;
-        const mutation = snapshot.attempt.operation_kind !== "VALIDATION";
         const target = locator ? resolve(this.adapter.workspaceRoot(), locator.target_relative) : null;
         const currentReadback = target && this.contained(this.adapter.workspaceRoot(), target)
           ? this.adapter.hashTarget(target) : null;
-        if (!mutation || (locator && currentReadback === locator.expected_postimage_sha256
-          && currentReadback === snapshot.readbackSha256 && snapshot.postcondition === "PASS")) {
+        if (locator && currentReadback === locator.expected_postimage_sha256
+          && currentReadback === snapshot.readbackSha256 && snapshot.postcondition === "PASS") {
           const transition = this.operationTransition(snapshot.attempt.attempt_id, snapshot.ordinal + 1, "COMMITTED",
             snapshot.outputSha256, snapshot.readbackSha256, snapshot.failureSignatureSha256,
             snapshot.postcondition, snapshot.transitionSha256);
           this.accept(this.authority.transactTaskFlow({
             type: "RECONCILE_OPERATION", goalId: state.goalId, transition, disposition: "APPLIED",
-          }, this.adapter.mutation(`task-flow:reconcile:${transition.transition_sha256}`)));
+          }, reconciliationMutation(`task-flow:reconcile:${transition.transition_sha256}`)));
           results.push(`${snapshot.attempt.operation_id}=COMMITTED_FROM_OBSERVED`);
           continue;
         }
@@ -403,7 +544,7 @@ export class TaskFlowOperationLifecycle {
       let disposition: "APPLIED" | "NOT_APPLIED" | "APPLIED_UNVERIFIED" | "SAFE_TO_RETRY";
       let readbackSha256: string | null = null;
       if (snapshot.attempt.operation_kind === "VALIDATION") {
-        disposition = "SAFE_TO_RETRY";
+        disposition = "APPLIED_UNVERIFIED";
       } else {
         const locator = snapshot.reconcileLocator;
         if (!locator) throw new AuthorityIntegrityError("Mutating Operation lacks a local reconciliation locator");
@@ -426,13 +567,22 @@ export class TaskFlowOperationLifecycle {
         snapshot.outputSha256, readbackSha256, failureSha256, postcondition, snapshot.transitionSha256);
       this.accept(this.authority.transactTaskFlow({
         type: "RECONCILE_OPERATION", goalId: state.goalId, transition, disposition,
-      }, this.adapter.mutation(`task-flow:reconcile:${transition.transition_sha256}`)));
+      }, reconciliationMutation(`task-flow:reconcile:${transition.transition_sha256}`)));
       results.push(`${snapshot.attempt.operation_id}=${disposition}`);
     }
     this.pending.clear();
     this.adapter.clearBlocker();
     if (authorizeNext && state.view.nextActionCode === "AUTHORIZE_WORK") this.adapter.authorizeNextWork();
     return `Task Flow reconciliation committed: ${results.join(", ")}; next=${state.view.nextActionCode}.`;
+  }
+
+  hasReadyCompletion(): boolean {
+    const state = this.adapter.current();
+    const cell = state ? this.currentCell(state) : null;
+    if (!cell) return false;
+    const commands = oracleCommands(cell.oracle);
+    const passed = this.passedValidationCommands.get(cell.work_cell_id);
+    return commands.length > 0 && commands.every((command) => passed?.has(command) === true);
   }
 
   attest(input: TaskFlowAttestationInput): string {
@@ -448,9 +598,8 @@ export class TaskFlowOperationLifecycle {
     if (!cell || !contract) throw new AuthorityIntegrityError("Attestation lacks current WorkCell or GoalContract");
     const resolved = inputs.map((input) => {
       const snapshot = this.authority.readTaskFlowOperation(state.goalId, input.operation_id);
-      const outputSha256 = snapshot?.outputSha256 ?? null;
       if (!snapshot || snapshot.state !== "COMMITTED" || snapshot.attempt.operation_kind !== "VALIDATION"
-        || snapshot.postcondition !== "PASS" || outputSha256 === null) {
+        || snapshot.postcondition !== "PASS" || snapshot.outputSha256 === null) {
         throw new TypeError("Attestation requires a committed current validation Operation with PASS postcondition");
       }
       if (snapshot.attempt.work_cell_id !== state.view.workCellId) {
@@ -468,7 +617,7 @@ export class TaskFlowOperationLifecycle {
       if (obligations.some((obligation) => !workCellOracleCoversObligation(cell.oracle, obligation))) {
         throw new TypeError("Validation oracle does not prove every requested obligation oracle");
       }
-      return { snapshot, outputSha256, obligations };
+      return { snapshot, obligations };
     });
     const obligationKeys = resolved.flatMap((entry) => entry.obligations.map((obligation) => obligation.semantic_key));
     if (new Set(obligationKeys).size !== obligationKeys.length) {
@@ -478,27 +627,18 @@ export class TaskFlowOperationLifecycle {
     this.accept(this.authority.transactTaskFlow({
       type: "RECORD_WORKSPACE_BASELINE", goalId: state.goalId, baseline,
     }, this.adapter.mutation(`task-flow:baseline:post-validation:${baseline.record_sha256}`)));
-    for (const { snapshot, outputSha256, obligations } of resolved) {
-      for (const obligation of obligations) {
-        const attestation = sealTaskFlowRecord<EvidenceAttestationRecord, "record_sha256">("PCH-EVIDENCE-ATTESTATION-V1", {
-          schema_version: 1,
-          attestation_id: idFromSha256("ATTESTATION", sha256Hex(`${snapshot.attempt.operation_id}\0${obligation.obligation_id}\0${baseline.record_sha256}`)),
-          goal_id: state.goalId, work_cell_id: cell.work_cell_id, operation_id: snapshot.attempt.operation_id,
-          obligation_id: obligation.obligation_id, oracle_sha256: canonicalJsonSha256(obligation.oracle),
-          input_closure_sha256: canonicalJsonSha256({
-            executionFingerprint: snapshot.attempt.execution_fingerprint_sha256,
-            finalBaseline: baseline.record_sha256, obligation: obligation.record_sha256,
-          }),
-          output_sha256: outputSha256, baseline_sha256: baseline.record_sha256,
-          environment_sha256: baseline.environment_sha256, result: "PASS", freshness: "CURRENT",
-          postcondition: "PASS", artifact_id: null, created_at_ms: this.clock.now(),
-        }, "record_sha256");
-        this.accept(this.authority.transactTaskFlow({
-          type: "ATTEST_EVIDENCE", goalId: state.goalId, attestation,
-        }, this.adapter.mutation(`task-flow:attest:${attestation.record_sha256}`)));
-      }
+    for (const { snapshot } of resolved) {
+      this.accept(this.authority.transactTaskFlow({
+        type: "DERIVE_ACCEPTANCE_EVIDENCE_V2",
+        goalId: state.goalId,
+        attemptId: snapshot.attempt.attempt_id,
+        terminalTransitionId: snapshot.transitionId,
+      }, this.adapter.mutation(`task-flow:evidence-v2:${canonicalJsonSha256({
+        attemptId: snapshot.attempt.attempt_id,
+        terminalTransitionId: snapshot.transitionId,
+      })}`)));
     }
-    return `EvidenceAttestation PASS for ${obligationKeys.join(", ")}; baseline=${baseline.baseline_id}.`;
+    return `AcceptanceEvidenceV2 recorded for ${obligationKeys.join(", ")}; baseline=${baseline.baseline_id}.`;
   }
 
   private transitionPending(

@@ -31,6 +31,7 @@ import {
   type WorkShardRecord,
   type WorkShardStatus,
 } from "./domain.js";
+import { scopeContains, scopesMayOverlap } from "./scope-path.js";
 
 interface RunHeadRow {
   readonly run_id: string;
@@ -71,6 +72,7 @@ export interface HarnessCurrentView {
   readonly workspaceId: string;
   readonly requestedTopology: "SINGLE" | "MULTI";
   readonly effectiveTopology: "SINGLE" | "MULTI";
+  readonly topologyReasonCode: string;
   readonly topologyRevision: number;
   readonly status: ManagedRunStatus;
   readonly nextReadyShardId: string | null;
@@ -162,10 +164,6 @@ function integer(value: unknown, label: string, minimum = 0): number {
   return result;
 }
 
-function rootsOverlap(left: string, right: string): boolean {
-  return left === "." || right === "." || left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
-}
-
 function graphReaches(graph: ReadonlyMap<string, readonly string[]>, from: string, target: string): boolean {
   const pending = [...(graph.get(from) ?? [])];
   const visited = new Set<string>();
@@ -185,16 +183,8 @@ function parseJson<T>(value: unknown, label: string): T {
   catch (error) { throw new AuthorityIntegrityError(`${label} is invalid JSON`, error); }
 }
 
-function normalizedRoot(value: string): string {
-  return value.replaceAll("\\", "/").replace(/^\.\//u, "").replace(/\/+$/u, "").toLowerCase();
-}
-
 function containedByAny(candidate: string, allowed: readonly string[]): boolean {
-  const normalized = normalizedRoot(candidate);
-  return allowed.some((root) => {
-    const parent = normalizedRoot(root);
-    return parent === "." || parent === "" || normalized === parent || normalized.startsWith(`${parent}/`);
-  });
+  return allowed.some((root) => scopeContains(root, candidate));
 }
 
 function assertAcyclic(shards: ReadonlyMap<string, readonly string[]>): void {
@@ -356,8 +346,8 @@ export class HarnessRepository {
     for (let leftIndex = 0; leftIndex < scopes.length; leftIndex += 1) {
       for (let rightIndex = leftIndex + 1; rightIndex < scopes.length; rightIndex += 1) {
         const left = scopes[leftIndex]!; const right = scopes[rightIndex]!;
-        const conflicts = left.writes.some((root) => [...right.reads, ...right.writes].some((other) => rootsOverlap(root, other)))
-          || right.writes.some((root) => left.reads.some((other) => rootsOverlap(root, other)));
+        const conflicts = left.writes.some((root) => [...right.reads, ...right.writes].some((other) => scopesMayOverlap(root, other)))
+          || right.writes.some((root) => left.reads.some((other) => scopesMayOverlap(root, other)));
         if (conflicts && !graphReaches(graph, left.id, right.id) && !graphReaches(graph, right.id, left.id)) {
           throw new AuthorityIntegrityError("Conflicting WorkShard read/write scopes require an explicit dependency");
         }
@@ -839,8 +829,12 @@ export class HarnessRepository {
 
   currentView(goalId: string): HarnessCurrentView | null {
     this.assertAvailable();
-    const run = this.connection.prepare(`SELECT r.run_id,r.goal_id,r.workspace_id,h.requested_topology,h.effective_topology,h.topology_revision,h.status
-      FROM managed_runs_v1 r JOIN managed_run_heads_v1 h ON h.run_id=r.run_id WHERE r.goal_id=?`).get(goalId) as Record<string, unknown> | undefined;
+    const run = this.connection.prepare(`SELECT r.run_id,r.goal_id,r.workspace_id,h.requested_topology,h.effective_topology,
+        h.topology_revision,h.status,t.reason_code
+      FROM managed_runs_v1 r
+      JOIN managed_run_heads_v1 h ON h.run_id=r.run_id
+      JOIN topology_revisions_v1 t ON t.run_id=h.run_id AND t.revision=h.topology_revision
+      WHERE r.goal_id=?`).get(goalId) as Record<string, unknown> | undefined;
     if (!run) return null;
     const runId = text(run.run_id, "run_id");
     const shardRows = this.connection.prepare(`SELECT s.shard_id,s.work_cell_id,s.role,h.status,h.attempt_count,h.latest_worker_run_id,h.result_sha256
@@ -854,6 +848,7 @@ export class HarnessRepository {
       runId, goalId: text(run.goal_id, "goal_id"), workspaceId: text(run.workspace_id, "workspace_id"),
       requestedTopology: text(run.requested_topology, "requested_topology") as HarnessCurrentView["requestedTopology"],
       effectiveTopology: text(run.effective_topology, "effective_topology") as HarnessCurrentView["effectiveTopology"],
+      topologyReasonCode: text(run.reason_code, "reason_code"),
       topologyRevision: integer(run.topology_revision, "topology_revision", 1), status: text(run.status, "status") as ManagedRunStatus,
       nextReadyShardId: ready ? text(ready.shard_id, "ready shard") : null,
       unresolvedWorkerRunIds: unresolved.map((row) => text(row.worker_run_id, "worker_run_id")),

@@ -19,9 +19,18 @@ import { migrateInputContextStore } from "../input-context/migrate.js";
 import { InputContextRepository } from "../input-context/repository.js";
 import { migrateTaskFlowStore } from "../task-flow/migrate.js";
 import { TaskFlowRepository } from "../task-flow/repository.js";
+import { SessionGoalBindingRepository } from "../task-flow/session-binding.js";
+import { AcceptanceAuthorityV2Repository } from "../acceptance-v2/repository.js";
+import { AcceptanceEvidenceV2Repository } from "../acceptance-v2/evidence-repository.js";
+import { AcceptanceCompletionV2Repository } from "../acceptance-v2/completion-repository.js";
+import { AcceptanceDeliveryV2Repository } from "../acceptance-v2/delivery-repository.js";
+import { IntakeAuthorityV2Repository } from "../intake-v2/repository.js";
+import { PlanAuthorityV2Repository } from "../plan-v2/repository.js";
 import { migrateHarnessStore } from "../harness/migrate.js";
 import { migrateHarnessPostStore } from "../harness/post-migrate.js";
 import { HarnessRepository } from "../harness/repository.js";
+import { ExecutionV2Repository } from "../harness/execution-v2/repository.js";
+import { ProviderCallPlanV1Repository } from "../provider-v2/repository.js";
 import { HarnessCompactionRepository } from "../context/compaction-v21/repository.js";
 import { CacheV2Repository } from "../cache-v2/repository.js";
 import { TargetPerformanceRepository } from "../performance/task-flow-repository.js";
@@ -37,7 +46,20 @@ const lifecycleMigrationNames = [
   "memory_checkpoint", "memory_v3_vault", "memory_v3_lifecycle", "memory_v3_1_capture",
   "task_flow_kernel_v1", "input_context_v1", "coding_harness_v1", "cache_v2",
   "compaction_v2_1", "provider_turn_ledger_v2", "target_performance_receipts",
-  "control_plane_v2", "patch_transaction_v1",
+  "control_plane_v2", "patch_transaction_v1", "authority_acceptance_v2", "intake_decision_goal_fit_v2",
+  "plan_change_invalidation_v2", "dynamic_multi_v2",
+  "active_goal_change_intake_v2",
+  "goal_fit_assessment_v2",
+  "goal_fit_review_identity_v2",
+  "change_acceptance_v2",
+  "dynamic_multi_execution_v2",
+  "provider_call_plan_v2",
+  "provider_turn_goal_binding_v1",
+  "dynamic_multi_integration_journal_v2",
+  "strong_single_rollout_registry_v1",
+  "workload_comparability_v1",
+  "dynamic_multi_proposal_v2",
+  "session_goal_binding_v1",
 ] as const;
 const installMarkerName = "install.marker.json";
 
@@ -285,16 +307,25 @@ function applyMigrations(path: string, packageRoot: string): readonly MigrationR
     results.push(migrateInputContextStore(connection, migrationPath(packageRoot, "012_input_context_v1.sql")));
     results.push(migrateHarnessStore(connection, migrationPath(packageRoot, "013_coding_harness_v1.sql")));
     results.push(...migrateHarnessPostStore(connection, join(packageRoot, "schemas", "sql")));
-    verifyMigratedAuthority(connection, path);
+    verifyLifecycleAuthorityIntegrity(connection, path);
     return results;
   } finally { closeAuthorityConnection(connection); }
 }
 
-function verifyMigratedAuthority(connection: AuthorityConnection, path: string): void {
+export function verifyLifecycleAuthorityIntegrity(connection: AuthorityConnection, path: string): void {
   verifyAuthorityIntegrity(connection);
   new TaskFlowRepository(connection).verifyIntegrity();
+  new SessionGoalBindingRepository(connection).verifyIntegrity();
+  new AcceptanceAuthorityV2Repository(connection).verifyIntegrity();
+  new AcceptanceEvidenceV2Repository(connection).verifyIntegrity();
+  new AcceptanceCompletionV2Repository(connection).verifyIntegrity();
+  new AcceptanceDeliveryV2Repository(connection).verifyIntegrity();
+  new IntakeAuthorityV2Repository(connection).verifyIntegrity();
+  new PlanAuthorityV2Repository(connection).verifyIntegrity();
   new InputContextRepository(connection).verifyIntegrity();
   new HarnessRepository(connection).verifyIntegrity();
+  new ExecutionV2Repository(connection).verifyIntegrity();
+  new ProviderCallPlanV1Repository(connection).verifyIntegrity();
   new HarnessCompactionRepository(connection).verifyIntegrity();
   new CacheV2Repository(connection).verifyIntegrity();
   new TargetPerformanceRepository(connection).verifyIntegrity();
@@ -309,7 +340,7 @@ function verifyCurrentAuthority(path: string): void {
     if (assertSupportedMigrationVersion(connection) !== SUPPORTED_MIGRATION_VERSION) {
       throw new AuthorityIntegrityError(`Authority schema is not current: ${path}`);
     }
-    verifyMigratedAuthority(connection, path);
+    verifyLifecycleAuthorityIntegrity(connection, path);
   } finally { closeAuthorityConnection(connection); }
 }
 

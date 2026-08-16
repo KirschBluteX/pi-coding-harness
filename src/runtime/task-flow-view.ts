@@ -8,6 +8,7 @@ export interface TaskFlowStatusView {
   readonly routeHealth: string;
   readonly nextAction: string;
   readonly blocker: string | null;
+  readonly unresolvedOperationIds: readonly string[];
 }
 
 export type TaskFlowDetail =

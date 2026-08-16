@@ -1,10 +1,7 @@
 import {
-  existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync,
-} from "node:fs";
-import {
   access as accessFile, glob, mkdir, readFile, readdir, stat, writeFile,
 } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { isAbsolute, relative, resolve } from "node:path";
 import {
   createAgentSession, createEditToolDefinition, createLsToolDefinition, createReadToolDefinition,
@@ -14,22 +11,21 @@ import {
 import { Type, type TSchema } from "typebox";
 import { canonicalJson } from "../../authority/canonical-json.js";
 import type { WorkerRuntimePolicyConfig } from "../../config/types.js";
-import { hmacSha256Hex, sha256Hex } from "../../foundation/crypto.js";
+import { hmacSha256Hex } from "../../foundation/crypto.js";
 import type {
-  HarnessWorkerExecution, HarnessWorkerPatchInput, HarnessSubmittedResult, TaskFlowSession,
+  HarnessWorkerExecution, HarnessSubmittedResult, TaskFlowSession,
 } from "../../runtime/task-flow-session.js";
 import { workerRoles, type WorkerUsage } from "../domain.js";
+import { minimalScopePaths, scopeContains, scopePathKey } from "../scope-path.js";
+import { ScopedWorkerMirror } from "./scoped-mirror.js";
 import {
   resolveWorkerRuntimeMap, rolePolicyNeedsModelCatalog,
   type WorkerRuntimeMap, type WorkerRuntimeSelection,
 } from "./runtime-policy.js";
 
-const ignored = new Set([".git", ".coding-harness", ".pi", "node_modules", "dist", "build", ".cache"]);
-const credentialFiles = new Set([".npmrc", ".pypirc", ".netrc", "auth.json", "credentials.json", "id_rsa", "id_ed25519"]);
-const maximumFiles = 8_192;
-const maximumBytes = 128 * 1024 * 1024;
-
 export type { WorkerRuntimeMap, WorkerRuntimeSelection } from "./runtime-policy.js";
+
+const maximumFiles = 8_192;
 
 interface WorkerAgent {
   prompt(text: string): Promise<void>;
@@ -61,38 +57,21 @@ export interface MultiWorkerExecutorOptions {
   readonly now?: () => number;
 }
 
-interface FileSnapshot {
-  readonly sha256: string;
-}
-
-interface Sandbox {
-  readonly root: string;
-  readonly before: ReadonlyMap<string, FileSnapshot>;
-  readonly writeRoots: readonly string[];
-}
-
-function ignoredEntry(name: string): boolean {
-  const lower = name.toLowerCase();
-  if (ignored.has(name) || credentialFiles.has(lower)) return true;
-  return /^\.env(?:\..+)?$/u.test(lower) && !/^\.env\.(?:example|sample|template)$/u.test(lower);
-}
-
 function contained(root: string, candidate: string): boolean {
   const delta = relative(resolve(root), resolve(candidate));
   return delta === "" || (!delta.startsWith("..") && !isAbsolute(delta));
 }
 
 function canonicalRoot(value: string): string {
-  const normalized = value.normalize("NFC").trim().replaceAll("\\", "/").replace(/^\.\//u, "").replace(/\/+$/u, "");
-  if (normalized === ".") return normalized;
-  if (!normalized || isAbsolute(normalized) || normalized.split("/").some((part) => part === "" || part === "." || part === "..")) {
-    throw new TypeError(`Worker scope is invalid: ${value}`);
-  }
-  return normalized;
+  return scopePathKey(value).normalized;
+}
+
+function minimalRoots(values: readonly string[]): string[] {
+  return minimalScopePaths(values.map(canonicalRoot));
 }
 
 function withinRoots(path: string, roots: readonly string[]): boolean {
-  return roots.some((root) => root === "." || path === root || path.startsWith(`${root}/`));
+  return roots.some((root) => scopeContains(root, path));
 }
 
 function sandboxPath(root: string, candidate: string): string {
@@ -111,7 +90,7 @@ function writableSandboxPath(root: string, writeRoots: readonly string[], candid
 function writableSandboxDirectory(root: string, writeRoots: readonly string[], candidate: string): string {
   const target = sandboxPath(root, candidate);
   const scoped = relative(root, target).replaceAll("\\", "/") || ".";
-  const ownsDescendant = writeRoots.some((writeRoot) => writeRoot === "." || writeRoot.startsWith(`${scoped}/`));
+  const ownsDescendant = writeRoots.some((writeRoot) => scopeContains(scoped, writeRoot));
   if (!withinRoots(scoped, writeRoots) && !ownsDescendant) {
     throw new TypeError(`Worker tool directory is outside its write roots: ${scoped}`);
   }
@@ -229,89 +208,6 @@ export function createSandboxedWorkerTools(
   });
 }
 
-function minimalRoots(values: readonly string[]): string[] {
-  const ordered = [...new Set(values.map(canonicalRoot))]
-    .sort((left, right) => left.split("/").length - right.split("/").length || left.localeCompare(right));
-  return ordered.filter((value, index) => !ordered.slice(0, index).some((root) => withinRoots(value, [root])));
-}
-
-function snapshot(root: string): Map<string, FileSnapshot> {
-  const result = new Map<string, FileSnapshot>();
-  let bytes = 0;
-  const visit = (directory: string): void => {
-    for (const name of readdirSync(directory)) {
-      if (ignoredEntry(name)) continue;
-      const absolute = resolve(directory, name);
-      const entry = lstatSync(absolute);
-      if (entry.isSymbolicLink()) throw new TypeError(`Worker sandbox contains a symbolic link: ${absolute}`);
-      if (entry.isDirectory()) visit(absolute);
-      else if (entry.isFile()) {
-        const content = readFileSync(absolute);
-        bytes += content.byteLength;
-        if (result.size >= maximumFiles || bytes > maximumBytes) throw new TypeError("Worker sandbox exceeds its bounded file or byte budget");
-        result.set(relative(root, absolute).replaceAll("\\", "/"), { sha256: sha256Hex(content) });
-      }
-    }
-  };
-  visit(root);
-  return result;
-}
-
-function createSandbox(workspace: string, execution: HarnessWorkerExecution): Sandbox {
-  const root = mkdtempSync(resolve(tmpdir(), "pi-coding-worker-"));
-  const readRoots = minimalRoots([...execution.shard.read_roots, ...execution.shard.write_roots]);
-  const writeRoots = minimalRoots(execution.shard.write_roots);
-  const before = new Map<string, FileSnapshot>();
-  let copiedBytes = 0;
-  try {
-    for (const scoped of readRoots) {
-      const source = resolve(workspace, scoped);
-      if (!contained(workspace, source) || !existsSync(source)) continue;
-      const copy = (from: string, relativePath: string): void => {
-        const entry = lstatSync(from);
-        if (entry.isSymbolicLink()) throw new TypeError(`Worker scope resolves through a symbolic link: ${relativePath}`);
-        const destination = resolve(root, relativePath);
-        if (entry.isDirectory()) {
-          mkdirSync(destination, { recursive: true });
-          for (const name of readdirSync(from)) if (!ignoredEntry(name)) copy(resolve(from, name), `${relativePath}/${name}`);
-        } else if (entry.isFile()) {
-          const content = readFileSync(from);
-          copiedBytes += content.byteLength;
-          if (before.size >= maximumFiles || copiedBytes > maximumBytes) {
-            throw new TypeError("Worker sandbox exceeds its bounded file or byte budget");
-          }
-          mkdirSync(resolve(destination, ".."), { recursive: true });
-          writeFileSync(destination, content);
-          before.set(relative(root, destination).replaceAll("\\", "/"), { sha256: sha256Hex(content) });
-        }
-      };
-      copy(source, scoped);
-    }
-    return { root, before, writeRoots };
-  } catch (error) {
-    rmSync(root, { recursive: true, force: true });
-    throw error;
-  }
-}
-
-function diffSandbox(sandbox: Sandbox): HarnessWorkerPatchInput[] {
-  const after = snapshot(sandbox.root);
-  const paths = [...new Set([...sandbox.before.keys(), ...after.keys()])].sort();
-  const patches: HarnessWorkerPatchInput[] = [];
-  for (const path of paths) {
-    const before = sandbox.before.get(path); const current = after.get(path);
-    if (before?.sha256 === current?.sha256) continue;
-    if (!withinRoots(path, sandbox.writeRoots)) throw new TypeError(`Worker changed a path outside its write roots: ${path}`);
-    const content = current === undefined ? null : readFileSync(resolve(sandbox.root, path));
-    patches.push(before === undefined
-      ? { operation: "CREATE", path, beforeSha256: null, content: content! }
-      : current === undefined
-        ? { operation: "DELETE", path, beforeSha256: before.sha256, content: null }
-        : { operation: "MODIFY", path, beforeSha256: before.sha256, content: content! });
-  }
-  return patches;
-}
-
 function workerPrompt(execution: HarnessWorkerExecution): string {
   return [
     `Role: ${execution.worker.role}`,
@@ -378,12 +274,14 @@ export class MultiWorkerExecutor {
     const runtime = runtimeResolution.runtime;
     const tools = ["read", "grep", "find", "ls", ...(execution.worker.role === "IMPLEMENTER" || execution.worker.role === "INTEGRATOR" ? ["edit", "write"] : [])];
     const startedAt = this.now();
-    let sandbox: Sandbox | null = null;
+    let sandbox: ScopedWorkerMirror | null = null;
     let agent: WorkerAgent | null = null;
     let timedOut = false;
     const abort = (): void => { if (agent) void agent.abort(); };
     try {
-      sandbox = createSandbox(taskFlow.workspaceRoot(), execution);
+      sandbox = ScopedWorkerMirror.create(
+        taskFlow.workspaceRoot(), execution.shard.read_roots, execution.shard.write_roots,
+      );
       agent = await this.createWorker({
         cwd: sandbox.root, role: execution.worker.role, tools, writeRoots: sandbox.writeRoots,
         systemPrompt: workerPrompt(execution), runtime,
@@ -413,7 +311,7 @@ export class MultiWorkerExecutor {
       }
       if (signal?.aborted) throw Object.assign(new Error("Worker aborted"), { name: "AbortError" });
       const usage = workerUsage(agent, startedAt, this.now);
-      const patches = diffSandbox(sandbox);
+      const patches = sandbox.diff();
       if (!["IMPLEMENTER", "INTEGRATOR"].includes(execution.worker.role) && patches.length > 0) {
         throw new TypeError(`${execution.worker.role} worker attempted to modify files`);
       }
@@ -433,7 +331,7 @@ export class MultiWorkerExecutor {
     } finally {
       signal?.removeEventListener("abort", abort);
       agent?.dispose();
-      if (sandbox) rmSync(sandbox.root, { recursive: true, force: true });
+      sandbox?.dispose();
     }
   }
 

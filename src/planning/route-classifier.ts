@@ -15,6 +15,14 @@ export function classifySpecificationRoute(facts: IntakeFacts): SpecificationCla
     return { route: "PRD", reasonCodes: reasons, additionalModelRequests: 0 };
   }
 
+  if (facts.semanticAssessment === "UNRESOLVED" && facts.structuralComplexity >= 3) {
+    return {
+      route: "PRD",
+      reasonCodes: ["STRUCTURAL_COMPLEXITY_REQUIRES_REVIEW"],
+      additionalModelRequests: 0,
+    };
+  }
+
   if (facts.objectiveClear && facts.filesKnown && facts.acceptanceClear && facts.lowRisk && facts.expectedSteps <= 1) {
     return { route: "BUILD_LIGHT", reasonCodes: ["CLEAR_LOW_RISK_SINGLE_STAGE"], additionalModelRequests: 0 };
   }

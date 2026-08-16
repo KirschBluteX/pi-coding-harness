@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from "node:path";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { canonicalJsonSha256 } from "../../authority/canonical-json.js";
+import { canonicalJsonSha256, type CanonicalJson } from "../../authority/canonical-json.js";
 import { assertWalRuntimeSafe } from "../../authority/sqlite-runtime.js";
 import { loadConfig } from "../../config/load-config.js";
 import { resolveHarnessRuntimeConfig, type HarnessRuntimeResolution } from "../../config/runtime-resolution.js";
@@ -8,11 +8,49 @@ import { normalizeToolEffect, type ToolInvocation } from "../../effects/normaliz
 import type { ContextProjectionDelta } from "../../input-context/projection-delta.js";
 import type { ClarificationDecision } from "../../planning/clarification.js";
 import { hmacSha256Hex } from "../../foundation/crypto.js";
-import { TaskFlowSession, type HarnessShardProposal, type TaskFlowAttestationInput } from "../../runtime/task-flow-session.js";
-import type { GoalContractProposal, RouteProposal } from "../../task-flow/finalize.js";
-import type { RouteRevisionPatch } from "../../task-flow/route-revision.js";
+import { createId } from "../../foundation/ids.js";
+import {
+  TaskFlowSession, type OutcomeEvidenceReviewInput, type TaskFlowAttestationInput,
+} from "../../runtime/task-flow-session.js";
+import type { GoalContractAuthorityProposalV2, RouteAuthorityProposalV2 } from "../../task-flow/finalize.js";
+import {
+  parseSessionGoalBindingMarker,
+  toSessionGoalBindingMarker,
+  type SessionGoalBindingMarkerV1,
+} from "../../task-flow/session-binding.js";
+import type { RouteRevisionAuthorityPatchV2 } from "../../task-flow/route-revision.js";
 import type { ExecutionTopology } from "../domain.js";
-import type { MultiWorkerExecutor } from "../worker/executor.js";
+import { piRuntimeFingerprintSha256 } from "../runtime-fingerprint.js";
+import {
+  DynamicMultiCoordinator,
+  type DynamicMultiEvidencePortV2,
+  type DynamicMultiIntegrationPortV2,
+  type DynamicMultiJobViewV2,
+  type DynamicMultiOraclePortV2,
+  type DynamicMultiWorkerPortV2,
+} from "../execution-v2/coordinator.js";
+import { finalizeExecutionStopV2 } from "../execution-v2/domain.js";
+import {
+  finalizeTopologyMeasurementEvidenceReceiptV2,
+  finalizeTopologyMeasurementReceiptV2,
+} from "../../harness-v2/topology-gate.js";
+import {
+  finalizeStrongSingleRolloutReceiptV1,
+  type StrongSingleRolloutPreparationV1,
+} from "../../harness-v2/strong-single-rollout.js";
+import {
+  finalizeStrongSingleWorkloadBindingV1,
+  type ComparableWorkloadV1,
+} from "../../harness-v2/workload-comparability.js";
+import { finalizeDynamicMultiProposalReceiptV2 } from "../../harness-v2/dynamic-multi-proposal.js";
+import {
+  inspectDynamicMultiProposalV2,
+  lowerInspectedDynamicMultiV2,
+  type HostDynamicMultiAdmissionEvidenceV2,
+  type HostDynamicMultiAdmissionRequestV2,
+  type InspectedDynamicMultiProposalV2,
+} from "./dynamic-multi-lowering.js";
+import { projectDecisionInboxV2 } from "./decision-inbox.js";
 import { HarnessContextRuntime } from "./context-runtime.js";
 import { CacheV2Runtime } from "../../cache-v2/runtime.js";
 import type { ContextToolRequest } from "../../input-context/context-tool.js";
@@ -27,6 +65,8 @@ import {
   type HostMethod,
   type HostParams,
   type HostResult,
+  type HostStatus,
+  type HostPresentationV2,
 } from "./application-protocol.js";
 
 export interface CodingHarnessHostOptions {
@@ -35,22 +75,59 @@ export interface CodingHarnessHostOptions {
   readonly hostSecret: Uint8Array;
   readonly dataRoot?: string;
   readonly now?: () => number;
+  readonly dynamicMulti?: DynamicMultiHostPortsV2 | DynamicMultiHostPortsFactoryV2;
+}
+
+export type DynamicMultiAdmissionAssessmentV2 = HostDynamicMultiAdmissionEvidenceV2;
+export type DynamicMultiAdmissionInputV2 = HostDynamicMultiAdmissionRequestV2;
+
+export interface DynamicMultiHostPortsV2 {
+  measure(input: DynamicMultiAdmissionInputV2, inspected?: InspectedDynamicMultiProposalV2):
+    DynamicMultiAdmissionAssessmentV2 | null | Promise<DynamicMultiAdmissionAssessmentV2 | null>;
+  readonly worker: DynamicMultiWorkerPortV2;
+  readonly evidence: DynamicMultiEvidencePortV2;
+  readonly oracle: DynamicMultiOraclePortV2;
+  readonly integration?: DynamicMultiIntegrationPortV2;
+}
+
+export interface DynamicMultiHostPortsFactoryV2 {
+  create(input: {
+    readonly session: TaskFlowSession;
+    readonly workspace: string;
+    readonly now: () => number;
+  }): DynamicMultiHostPortsV2;
+}
+
+interface RuntimeParams {
+  readonly provider: string;
+  readonly api: string;
+  readonly base_url?: string;
+  readonly model: string;
+  readonly thinking_level: string;
+  readonly context_window: number;
 }
 
 interface EnterParams {
   readonly cwd: string;
   readonly session_id: string;
+  readonly entry_mode: "LEGACY" | "NEW" | "RESUME" | "RECOVER";
   readonly objective: string;
   readonly intent: "PLAN" | "BUILD";
   readonly topology: ExecutionTopology;
-  readonly runtime: {
-    readonly provider: string;
-    readonly api: string;
-    readonly base_url?: string;
-    readonly model: string;
-    readonly thinking_level: string;
-    readonly context_window: number;
-  };
+  readonly runtime: RuntimeParams;
+}
+
+type EnterRequest =
+  | (Omit<EnterParams, "entry_mode"> & { readonly entry_mode: "LEGACY" | "NEW" })
+  | { readonly cwd: string; readonly session_id: string; readonly entry_mode: "RESUME";
+      readonly binding_marker: SessionGoalBindingMarkerV1; readonly runtime: RuntimeParams }
+  | { readonly cwd: string; readonly session_id: string; readonly entry_mode: "RECOVER";
+      readonly goal_id: string; readonly allow_transfer: boolean; readonly runtime: RuntimeParams };
+
+interface StrongSingleRolloutCaptureV1 {
+  readonly preparation: StrongSingleRolloutPreparationV1;
+  readonly runtimeFingerprintSha256: string;
+  readonly workload: ComparableWorkloadV1;
 }
 
 interface SelectedClarification extends ClarificationDecision {
@@ -69,6 +146,26 @@ function text(value: unknown, label: string, maximum = 131_072): string {
   return value;
 }
 
+function wellFormedUnicode(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (index + 1 >= value.length || next < 0xdc00 || next > 0xdfff) return false;
+      index += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) return false;
+  }
+  return true;
+}
+
+function rawByteBoundedText(value: unknown, label: string, maximumBytes: number): string {
+  if (typeof value !== "string" || !value.trim() || !wellFormedUnicode(value)
+    || Buffer.byteLength(value, "utf8") > maximumBytes) {
+    throw new TypeError(`${label} is invalid`);
+  }
+  return value;
+}
+
 function oneOf<T extends string>(value: unknown, allowed: readonly T[], label: string): T {
   if (typeof value !== "string" || !allowed.includes(value as T)) throw new TypeError(`${label} is invalid`);
   return value as T;
@@ -79,22 +176,100 @@ function integer(value: unknown, label: string, minimum = 1, maximum = Number.MA
   return Number(value);
 }
 
-function enterParams(value: unknown): EnterParams {
+function runtimeParams(value: unknown): RuntimeParams {
+  const runtime = record(value, "runtime");
+  return {
+    provider: text(runtime.provider, "runtime.provider", 256), api: text(runtime.api, "runtime.api", 256),
+    ...(runtime.base_url === undefined ? {} : { base_url: text(runtime.base_url, "runtime.base_url", 2_048) }),
+    model: text(runtime.model, "runtime.model", 512),
+    thinking_level: text(runtime.thinking_level, "runtime.thinking_level", 64),
+    context_window: integer(runtime.context_window, "runtime.context_window", 1),
+  };
+}
+
+const lifecycleStages = ["INTAKE", "CONTRACT", "PLAN", "BUILD", "VERIFY", "DELIVER"] as const;
+
+function projectHostPresentation(input: {
+  readonly phase: string;
+  readonly nextAction: string;
+  readonly blocker: string | null;
+  readonly harnessStatus: string | null;
+  readonly pendingKinds: readonly string[];
+  readonly authorityEventSequence: number;
+  readonly revision: number;
+}): HostPresentationV2 {
+  const terminal = input.phase === "SUCCEEDED" ? "COMPLETED" as const
+    : input.phase === "FAILED" ? "FAILED" as const
+      : input.phase === "CANCELED" ? "CANCELED" as const : null;
+  const verification = /(?:VERIFY|VALIDAT|ATTEST|EVIDENCE|COMPLETE|PRESERV|CLOSE)/iu.test(input.nextAction);
+  const hasContract = input.pendingKinds.includes("CONTRACT_REVIEW") || input.nextAction === "REVIEW_CONTRACT";
+  const hasClarification = input.pendingKinds.includes("CLARIFICATION") || input.nextAction === "ASK_USER";
+  const hasPlan = input.pendingKinds.includes("PLAN_CONTINUATION") || input.nextAction === "PLAN_CONTINUATION";
+  const reconcile = input.phase === "RECONCILING" || /RECONCILE/iu.test(input.nextAction);
+  const currentStage: HostPresentationV2["lifecycle"]["current_stage"] = terminal ? "DELIVER"
+    : input.phase === "CONTRACTING" || hasContract ? "CONTRACT"
+      : input.phase === "PLANNING" || hasPlan ? "PLAN"
+        : verification ? "VERIFY"
+          : input.phase === "BUILDING" || reconcile || input.harnessStatus === "PAUSED" ? "BUILD" : "INTAKE";
+  const currentIndex = lifecycleStages.indexOf(currentStage);
+  const presentationState: HostPresentationV2["presentation_state_code"] = terminal
+    ?? (input.harnessStatus === "PAUSED" ? "PAUSED"
+      : reconcile ? "RECONCILING"
+        : hasContract || hasClarification || hasPlan ? "WAITING_FOR_YOU"
+          : input.phase === "PLANNING" ? "PLANNING"
+            : input.phase === "BUILDING" && verification ? "VERIFYING"
+              : input.phase === "BUILDING" ? "BUILDING" : "DEFINING_GOAL");
+  const attention: HostPresentationV2["attention"] = input.blocker !== null || reconcile ? "BLOCKING"
+    : hasContract || hasClarification || hasPlan ? "ACTION_REQUIRED" : "NONE";
+  const primaryTarget: HostPresentationV2["primary_target"] = hasContract ? "CONTRACT_REVIEW"
+    : hasClarification ? "CLARIFICATION"
+      : hasPlan ? "PLAN_CONTINUATION"
+        : reconcile ? "RECONCILE"
+          : terminal ? "DELIVERABLE"
+            : verification ? "VERIFY" : "WORK";
+  return {
+    schema_version: 2,
+    presentation_state_code: presentationState,
+    attention,
+    primary_target: primaryTarget,
+    authority_event_sequence: input.authorityEventSequence,
+    lifecycle: {
+      revision: Math.max(1, input.revision),
+      current_stage: currentStage,
+      steps: lifecycleStages.map((code, index) => ({
+        code,
+        state: input.phase === "SUCCEEDED" || index < currentIndex ? "COMPLETE"
+          : index === currentIndex ? "ACTIVE" : "PENDING",
+      })),
+    },
+  };
+}
+
+function enterParams(value: unknown): EnterRequest {
   const row = record(value, "enter params");
   const cwd = text(row.cwd, "cwd", 4_096);
   if (!isAbsolute(cwd)) throw new TypeError("cwd must be absolute");
-  const runtime = record(row.runtime, "runtime");
+  const common = {
+    cwd: resolve(cwd), session_id: text(row.session_id, "session_id", 256), runtime: runtimeParams(row.runtime),
+  };
+  if (row.entry_mode === "RESUME") {
+    const marker = parseSessionGoalBindingMarker(row.binding_marker);
+    if (!marker) throw new TypeError("binding_marker is invalid");
+    return { ...common, entry_mode: "RESUME", binding_marker: marker };
+  }
+  if (row.entry_mode === "RECOVER") {
+    if (typeof row.allow_transfer !== "boolean") throw new TypeError("allow_transfer is invalid");
+    return {
+      ...common, entry_mode: "RECOVER", goal_id: text(row.goal_id, "goal_id", 256),
+      allow_transfer: row.allow_transfer,
+    };
+  }
   return {
-    cwd: resolve(cwd), session_id: text(row.session_id, "session_id", 256), objective: text(row.objective, "objective"),
+    ...common,
+    entry_mode: row.entry_mode === "NEW" ? "NEW" : "LEGACY",
+    objective: text(row.objective, "objective"),
     intent: oneOf(row.intent, ["PLAN", "BUILD"] as const, "intent"),
     topology: oneOf(row.topology, ["SINGLE", "MULTI"] as const, "topology"),
-    runtime: {
-      provider: text(runtime.provider, "runtime.provider", 256), api: text(runtime.api, "runtime.api", 256),
-      ...(runtime.base_url === undefined ? {} : { base_url: text(runtime.base_url, "runtime.base_url", 2_048) }),
-      model: text(runtime.model, "runtime.model", 512),
-      thinking_level: text(runtime.thinking_level, "runtime.thinking_level", 64),
-      context_window: integer(runtime.context_window, "runtime.context_window", 1),
-    },
   };
 }
 
@@ -104,15 +279,18 @@ export class CodingHarnessHostRuntime {
   private runtimeResolution: HarnessRuntimeResolution | null = null;
   private cacheRuntime: CacheV2Runtime | null = null;
   private readonly generationGovernor = new GenerationGovernor();
+  private readonly runtimeInstanceId = createId("HOST_INSTANCE");
   private entered: EnterParams | null = null;
+  private entryRequestSha256: string | null = null;
   private stopping = false;
   private leaseHeartbeat: ReturnType<typeof setInterval> | null = null;
-  private workers: Promise<MultiWorkerExecutor> | null = null;
+  private dynamicMultiPortsValue: DynamicMultiHostPortsV2 | null | undefined;
   private workerJob: {
     readonly id: string;
     readonly aborts: readonly AbortController[];
-    readonly workerCount: number;
+    workerCount: number;
     readonly startedAtMs: number;
+    readonly coordinator?: DynamicMultiCoordinator;
     state: "RUNNING" | "SUCCEEDED" | "FAILED" | "ABORTED";
     result: unknown;
     error: string | null;
@@ -138,11 +316,38 @@ export class CodingHarnessHostRuntime {
     }
     if (this.stopping) throw new TypeError("Coding Harness Host is stopping");
     if (method === "enter") return this.enter(params);
+    if (method === "discover_goals") return this.discoverGoals(params);
     const session = this.requiredSession();
+    if (method === "unbind_session") {
+      const row = record(params, "session unbind");
+      const current = session.sessionGoalBinding();
+      if (!current || current.bindingReceiptSha256 !== text(
+        row.expected_binding_receipt_sha256, "expected_binding_receipt_sha256", 64,
+      )) throw new TypeError("Session binding changed before exit");
+      session.unbindCurrentGoal();
+      return this.status();
+    }
+    if (method === "rename_goal") {
+      const row = record(params, "Goal rename");
+      const current = session.sessionGoalBinding();
+      if (!current || current.bindingReceiptSha256 !== text(
+        row.expected_binding_receipt_sha256, "expected_binding_receipt_sha256", 64,
+      )) throw new TypeError("Session binding changed before rename");
+      session.renameCurrentGoal(text(row.goal_title, "goal_title", 128));
+      return this.status();
+    }
     if (method === "update_runtime") {
       const row = record(params, "runtime update");
       const current = this.entered!;
-      this.entered = enterParams({ ...current, runtime: row });
+      const next = { ...current, runtime: runtimeParams(row) };
+      const harness = session.harnessView();
+      const execution = harness === null
+        ? null
+        : session.resources()?.authority.readExecutionV2(harness.runId, 1) ?? null;
+      if (execution && execution.graph.runtime_fingerprint_sha256 !== piRuntimeFingerprintSha256(next.runtime)) {
+        throw new TypeError("Pi runtime cannot change after a committed Execution V2 graph");
+      }
+      this.entered = next;
       this.contextRuntime?.updateRuntime(this.entered.runtime);
       return { runtime: this.entered.runtime };
     }
@@ -243,7 +448,7 @@ export class CodingHarnessHostRuntime {
         if (result > 1_000_000_000) throw new TypeError(`${label} exceeds its bound`);
         return result;
       };
-      const recorded = this.requiredContext().beginProviderTurn({
+      const providerAttemptId = this.requiredContext().beginProviderTurn({
         payloadShapeSha256: shape,
         history: {
           descriptorRootSha256: root,
@@ -260,7 +465,11 @@ export class CodingHarnessHostRuntime {
         try { cacheRequestId = this.cacheRuntime.prepare(this.entered.runtime, this.requiredContext().cacheSeed()); }
         catch { cacheRequestId = null; }
       }
-      return { recorded, cache_request_id: cacheRequestId };
+      return {
+        recorded: providerAttemptId !== null,
+        provider_attempt_id: providerAttemptId,
+        cache_request_id: cacheRequestId,
+      };
     }
     if (method === "provider_settle") {
       const row = record(params, "provider_settle params");
@@ -279,7 +488,10 @@ export class CodingHarnessHostRuntime {
           reasoning: nullableNumber(usage.reasoning, "usage.reasoning"),
         };
       })();
+      const providerAttemptId = row.provider_attempt_id === null
+        ? null : text(row.provider_attempt_id, "provider_attempt_id", 256);
       const ledgerSha256 = this.requiredContext().settleProviderTurn({
+        ...(providerAttemptId === null ? {} : { attemptId: providerAttemptId }),
         usage: parsedUsage,
         responseStatus: status,
         outcome: oneOf(row.outcome, ["RESPONDED", "FAILED", "OUTCOME_UNKNOWN"] as const, "outcome"),
@@ -307,6 +519,9 @@ export class CodingHarnessHostRuntime {
         throw new TypeError("generation_settled params must be null or an object");
       }
       try {
+        const rollout = this.captureStrongSingleRollout(session);
+        const settled = session.settleReadyWork();
+        if (settled !== null) this.recordStrongSingleRollout(session, rollout);
         return this.generationGovernor.settleAgentRun(this.generationFrontier());
       } finally {
         this.stopLeaseHeartbeat();
@@ -340,44 +555,128 @@ export class CodingHarnessHostRuntime {
       session.observeMemoryInput(value, row.goal_intake === true);
       return { observed: true };
     }
+    if (method === "active_goal_input") {
+      const row = record(params, "active_goal_input params");
+      await this.stopRunningWorkerJob();
+      const captured = session.captureActiveGoalInput(rawByteBoundedText(row.text, "active_goal_input.text", 131_072));
+      return {
+        message: `Active Goal user turn ${captured.user_turn_id} captured; mutation is fenced pending typed classification.`,
+        status: this.status(),
+      };
+    }
+    if (method === "classify_active_goal_input") {
+      const row = this.boundParams(params, "classify_active_goal_input");
+      if (!Array.isArray(row.changed_subjects)) throw new TypeError("changed_subjects must be an array");
+      const changedSubjects = row.changed_subjects.map((entry, index) => {
+        const subject = record(entry, `changed_subjects[${index}]`);
+        return {
+          kind: oneOf(subject.kind, ["REQUIREMENT", "DECISION", "WORK_CELL"] as const, "subject kind"),
+          id: text(subject.id, "subject id", 160),
+        };
+      });
+      return {
+        message: session.classifyActiveGoalInput({
+          user_turn_id: text(row.user_turn_id, "user_turn_id", 160),
+          expected_user_turn_sha256: text(row.expected_user_turn_sha256, "expected_user_turn_sha256", 64),
+          classification: oneOf(row.classification, [
+            "CORRECT_CURRENT", "QUEUE_NEXT", "CHANGE_REQUEST", "NEW_GOAL", "INTERRUPT_NOW", "DISCUSSION_ONLY",
+          ] as const, "classification"),
+          materiality: oneOf(row.materiality, ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const, "materiality"),
+          change_kind: row.change_kind === null ? null : oneOf(
+            row.change_kind, ["BEHAVIOR", "SCOPE", "ACCEPTANCE", "USER_PREFERENCE"] as const, "change_kind",
+          ),
+          changed_subjects: changedSubjects,
+        }),
+        status: this.status(),
+      };
+    }
     if (method === "memory_command") {
       return { message: session.memoryCommand(record(params, "memory command") as unknown as MemoryCommandRequest) };
     }
-    if (method === "submit_build") {
-      const row = this.boundParams(params, "submit_build");
+    if (method === "submit_contract") {
+      const row = this.boundParams(params, "submit_contract");
+      return { message: session.submitContract(row as unknown as GoalContractAuthorityProposalV2), status: this.status() };
+    }
+    if (method === "resolve_contract_review") {
+      const row = record(params, "resolve_contract_review params");
+      const action = oneOf(row.action, ["APPROVE", "REJECT", "EDIT", "DEFER"] as const, "action");
+      const expectedDecisionRequirementRevisionId = text(
+        row.expected_decision_requirement_revision_id, "expected_decision_requirement_revision_id", 160,
+      );
+      const expectedRequirementRevisionSha256 = text(
+        row.expected_requirement_revision_sha256, "expected_requirement_revision_sha256", 64,
+      );
+      const expectedDecisionFrontierSha256 = text(
+        row.expected_decision_frontier_sha256, "expected_decision_frontier_sha256", 64,
+      );
+      const selectedValue = row.selected_value as CanonicalJson;
+      const editedRequirementRevisionId = action === "EDIT"
+        ? text(row.edited_requirement_revision_id, "edited_requirement_revision_id", 160) : undefined;
+      const deferredTriggerSha256 = action === "DEFER"
+        ? text(row.deferred_trigger_sha256, "deferred_trigger_sha256", 64) : undefined;
+      const turnId = canonicalJsonSha256({
+        domain: "PCH-HOST-CONTRACT-REVIEW-INPUT-V1",
+        session_id: this.entered!.session_id,
+        expected_decision_requirement_revision_id: expectedDecisionRequirementRevisionId,
+        expected_requirement_revision_sha256: expectedRequirementRevisionSha256,
+        expected_decision_frontier_sha256: expectedDecisionFrontierSha256,
+        action,
+        selected_value: selectedValue,
+        edited_requirement_revision_id: editedRequirementRevisionId ?? null,
+        deferred_trigger_sha256: deferredTriggerSha256 ?? null,
+      });
       return {
-        message: session.submitBuild(
-          record(row.contract, "build contract") as unknown as GoalContractProposal,
-          record(row.route, "build route") as unknown as RouteProposal,
+        message: session.resolveContractReview({
+          expectedDecisionRequirementRevisionId, expectedRequirementRevisionSha256,
+          expectedDecisionFrontierSha256, action, selectedValue,
+          ...(editedRequirementRevisionId === undefined ? {} : { editedRequirementRevisionId }),
+          ...(deferredTriggerSha256 === undefined ? {} : { deferredTriggerSha256 }),
+          turnId,
+        }),
+        status: this.status(),
+      };
+    }
+    if (method === "submit_route") {
+      const row = this.boundParams(params, "submit_route");
+      return { message: session.submitRoute(row as unknown as RouteAuthorityProposalV2), status: this.status() };
+    }
+    if (method === "submit_route_revision") {
+      const row = this.boundParams(params, "submit_route_revision");
+      return { message: session.submitRouteRevision(row as unknown as RouteRevisionAuthorityPatchV2), status: this.status() };
+    }
+    if (method === "continue_plan") {
+      const row = this.boundParams(params, "continue_plan");
+      return {
+        message: session.resolvePlanContinuation(
+          oneOf(row.choice, ["BUILD", "KEEP", "REVISE"] as const, "choice"),
+          {
+            routeSha256: text(row.expected_route_sha256, "expected_route_sha256", 64),
+            planRevisionSha256: text(row.expected_plan_revision_sha256, "expected_plan_revision_sha256", 64),
+            stageGateSha256: text(row.expected_stage_gate_sha256, "expected_stage_gate_sha256", 64),
+          },
         ),
         status: this.status(),
       };
     }
-    if (method === "submit_contract") {
-      const row = this.boundParams(params, "submit_contract");
-      return { message: session.submitContract(row as unknown as GoalContractProposal), status: this.status() };
-    }
-    if (method === "submit_route") {
-      const row = this.boundParams(params, "submit_route");
-      return { message: session.submitRoute(row as unknown as RouteProposal), status: this.status() };
-    }
-    if (method === "submit_route_revision") {
-      const row = this.boundParams(params, "submit_route_revision");
-      return { message: session.submitRouteRevision(row as unknown as RouteRevisionPatch), status: this.status() };
-    }
-    if (method === "continue_plan") {
-      const row = record(params, "continue_plan params");
-      return { message: session.resolvePlanContinuation(oneOf(row.choice, ["BUILD", "KEEP", "REVISE"] as const, "choice")), status: this.status() };
-    }
     if (method === "define_shards") {
       const row = this.boundParams(params, "define_shards");
       if (!Array.isArray(row.shards)) throw new TypeError("shards must be an array");
-      return { harness: session.defineHarnessShards(row.shards as unknown as readonly HarnessShardProposal[]), status: this.status() };
+      return this.defineDynamicMultiGraph(session, row.shards);
     }
     if (method === "tool_preflight") {
       const invocation = this.boundParams(params, "tool_preflight") as unknown as ToolInvocation;
       const normalized = normalizeToolEffect(invocation);
       const harness = session.harnessView();
+      if (harness?.requestedTopology === "MULTI" && harness.effectiveTopology === "SINGLE"
+        && harness.topologyReasonCode === "MULTI_BENEFIT_EVIDENCE_REQUIRED"
+        && normalized.effectClass !== "READ_ONLY") {
+        return {
+          allow: false,
+          managed: true,
+          capture: false,
+          reason: "MULTI_PROPOSAL_REQUIRED_BEFORE_CANONICAL_MUTATION",
+        };
+      }
       if (harness?.effectiveTopology === "MULTI"
         && normalized.effectClass !== "READ_ONLY"
         && normalized.classificationReason !== "ALLOWLISTED_LOCAL_VALIDATION") {
@@ -427,8 +726,11 @@ export class CodingHarnessHostRuntime {
       return { message: session.attest(this.boundParams(params, "attest") as unknown as TaskFlowAttestationInput), status: this.status() };
     }
     if (method === "complete") {
-      this.boundParams(params, "complete");
-      return { message: session.completeWork(), status: this.status() };
+      const row = this.boundParams(params, "complete");
+      const rollout = this.captureStrongSingleRollout(session);
+      const message = session.completeWork(row as unknown as OutcomeEvidenceReviewInput);
+      this.recordStrongSingleRollout(session, rollout);
+      return { message, status: this.status() };
     }
     if (method === "reconcile") {
       const row = this.boundParams(params, "reconcile");
@@ -438,8 +740,8 @@ export class CodingHarnessHostRuntime {
       const raw = record(params, "control params");
       const row = raw.control_frame_sha256 === undefined ? raw : this.boundParams(params, "control");
       const action = oneOf(row.action, ["pause", "resume", "cancel", "replan"] as const, "action");
+      if (action === "cancel") await this.stopRunningWorkerJob();
       const message = session.mutate(action, typeof row.reason === "string" ? row.reason : undefined);
-      if (action === "cancel") this.abortRunningWorkerJob();
       return { message, status: this.status() };
     }
     if (method === "compaction") {
@@ -498,7 +800,7 @@ export class CodingHarnessHostRuntime {
   private async shutdownGracefully(): Promise<void> {
     const job = this.workerJob;
     if (job?.state === "RUNNING") {
-      for (const abort of job.aborts) abort.abort();
+      await this.stopRunningWorkerJob();
       let timer: ReturnType<typeof setTimeout> | null = null;
       try {
         await Promise.race([
@@ -512,6 +814,382 @@ export class CodingHarnessHostRuntime {
     this.close();
   }
 
+  private async defineDynamicMultiGraph(session: TaskFlowSession, source: readonly unknown[]): Promise<unknown> {
+    {
+      if (!this.entered || this.entered.topology !== "MULTI") {
+        throw new TypeError("Dynamic Multi requires requested MULTI topology");
+      }
+      const ports = this.dynamicMultiPorts(session);
+      const resources = session.resources();
+      const harness = session.harnessView();
+      const binding = session.binding();
+      if (!resources || !harness || !binding?.authorizedWorkCellId) {
+        throw new TypeError("Dynamic Multi requires the current authorized WorkCell");
+      }
+      const existingExecution = resources.authority.readExecutionV2(harness.runId, 1);
+      if (existingExecution?.graph.work_cell_id === binding.authorizedWorkCellId) {
+        throw new TypeError("The current WorkCell already has an Execution V2 graph");
+      }
+      let preparation = resources.authority.readExecutionV2Preparation(binding.goalId, harness.runId);
+      const runtimeFingerprintSha256 = this.runtimeFingerprintSha256();
+      let comparableWorkload = resources.authority.readComparableWorkload(preparation, {
+        runtimeFingerprintSha256,
+        providerProfileSha256: runtimeFingerprintSha256,
+        cacheEpochSha256: this.cacheQualificationEpochSha256(),
+      });
+      const proposalNowMs = (this.options.now ?? Date.now)();
+      let loweringClosure = {
+        workspace: this.entered.cwd,
+        workspaceSecret: resources.workspaceSecret,
+        preparation,
+        currentTopologyRevision: harness.topologyRevision,
+        runtimeFingerprintSha256,
+        comparableWorkload,
+        independentValidation: ports !== undefined,
+        nowMs: proposalNowMs,
+      } as const;
+      let inspected = inspectDynamicMultiProposalV2({ ...loweringClosure, shards: source });
+      const existingProposal = resources.authority.readDynamicMultiProposal(harness.runId, preparation.workCellId);
+      if (existingProposal) {
+        if (existingProposal.goal_id !== preparation.goalId
+          || existingProposal.plan_revision_id !== preparation.planRevisionId
+          || existingProposal.plan_revision_sha256 !== preparation.planRevisionSha256
+          || existingProposal.authorization_id !== preparation.authorizationId
+          || existingProposal.authorization_sha256 !== preparation.authorizationSha256
+          || existingProposal.input_closure_sha256 !== preparation.inputClosureSha256
+          || existingProposal.baseline_sha256 !== preparation.baselineSha256
+          || existingProposal.baseline_content_root_sha256 !== preparation.baselineContentRootSha256
+          || existingProposal.environment_sha256 !== preparation.environmentSha256
+          || existingProposal.runtime_fingerprint_sha256 !== runtimeFingerprintSha256
+          || existingProposal.config_sha256 !== preparation.configSha256) {
+          throw new TypeError("Persisted Dynamic Multi proposal is stale for the current authority closure");
+        }
+        inspected = inspectDynamicMultiProposalV2({ ...loweringClosure, shards: existingProposal.source });
+        if (inspected.request.graph_proposal_sha256 !== existingProposal.graph_proposal_sha256) {
+          throw new TypeError("Persisted Dynamic Multi proposal graph hash is invalid");
+        }
+      } else {
+        const proposal = finalizeDynamicMultiProposalReceiptV2({
+          goal_id: preparation.goalId,
+          run_id: preparation.runId,
+          work_cell_id: preparation.workCellId,
+          plan_revision_id: preparation.planRevisionId,
+          plan_revision_sha256: preparation.planRevisionSha256,
+          authorization_id: preparation.authorizationId,
+          authorization_sha256: preparation.authorizationSha256,
+          input_closure_sha256: preparation.inputClosureSha256,
+          baseline_sha256: preparation.baselineSha256,
+          baseline_content_root_sha256: preparation.baselineContentRootSha256,
+          environment_sha256: preparation.environmentSha256,
+          runtime_fingerprint_sha256: runtimeFingerprintSha256,
+          config_sha256: preparation.configSha256,
+          graph_proposal_sha256: inspected.request.graph_proposal_sha256,
+          source: inspected.nodes as unknown as readonly Readonly<Record<string, unknown>>[],
+          predecessor_authority_head_sha256: preparation.predecessorAuthorityHeadSha256,
+          created_at_ms: proposalNowMs,
+        });
+        const proposed = resources.authority.transactExecutionV2({
+          type: "RECORD_DYNAMIC_MULTI_PROPOSAL_V2",
+          goalId: binding.goalId,
+          proposal,
+        }, binding.mutation(`host:execution-v2:proposal:${proposal.record_sha256}`));
+        binding.advanceVersion(proposed.goalVersion);
+      }
+      preparation = resources.authority.readExecutionV2Preparation(binding.goalId, harness.runId);
+      comparableWorkload = resources.authority.readComparableWorkload(preparation, {
+        runtimeFingerprintSha256,
+        providerProfileSha256: runtimeFingerprintSha256,
+        cacheEpochSha256: this.cacheQualificationEpochSha256(),
+      });
+      const nowMs = (this.options.now ?? Date.now)();
+      loweringClosure = {
+        ...loweringClosure,
+        preparation,
+        comparableWorkload,
+        nowMs,
+      };
+      const persistedProposal = resources.authority.readDynamicMultiProposal(harness.runId, preparation.workCellId);
+      if (!persistedProposal) throw new TypeError("Dynamic Multi proposal persistence failed");
+      inspected = inspectDynamicMultiProposalV2({ ...loweringClosure, shards: persistedProposal.source });
+      if (inspected.request.graph_proposal_sha256 !== persistedProposal.graph_proposal_sha256) {
+        throw new TypeError("Dynamic Multi proposal changed after persistence");
+      }
+       const observation = ports ? await ports.measure(inspected.request, inspected) : null;
+      if (observation !== null) {
+        const measurementClosure = {
+          goal_id: inspected.request.goal_id,
+          run_id: inspected.request.run_id,
+          work_cell_id: inspected.request.work_cell_id,
+          plan_revision_id: inspected.request.plan_revision_id,
+          plan_revision_sha256: inspected.request.plan_revision_sha256,
+          input_closure_sha256: inspected.request.input_closure_sha256,
+          runtime_fingerprint_sha256: inspected.request.runtime_fingerprint_sha256,
+          config_sha256: inspected.request.config_sha256,
+          baseline_sha256: inspected.request.baseline_sha256,
+          baseline_content_root_sha256: inspected.request.baseline_content_root_sha256,
+          environment_sha256: inspected.request.environment_sha256,
+        } as const;
+        const strongSingleEvidence = finalizeTopologyMeasurementEvidenceReceiptV2({
+          ...measurementClosure,
+          kind: "STRONG_SINGLE",
+          graph_proposal_sha256: null,
+          derivation: "HOST_STRONG_SINGLE_ROLLOUT",
+          source_observation_sha256: observation.comparability?.record_sha256 ?? canonicalJsonSha256({
+            domain: "PCH-HOST-STRONG-SINGLE-OBSERVATION-V2",
+            request: inspected.request,
+            observation: observation.strong_single,
+          }),
+          correctness: observation.strong_single.correctness,
+          quality_basis_points: observation.strong_single.quality_basis_points,
+          wall_time_ms: observation.strong_single.wall_time_ms,
+          provider_requests: observation.strong_single.provider_requests,
+          input_tokens: observation.strong_single.input_tokens,
+          output_tokens: observation.strong_single.output_tokens,
+          user_interventions: observation.strong_single.user_interventions,
+          safety_events: observation.strong_single.safety_events,
+          predecessor_authority_head_sha256: preparation.predecessorAuthorityHeadSha256,
+          observed_at_ms: nowMs,
+        });
+        const candidateEvidence = finalizeTopologyMeasurementEvidenceReceiptV2({
+          ...measurementClosure,
+          kind: "DYNAMIC_MULTI_SIMULATION",
+          graph_proposal_sha256: inspected.request.graph_proposal_sha256,
+          derivation: "HOST_DETERMINISTIC_DAG_SIMULATION",
+          source_observation_sha256: canonicalJsonSha256({
+            domain: "PCH-HOST-DYNAMIC-MULTI-SIMULATION-V2",
+            request: inspected.request,
+            observation: observation.candidate,
+          }),
+          correctness: observation.candidate.correctness,
+          quality_basis_points: observation.candidate.estimated_quality_basis_points,
+          wall_time_ms: observation.candidate.estimated_wall_time_ms,
+          provider_requests: observation.candidate.estimated_provider_requests,
+          input_tokens: observation.candidate.estimated_input_tokens,
+          output_tokens: observation.candidate.estimated_output_tokens,
+          user_interventions: observation.candidate.estimated_user_interventions,
+          safety_events: observation.candidate.estimated_safety_events,
+          predecessor_authority_head_sha256: preparation.predecessorAuthorityHeadSha256,
+          observed_at_ms: nowMs,
+        });
+        const evidenceReceipts = [strongSingleEvidence, candidateEvidence] as const;
+        const receipts = [
+          finalizeTopologyMeasurementReceiptV2({
+            ...measurementClosure,
+            kind: "STRONG_SINGLE",
+            graph_proposal_sha256: null,
+            correctness: observation.strong_single.correctness,
+            quality_basis_points: observation.strong_single.quality_basis_points,
+            wall_time_ms: observation.strong_single.wall_time_ms,
+            provider_requests: observation.strong_single.provider_requests,
+            input_tokens: observation.strong_single.input_tokens,
+            output_tokens: observation.strong_single.output_tokens,
+            user_interventions: observation.strong_single.user_interventions,
+            safety_events: observation.strong_single.safety_events,
+            source_evidence_sha256: strongSingleEvidence.record_sha256,
+            predecessor_authority_head_sha256: preparation.predecessorAuthorityHeadSha256,
+            observed_at_ms: nowMs,
+          }),
+          finalizeTopologyMeasurementReceiptV2({
+            ...measurementClosure,
+            kind: "DYNAMIC_MULTI_SIMULATION",
+            graph_proposal_sha256: inspected.request.graph_proposal_sha256,
+            correctness: observation.candidate.correctness,
+            quality_basis_points: observation.candidate.estimated_quality_basis_points,
+            wall_time_ms: observation.candidate.estimated_wall_time_ms,
+            provider_requests: observation.candidate.estimated_provider_requests,
+            input_tokens: observation.candidate.estimated_input_tokens,
+            output_tokens: observation.candidate.estimated_output_tokens,
+            user_interventions: observation.candidate.estimated_user_interventions,
+            safety_events: observation.candidate.estimated_safety_events,
+            source_evidence_sha256: candidateEvidence.record_sha256,
+            predecessor_authority_head_sha256: preparation.predecessorAuthorityHeadSha256,
+            observed_at_ms: nowMs,
+          }),
+        ] as const;
+        const measured = resources.authority.transactExecutionV2({
+          type: "RECORD_TOPOLOGY_MEASUREMENTS_V2",
+          goalId: binding.goalId,
+          evidenceReceipts,
+          receipts,
+          ...(observation.comparability === undefined ? {} : { comparability: observation.comparability }),
+        }, binding.mutation(`host:execution-v2:measurements:${canonicalJsonSha256({ evidenceReceipts, receipts })}`));
+        binding.advanceVersion(measured.goalVersion);
+        preparation = resources.authority.readExecutionV2Preparation(binding.goalId, harness.runId);
+      }
+      const admissionEvidence = resources.authority.readTopologyAdmissionMeasurements({
+        goal_id: inspected.request.goal_id,
+        run_id: inspected.request.run_id,
+        work_cell_id: inspected.request.work_cell_id,
+        plan_revision_id: inspected.request.plan_revision_id,
+        plan_revision_sha256: inspected.request.plan_revision_sha256,
+        input_closure_sha256: inspected.request.input_closure_sha256,
+        runtime_fingerprint_sha256: inspected.request.runtime_fingerprint_sha256,
+        config_sha256: inspected.request.config_sha256,
+        baseline_sha256: inspected.request.baseline_sha256,
+        baseline_content_root_sha256: inspected.request.baseline_content_root_sha256,
+        environment_sha256: inspected.request.environment_sha256,
+        graph_proposal_sha256: inspected.request.graph_proposal_sha256,
+      });
+      const lowered = lowerInspectedDynamicMultiV2({
+        ...loweringClosure,
+        preparation,
+        admissionEvidence,
+        inspected,
+      });
+      const mutation = binding.mutation(`host:execution-v2:admission:${lowered.gate.record_sha256}`);
+      const result = lowered.graph === null
+        ? resources.authority.transactExecutionV2({
+          type: "RECORD_TOPOLOGY_ADMISSION_V2",
+          goalId: binding.goalId,
+          baseline: lowered.baseline,
+          candidate: lowered.candidate,
+          gate: lowered.gate,
+          topology: lowered.topology,
+        }, mutation)
+        : resources.authority.transactExecutionV2({
+          type: "ADMIT_AND_COMMIT_EXECUTION_GRAPH_V2",
+          goalId: binding.goalId,
+          baseline: lowered.baseline,
+          candidate: lowered.candidate,
+          gate: lowered.gate,
+          topology: lowered.topology,
+          graph: lowered.graph,
+        }, mutation);
+      binding.advanceVersion(result.goalVersion);
+      return {
+        harness: {
+          schema_version: 2,
+          run_id: harness.runId,
+          effective_topology: lowered.gate.effective_topology,
+          reason: lowered.gate.reason_code,
+          execution_graph_revision_id: lowered.graph?.execution_graph_revision_id ?? null,
+          graph_sha256: lowered.graph?.record_sha256 ?? null,
+          ready_node_ids: resources.authority.readExecutionV2(harness.runId, 8)?.readyNodeIds ?? [],
+        },
+        status: this.status(),
+      };
+    }
+  }
+
+  private captureStrongSingleRollout(session: TaskFlowSession): StrongSingleRolloutCaptureV1 | null {
+    const harness = session.harnessView();
+    const resources = session.resources();
+    if (!harness || !resources || harness.effectiveTopology !== "SINGLE") return null;
+    try {
+      const preparation = resources.authority.readStrongSingleRolloutPreparation(harness.goalId, harness.runId);
+      if (preparation === null) return null;
+      const executionPreparation = resources.authority.readExecutionV2Preparation(harness.goalId, harness.runId);
+      if (executionPreparation.workCellId !== preparation.work_cell_id
+        || executionPreparation.authorizationSha256 !== preparation.authorization_sha256) return null;
+      const runtimeFingerprintSha256 = this.runtimeFingerprintSha256();
+      return {
+        preparation,
+        runtimeFingerprintSha256,
+        workload: resources.authority.readComparableWorkload(executionPreparation, {
+          runtimeFingerprintSha256,
+          providerProfileSha256: runtimeFingerprintSha256,
+          cacheEpochSha256: this.cacheQualificationEpochSha256(),
+        }),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private recordStrongSingleRollout(
+    session: TaskFlowSession,
+    capture: StrongSingleRolloutCaptureV1 | null,
+  ): void {
+    if (capture === null) return;
+    const resources = session.resources();
+    if (!resources) return;
+    try {
+      const completion = resources.authority.readStrongSingleRolloutCompletion(capture.preparation);
+      if (completion === null || resources.authority.readProviderRunInvocationCount(
+        capture.preparation.goal_id, capture.preparation.run_id,
+      ) !== 0) return;
+      const usage = resources.authority.readRunProviderTurnUsage({
+        goal_id: capture.preparation.goal_id,
+        run_id: capture.preparation.run_id,
+        started_at_ms: capture.preparation.started_at_ms,
+        completed_at_ms: completion.completed_at_ms,
+      });
+      if (usage.accounting_completeness !== "COMPLETE") return;
+      const receipt = finalizeStrongSingleRolloutReceiptV1({
+        ...capture.preparation,
+        runtime_fingerprint_sha256: capture.runtimeFingerprintSha256,
+        completion_receipt_id: completion.completion_receipt_id,
+        completion_receipt_sha256: completion.completion_receipt_sha256,
+        provider_requests: usage.requests,
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        cache_read_tokens: usage.cache_read_tokens,
+        provider_receipt_refs: usage.receipt_refs,
+        user_interventions: completion.user_interventions,
+        safety_events: completion.safety_events,
+        completed_at_ms: completion.completed_at_ms,
+      });
+      const binding = session.binding();
+      if (!binding || binding.goalId !== receipt.goal_id) return;
+      const workloadBinding = finalizeStrongSingleWorkloadBindingV1({
+        source_goal_id: receipt.goal_id,
+        source_run_id: receipt.run_id,
+        source_work_cell_id: receipt.work_cell_id,
+        source_rollout_receipt_id: receipt.rollout_receipt_id,
+        source_rollout_receipt_sha256: receipt.record_sha256,
+        source_topology_revision: receipt.topology_revision,
+        source_topology_revision_sha256: receipt.topology_revision_sha256,
+        workload: capture.workload,
+        created_at_ms: receipt.completed_at_ms,
+      });
+      const result = resources.authority.transactExecutionV2({
+        type: "RECORD_STRONG_SINGLE_ROLLOUT_V1",
+        goalId: receipt.goal_id,
+        receipt,
+        workloadBinding,
+      }, binding.mutation(`host:strong-single-rollout:${receipt.record_sha256}`));
+      binding.advanceVersion(result.goalVersion);
+    } catch {
+      // Rollout telemetry is fail-closed for Multi admission and must not alter a completed WorkCell outcome.
+    }
+  }
+
+  private runtimeFingerprintSha256(): string {
+    const runtime = this.entered?.runtime;
+    if (!runtime) throw new TypeError("Dynamic Multi Supervisor runtime is unavailable");
+    return piRuntimeFingerprintSha256(runtime);
+  }
+
+  private cacheQualificationEpochSha256(): string {
+    const configured = this.runtimeResolution?.config.modules.cache;
+    const effective = this.cacheRuntime && this.entered
+      ? this.cacheRuntime.effective(this.entered.runtime)
+      : { arm: "C0" as const, providerIntegration: null, reason: "DISABLED" as const };
+    return canonicalJsonSha256({
+      domain: "PCH-CACHE-QUALIFICATION-EPOCH-V1",
+      configured: configured ? {
+        enabled: configured.enabled,
+        epoch: configured.epoch,
+        arm: configured.arm,
+        provider_integration: configured.provider_integration ?? null,
+      } : null,
+      effective,
+    });
+  }
+
+  private dynamicMultiPorts(session: TaskFlowSession): DynamicMultiHostPortsV2 | undefined {
+    if (this.dynamicMultiPortsValue !== undefined) return this.dynamicMultiPortsValue ?? undefined;
+    const configured = this.options.dynamicMulti;
+    if (configured === undefined) {
+      this.dynamicMultiPortsValue = null;
+      return undefined;
+    }
+    this.dynamicMultiPortsValue = "create" in configured
+      ? configured.create({ session, workspace: session.workspaceRoot(), now: this.options.now ?? Date.now })
+      : configured;
+    return this.dynamicMultiPortsValue;
+  }
+
   private async startWorkerJob(session: TaskFlowSession, params: unknown): Promise<unknown> {
     if (!this.entered || this.entered.topology !== "MULTI") throw new TypeError("Worker jobs require MULTI topology");
     if (this.workerJob?.state === "RUNNING") throw new TypeError("A worker job is already running");
@@ -519,63 +1197,89 @@ export class CodingHarnessHostRuntime {
     const configuredParallel = this.runtimeResolution?.config.execution.max_parallel_workers ?? 4;
     const requested = row.max_parallel === undefined ? configuredParallel : integer(row.max_parallel, "max_parallel", 1);
     const maxParallel = Math.min(8, configuredParallel, requested);
-    const workerTimeoutMs = this.runtimeResolution?.config.execution.worker_timeout_ms ?? 900_000;
-    const workers = await this.multiWorkers();
-    const runtimes = await workers.resolveRuntimes(
-      this.entered.runtime,
-      this.runtimeResolution?.config.execution.worker_runtime,
-    );
-    const id = `WORKER_JOB-${Date.now()}-${process.pid}`;
-    const aborts: AbortController[] = [];
-    const tasks: Promise<unknown>[] = [];
-    for (let index = 0; index < maxParallel && session.harnessView()?.nextReadyShardId; index += 1) {
-      const abort = new AbortController();
-      aborts.push(abort);
-      tasks.push(workers.runReady(session, runtimes, abort.signal, workerTimeoutMs));
+    const ports = this.dynamicMultiPorts(session);
+    if (!ports) throw new TypeError("Dynamic Multi Host ports are unavailable");
+    const resources = session.resources();
+    const harness = session.harnessView();
+    const binding = session.binding();
+    if (!resources || !harness || !binding) throw new TypeError("Dynamic Multi authority is unavailable");
+    const projection = resources.authority.readExecutionV2(harness.runId, maxParallel);
+    if (!projection) throw new TypeError("No admitted Execution V2 graph is available");
+    if (projection.status !== "RUNNING") throw new TypeError(`Execution V2 graph is ${projection.status.toLowerCase()}`);
+    if (harness.effectiveTopology !== "MULTI" || projection.graph.runtime_fingerprint_sha256 !== this.runtimeFingerprintSha256()) {
+      throw new TypeError("Dynamic Multi graph is not bound to the current effective topology and Pi runtime");
     }
-    if (tasks.length === 0) throw new TypeError("No authority-ready worker shard is available");
+    const coordinator = new DynamicMultiCoordinator({
+      authority: resources.authority,
+      mutation: {
+        transact: (command, idempotencyKey) => {
+          const result = resources.authority.transactExecutionV2(command, binding.mutation(idempotencyKey));
+          binding.advanceVersion(result.goalVersion);
+          return result;
+        },
+      },
+      runId: harness.runId,
+      workspace: this.entered.cwd,
+      capabilityKey: hmacSha256Hex(this.options.hostSecret, `execution-v2:${projection.graph.record_sha256}`),
+      supervisorRuntime: this.entered.runtime,
+      worker: ports.worker,
+      evidence: ports.evidence,
+      oracle: ports.oracle,
+      ...(ports.integration === undefined ? {} : { integration: ports.integration }),
+      artifactStore: resources.artifacts,
+      ...(this.options.now === undefined ? {} : { now: this.options.now }),
+    });
+    const started = await coordinator.start(maxParallel);
+    const id = started.job_id;
     const job = {
-      id, aborts, state: "RUNNING" as const as "RUNNING" | "SUCCEEDED" | "FAILED" | "ABORTED",
-      workerCount: tasks.length, startedAtMs: (this.options.now ?? Date.now)(),
+      id, aborts: [] as readonly AbortController[], coordinator,
+      state: "RUNNING" as const as "RUNNING" | "SUCCEEDED" | "FAILED" | "ABORTED",
+      workerCount: Math.max(started.active_worker_count, started.peak_worker_count),
+      startedAtMs: projection.graph.created_at_ms,
       result: null as unknown, error: null as string | null, completion: Promise.resolve(),
     };
     this.workerJob = job;
-    job.completion = Promise.allSettled(tasks).then((settled) => {
-      const failures = settled.filter((item): item is PromiseRejectedResult => item.status === "rejected");
-      const fulfilled = settled.filter((item): item is PromiseFulfilledResult<Awaited<ReturnType<MultiWorkerExecutor["runReady"]>>> => item.status === "fulfilled");
-      const integrationFailures = fulfilled.filter((item) => item.value.integrationResult !== null
-        && item.value.integrationResult !== "APPLIED");
-      job.state = failures.length === 0 && integrationFailures.length === 0
-        ? "SUCCEEDED" : aborts.some((abort) => abort.signal.aborted) ? "ABORTED" : "FAILED";
-      job.result = fulfilled
-        .map((item) => ({
-           worker_run_id: item.value.execution.worker.worker_run_id, role: item.value.execution.worker.role,
-           shard_id: item.value.execution.shard.shard_id, result_kind: item.value.submitted.result.result_kind,
-           integration_result: item.value.integrationResult, usage: item.value.usage,
-           runtime_source: item.value.runtimeResolution.source,
-           runtime_fallback_reason: item.value.runtimeResolution.fallback_reason,
-        }));
-      const messages = [
-        ...failures.map((item) => item.reason instanceof Error ? item.reason.message : String(item.reason)),
-        ...integrationFailures.map((item) => `Integration ${item.value.integrationResult} for shard ${item.value.execution.shard.shard_id}`),
-      ];
-      job.error = messages.length === 0 ? null : messages.join("; ").slice(0, 4_096);
+    job.completion = coordinator.wait().then((terminal) => {
+      job.state = this.workerState(terminal);
+      job.workerCount = Math.max(job.workerCount, terminal.peak_worker_count);
+      job.result = this.workerResult(terminal);
+      job.error = terminal.error;
     });
-    return { job_id: id, state: job.state, worker_count: tasks.length };
-  }
-
-  private multiWorkers(): Promise<MultiWorkerExecutor> {
-    this.workers ??= import("../worker/executor.js").then(({ MultiWorkerExecutor }) => new MultiWorkerExecutor({
-      hostSecret: this.options.hostSecret,
-      ...(this.options.now === undefined ? {} : { now: this.options.now }),
-    }));
-    return this.workers;
+    return { job_id: id, state: "RUNNING", worker_count: job.workerCount };
   }
 
   private pollWorkerJob(params: unknown): unknown {
     const row = record(params, "worker_poll params");
     const id = text(row.job_id, "job_id", 256);
-    if (!this.workerJob || this.workerJob.id !== id) throw new TypeError("Worker job is unknown");
+    if (this.workerJob?.id === id && this.workerJob.coordinator) {
+      const view = this.workerJob.coordinator.poll();
+      this.workerJob.state = this.workerState(view);
+      this.workerJob.workerCount = Math.max(this.workerJob.workerCount, view.peak_worker_count);
+      this.workerJob.result = this.workerResult(view);
+      this.workerJob.error = view.error;
+    }
+    if (!this.workerJob || this.workerJob.id !== id) {
+      const session = this.requiredSession();
+      const harness = session.harnessView();
+      const projection = harness ? session.resources()?.authority.readExecutionV2(harness.runId, 8) : null;
+      if (!projection || id !== `EXECUTION-V2-${projection.graph.run_id}`) throw new TypeError("Worker job is unknown");
+      const state = projection.status === "CLOSED" ? "SUCCEEDED"
+        : projection.status === "FAILED" ? "FAILED"
+          : projection.status === "STOPPED" ? "ABORTED" : "RUNNING";
+      return {
+        job_id: id,
+        state,
+        result: {
+          graph_status: projection.status,
+          ready_node_ids: projection.readyNodeIds,
+          active_node_ids: projection.activeNodeIds,
+          completed_node_ids: projection.completedNodeIds,
+        },
+        error: null,
+        worker_count: projection.activeNodeIds.length,
+        elapsed_ms: Math.max(0, (this.options.now ?? Date.now)() - projection.graph.created_at_ms),
+      };
+    }
     return {
       job_id: id, state: this.workerJob.state, result: this.workerJob.result, error: this.workerJob.error,
       worker_count: this.workerJob.workerCount,
@@ -583,29 +1287,72 @@ export class CodingHarnessHostRuntime {
     };
   }
 
-  private abortWorkerJob(params: unknown): unknown {
+  private async abortWorkerJob(params: unknown): Promise<unknown> {
     const row = record(params, "worker_abort params");
     const id = text(row.job_id, "job_id", 256);
-    if (!this.workerJob || this.workerJob.id !== id) throw new TypeError("Worker job is unknown");
-    this.abortRunningWorkerJob();
+    if (this.workerJob?.id === id) {
+      await this.stopRunningWorkerJob();
+      return { job_id: id, abort_requested: true };
+    }
+    const session = this.requiredSession();
+    const harness = session.harnessView();
+    const resources = session.resources();
+    const binding = session.binding();
+    if (!harness || !resources) throw new TypeError("Worker job is unknown");
+    const projection = resources.authority.readExecutionV2(harness.runId, 8);
+    if (!projection || id !== `EXECUTION-V2-${projection.graph.run_id}`) throw new TypeError("Worker job is unknown");
+    if (projection.status === "RUNNING") {
+      if (!binding) throw new TypeError("Dynamic Multi Goal binding is unavailable");
+      const preparation = resources.authority.readExecutionStopPreparation(harness.runId);
+      if (!preparation) return { job_id: id, abort_requested: true };
+      const stop = finalizeExecutionStopV2({
+        graph: preparation.graph,
+        stop_generation: preparation.stopGeneration + 1,
+        scope: "GRAPH_STOP",
+        reason: "USER_CANCEL",
+        affected_node_ids: preparation.graph.nodes.map((node) => node.node_id),
+        predecessor_authority_head_sha256: preparation.predecessorAuthorityHeadSha256,
+        created_at_ms: (this.options.now ?? Date.now)(),
+      });
+      const result = resources.authority.transactExecutionV2({
+        type: "STOP_EXECUTION_V2",
+        goalId: preparation.graph.goal_id,
+        stop,
+      }, binding.mutation(`host:execution-v2:${stop.execution_stop_id}:recovered-stop`));
+      binding.advanceVersion(result.goalVersion);
+    }
     return { job_id: id, abort_requested: true };
   }
 
-  private abortRunningWorkerJob(): void {
-    if (this.workerJob?.state === "RUNNING") for (const abort of this.workerJob.aborts) abort.abort();
+  private async stopRunningWorkerJob(): Promise<void> {
+    if (this.workerJob?.state !== "RUNNING") return;
+    if (this.workerJob.coordinator) {
+      const stopped = await this.workerJob.coordinator.stop();
+      this.workerJob.state = this.workerState(stopped);
+      this.workerJob.workerCount = Math.max(this.workerJob.workerCount, stopped.peak_worker_count);
+      this.workerJob.result = this.workerResult(stopped);
+      this.workerJob.error = stopped.error;
+    }
+    for (const abort of this.workerJob.aborts) abort.abort();
   }
 
-  private enter(value: unknown): unknown {
-    const input = enterParams(value);
-    if (this.entered) {
-      if (canonicalJsonSha256(this.entered) !== canonicalJsonSha256(input)) throw new TypeError("Coding Harness Host is already bound to a different entry contract");
-      return this.status();
-    }
-    assertWalRuntimeSafe();
-    const resolution = resolveHarnessRuntimeConfig(this.options.configPath, loadConfig(this.options.configPath));
-    const config = resolution.config;
-    const session = new TaskFlowSession({
-      config, packageRoot: this.options.packageRoot,
+  private workerState(view: DynamicMultiJobViewV2): "RUNNING" | "SUCCEEDED" | "FAILED" | "ABORTED" {
+    return view.state === "STOPPED" ? "ABORTED" : view.state;
+  }
+
+  private workerResult(view: DynamicMultiJobViewV2): unknown {
+    return {
+      graph_status: view.graph_status,
+      ready_node_ids: view.ready_node_ids,
+      active_node_ids: view.active_node_ids,
+      completed_node_ids: view.completed_node_ids,
+      peak_worker_count: view.peak_worker_count,
+    };
+  }
+
+  private createSession(resolution: HarnessRuntimeResolution): TaskFlowSession {
+    return new TaskFlowSession({
+      config: resolution.config, packageRoot: this.options.packageRoot,
       migrationPath: resolve(this.options.packageRoot, "schemas", "sql", "001_core.sql"),
       harnessMigrationPath: resolve(this.options.packageRoot, "schemas", "sql", "013_coding_harness_v1.sql"),
       memoryRecallEnabled: resolution.memoryRecallError === null,
@@ -613,30 +1360,132 @@ export class CodingHarnessHostRuntime {
       ...(this.options.dataRoot === undefined ? {} : { dataRoot: this.options.dataRoot }),
       ...(this.options.now === undefined ? {} : { now: this.options.now }),
     });
-    const context = {
-      cwd: input.cwd,
-      sessionManager: { getSessionId: () => input.session_id },
+  }
+
+  private sessionContext(cwd: string, sessionId: string): Pick<ExtensionContext, "cwd" | "sessionManager" | "ui"> {
+    return {
+      cwd,
+      sessionManager: { getSessionId: () => sessionId },
       ui: { notify: () => undefined },
     } as unknown as Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">;
+  }
+
+  private discoverGoals(value: unknown): HostResult<"discover_goals"> {
+    const row = record(value, "goal discovery params");
+    const cwd = text(row.cwd, "cwd", 4_096);
+    if (!isAbsolute(cwd)) throw new TypeError("cwd must be absolute");
+    const sessionId = text(row.session_id, "session_id", 256);
+    assertWalRuntimeSafe();
+    const resolution = resolveHarnessRuntimeConfig(this.options.configPath, loadConfig(this.options.configPath));
+    const session = this.createSession(resolution);
     try {
-      session.initialize(context);
-      const recovered = session.entryBinding();
-      if (recovered && (recovered.objective !== input.objective.normalize("NFC").trim()
-        || recovered.intent !== input.intent)) {
+      session.initialize(this.sessionContext(resolve(cwd), sessionId), {
+        recovery: { kind: "NONE" }, runtimeInstanceId: this.runtimeInstanceId,
+      });
+      const now = this.options.now?.() ?? Date.now();
+      const current = session.currentSessionGoalBinding();
+      return {
+        current_session_binding: current ? toSessionGoalBindingMarker(current) : null,
+        recoverable: session.recoverableSessionGoals().map((candidate) => ({
+          goal_id: candidate.goalId,
+          goal_title: candidate.goalTitle,
+          objective: candidate.objective,
+          intent: candidate.intent,
+          status: candidate.status,
+          next_action_code: candidate.nextActionCode,
+          binding_state: candidate.state,
+          controller_session_id: candidate.controllerSessionId,
+          controller_live: candidate.leaseReleasedAtMs === null
+            && candidate.leaseExpiresAtMs !== null && candidate.leaseExpiresAtMs > now,
+          binding_receipt_sha256: candidate.bindingReceiptSha256,
+        })),
+      };
+    } finally {
+      session.shutdown();
+    }
+  }
+
+  private async enter(value: unknown): Promise<unknown> {
+    const input = enterParams(value);
+    const requestSha256 = canonicalJsonSha256(input);
+    if (this.entered) {
+      if (this.entryRequestSha256 !== requestSha256) {
+        throw new TypeError("Coding Harness Host is already bound to a different entry contract");
+      }
+      return this.status();
+    }
+    assertWalRuntimeSafe();
+    const resolution = resolveHarnessRuntimeConfig(this.options.configPath, loadConfig(this.options.configPath));
+    const config = resolution.config;
+    const session = this.createSession(resolution);
+    const context = this.sessionContext(input.cwd, input.session_id);
+    try {
+      if (input.entry_mode === "RESUME") {
+        session.initialize(context, {
+          recovery: { kind: "BOUND_MARKER", marker: input.binding_marker },
+          runtimeInstanceId: this.runtimeInstanceId,
+        });
+      } else if (input.entry_mode === "RECOVER") {
+        session.initialize(context, {
+          recovery: { kind: "GOAL_ID", goalId: input.goal_id },
+          runtimeInstanceId: this.runtimeInstanceId,
+        });
+      } else {
+        session.initialize(context, {
+          recovery: input.entry_mode === "NEW" ? { kind: "NONE" } : { kind: "LEGACY_LATEST" },
+          runtimeInstanceId: this.runtimeInstanceId,
+        });
+      }
+
+      let recovered = session.entryBinding();
+      if ((input.entry_mode === "LEGACY" || input.entry_mode === "NEW") && recovered
+        && (recovered.objective !== input.objective.normalize("NFC").trim() || recovered.intent !== input.intent)) {
         throw new TypeError(`Recovered Goal ${recovered.goalId} is bound to a different objective or intent; enter with its original contract or cancel it first`);
       }
-      if (!recovered) {
+      if (!recovered && (input.entry_mode === "LEGACY" || input.entry_mode === "NEW")) {
         const admitted = session.startFromInput(`${input.intent === "PLAN" ? "plan" : "build"}: ${input.objective}`, context);
         if (admitted?.action !== "transform") throw new TypeError("Coding Harness objective was not admitted");
+        recovered = session.entryBinding();
       }
+      if (!recovered) throw new TypeError("Coding Harness entry did not resolve an active Goal");
+
+      const recoveredHarness = session.harnessView();
+      const selectedIntent = input.entry_mode === "LEGACY" || input.entry_mode === "NEW" ? input.intent : recovered.intent;
+      const requestedTopology = input.entry_mode === "LEGACY" || input.entry_mode === "NEW"
+        ? input.topology : recoveredHarness?.requestedTopology;
+      if (!requestedTopology) throw new TypeError("Recovered Goal has no Harness topology authority");
+      if (input.entry_mode === "RECOVER") {
+        session.bindCurrentGoal({ allowTransfer: input.allow_transfer });
+      } else if (input.entry_mode !== "RESUME") {
+        session.bindCurrentGoal();
+      }
+
+      const effectiveTopology = recoveredHarness?.effectiveTopology
+        ?? (requestedTopology === "MULTI" ? "SINGLE" : requestedTopology);
       session.createHarnessRun({
-        topology: input.topology,
+        topology: effectiveTopology,
+        requestedTopology,
+        reasonCode: requestedTopology !== effectiveTopology ? "MULTI_BENEFIT_EVIDENCE_REQUIRED" : "USER_SELECTED",
         createdByHostHmac: hmacSha256Hex(this.options.hostSecret, `host:${process.pid}`),
         configSha256: canonicalJsonSha256(config),
-        decisionSha256: canonicalJsonSha256({ intent: input.intent, topology: input.topology, runtime: input.runtime }),
+        decisionSha256: canonicalJsonSha256({
+          intent: selectedIntent, requested_topology: requestedTopology,
+          effective_topology: effectiveTopology,
+          admission: requestedTopology !== effectiveTopology ? "MULTI_BENEFIT_EVIDENCE_REQUIRED" : "USER_SELECTED",
+          runtime: input.runtime,
+        }),
       });
+      const selected: EnterParams = {
+        cwd: input.cwd,
+        session_id: input.session_id,
+        entry_mode: input.entry_mode,
+        objective: recovered.objective,
+        intent: selectedIntent,
+        topology: requestedTopology,
+        runtime: input.runtime,
+      };
       const contextRuntime = new HarnessContextRuntime({
-        session, config, runtimeSelection: input.runtime,
+        session, config, runtimeSelection: selected.runtime, sessionId: selected.session_id,
       });
       const resources = session.resources();
       const harness = session.harnessView();
@@ -647,7 +1496,7 @@ export class CodingHarnessHostRuntime {
         config: config.modules.cache, runId: harness.runId, secret: this.options.hostSecret,
         repository: {
           prepare: (partition, family, request) => resources.authority.prepareCacheV2(partition, family, request),
-          settle: (value) => resources.authority.settleCacheV2(value),
+          settle: (settlement) => resources.authority.settleCacheV2(settlement),
         },
         ...(this.options.now === undefined ? {} : { now: this.options.now }),
       }) : null;
@@ -655,7 +1504,18 @@ export class CodingHarnessHostRuntime {
       this.contextRuntime = contextRuntime;
       this.cacheRuntime = cacheRuntime;
       this.runtimeResolution = resolution;
-      this.entered = input;
+      this.entered = selected;
+      this.entryRequestSha256 = requestSha256;
+      const currentHarness = session.harnessView();
+      const currentBinding = session.binding();
+      if (currentHarness?.requestedTopology === "MULTI" && currentHarness.effectiveTopology === "SINGLE"
+        && currentHarness.topologyReasonCode === "MULTI_BENEFIT_EVIDENCE_REQUIRED"
+        && currentBinding?.authorizedWorkCellId) {
+        const proposal = resources?.authority.readDynamicMultiProposal(
+          currentHarness.runId, currentBinding.authorizedWorkCellId,
+        );
+        if (proposal) await this.defineDynamicMultiGraph(session, proposal.source);
+      }
       return this.status();
     } catch (error) {
       session.shutdown();
@@ -663,16 +1523,171 @@ export class CodingHarnessHostRuntime {
     }
   }
 
-  private status(): unknown {
+  private status(): HostStatus {
     const configuredCache = this.runtimeResolution?.config.modules.cache;
     const effectiveCache = this.cacheRuntime && this.entered
       ? this.cacheRuntime.effective(this.entered.runtime)
       : { arm: "C0" as const, providerIntegration: null, reason: "DISABLED" as const };
     const planReview = this.session?.planReview() ?? null;
+    const contractReview = this.session?.contractReview() ?? null;
+    const flow = this.session?.current() ?? null;
+    const harness = this.session?.harnessView() ?? null;
+    const sessionBinding = this.session?.sessionGoalBinding() ?? null;
+    const openClarifications = this.session?.openClarifications() ?? [];
+    const authority = this.session?.resources()?.authority ?? null;
+    const executionV2 = harness === null
+      ? null
+      : authority?.readExecutionV2(harness.runId, 8) ?? null;
+    const execution = executionV2 === null
+      ? harness === null ? null : {
+        status: harness.status,
+        ready: harness.shards.filter((shard) => shard.status === "READY").length,
+        active: harness.shards.filter((shard) => shard.status === "RUNNING").length,
+        completed: harness.shards.filter((shard) => shard.status === "SUCCEEDED").length,
+      }
+      : {
+        status: executionV2.status,
+        ready: executionV2.readyNodeIds.length,
+        active: executionV2.activeNodeIds.length,
+        completed: executionV2.completedNodeIds.length,
+      };
+    const recentChanges = flow === null || authority === null
+      ? [] : authority.readRecentTaskFlowChangesV2(flow.goalId, 16);
+    const currentPlan = flow === null || authority === null ? null : authority.readTaskFlowPlanV2(flow.goalId);
+    const acceptance = currentPlan === null || authority === null
+      ? null : authority.readTaskFlowAcceptanceV2(currentPlan.revision.contract_id);
+    const completion = flow === null || authority === null
+      ? { acceptance_obligation_ids: [] as readonly string[], receipt_refs: [] as readonly string[] }
+      : authority.readTaskFlowCompletionEvidenceV2(flow.goalId);
+    const mustObligationIds = acceptance?.obligations
+      .filter((obligation) => obligation.priority === "MUST")
+      .map((obligation) => obligation.acceptance_obligation_id) ?? null;
+    const satisfiedObligations = new Set(completion.acceptance_obligation_ids);
+    const supervisorProvider = flow === null || authority === null ? null : authority.readGoalProviderTurnUsage(flow.goalId);
+    const workerProvider = flow === null || authority === null ? null : authority.readProviderGoalUsageSummary(flow.goalId);
+    const providerCompleteness = supervisorProvider === null || workerProvider === null
+      ? "UNOBSERVABLE" as const
+      : supervisorProvider.accounting_completeness === "COMPLETE" && workerProvider.accounting_completeness === "COMPLETE"
+        ? "COMPLETE" as const
+        : supervisorProvider.accounting_completeness === "UNOBSERVABLE"
+          && workerProvider.accounting_completeness === "UNOBSERVABLE"
+          ? "UNOBSERVABLE" as const : "PARTIAL" as const;
+    const addKnown = (left: number | null, right: number | null): number | null =>
+      left === null || right === null ? null : left + right;
+    const decisionInbox = flow === null ? null : projectDecisionInboxV2({
+      goalId: flow.goalId,
+      phase: flow.phase,
+      nextAction: flow.nextAction,
+      workCellId: flow.workCell ?? null,
+      routeHealth: flow.routeHealth,
+      blocker: flow.blocker,
+      clarifications: openClarifications.map((clarification) => ({
+        id: clarification.id,
+        reversible: clarification.reversible,
+        record: clarification as unknown as Readonly<Record<string, unknown>>,
+      })),
+      contractReview,
+      planReview,
+      execution,
+      changes: {
+        recent: recentChanges.map((change) => ({
+          change_request_id: change.request.change_request_id,
+          classification: change.request.classification,
+          materiality: change.request.materiality,
+          changed_subject_count: change.impact.changed_subjects.length,
+          invalidated_subject_count: change.impact.invalidated_subjects.length,
+          reusable_subject_count: change.impact.reusable_subjects.length,
+          authority_ref_sha256: change.request.record_sha256,
+          created_at_ms: change.request.created_at_ms,
+        })),
+        invalidatedWork: recentChanges.flatMap((change) => change.impact.invalidated_subjects.map((subject) => ({
+          subject_kind: subject.kind,
+          subject_id: subject.id,
+          revision_sha256: subject.revision_sha256,
+          authority_ref_sha256: change.impact.record_sha256,
+        }))).slice(0, 512),
+        reusedWork: recentChanges.flatMap((change) => change.reuse_receipts.map((receipt) => ({
+          subject_kind: receipt.subject.kind,
+          subject_id: receipt.subject.id,
+          revision_sha256: receipt.subject.revision_sha256,
+          authority_ref_sha256: receipt.record_sha256,
+        }))).slice(0, 512),
+      },
+      acceptance: {
+        mustTotal: mustObligationIds?.length ?? null,
+        mustSatisfied: mustObligationIds === null ? null
+          : mustObligationIds.filter((id) => satisfiedObligations.has(id)).length,
+        currentReceiptRefs: completion.receipt_refs,
+      },
+      provider: {
+        requests: supervisorProvider === null || workerProvider === null || workerProvider.requests === null
+          ? null : supervisorProvider.requests + workerProvider.requests,
+        inputTokens: supervisorProvider === null || workerProvider === null
+          ? null : addKnown(supervisorProvider.input_tokens, workerProvider.input_tokens),
+        outputTokens: supervisorProvider === null || workerProvider === null
+          ? null : addKnown(supervisorProvider.output_tokens, workerProvider.output_tokens),
+        cacheReadTokens: supervisorProvider === null || workerProvider === null
+          ? null : addKnown(supervisorProvider.cache_read_tokens, workerProvider.cache_read_tokens),
+        costUsd: supervisorProvider === null || workerProvider === null || supervisorProvider.requests > 0
+          || workerProvider.cost_microusd === null ? null : workerProvider.cost_microusd / 1_000_000,
+        budgetState: supervisorProvider !== null && supervisorProvider.requests === 0 && workerProvider !== null
+          ? workerProvider.budget_state : "UNKNOWN",
+        accountingCompleteness: providerCompleteness,
+        scope: "GOAL_BOUND_OBSERVED",
+        receiptRefs: [...new Set([
+          ...(supervisorProvider?.receipt_refs ?? []), ...(workerProvider?.receipt_refs ?? []),
+        ])].sort(),
+      },
+    });
+    const taskFlowView = flow === null || authority === null ? null : authority.readTaskFlowView(flow.goalId);
+    const authorityEventSequence = flow === null || authority === null ? null : authority.readTaskFlowGoalVersion(flow.goalId);
+    const workCell = taskFlowView?.route?.work_cells.find((candidate) => candidate.work_cell_id === flow?.workCell) ?? null;
+    const currentWorkCell = workCell === null ? null : {
+      work_cell_id: workCell.work_cell_id,
+      title: workCell.outcome,
+      status: taskFlowView?.workCellStatus ?? null,
+      revision: taskFlowView?.route?.revision ?? 1,
+    };
+    const presentation = flow === null || authorityEventSequence === null ? null : projectHostPresentation({
+      phase: flow.phase,
+      nextAction: flow.nextAction,
+      blocker: flow.blocker,
+      harnessStatus: harness?.status ?? null,
+      pendingKinds: decisionInbox?.pending.map((item) => item.kind) ?? [],
+      authorityEventSequence,
+      revision: taskFlowView?.route?.revision ?? taskFlowView?.contract?.version ?? sessionBinding?.revision ?? 1,
+    });
+    const changedFiles = flow === null || authority === null ? [] : authority.readTaskFlowChangedFiles(flow.goalId).map((file) => ({
+      path: file.path,
+      change: file.change,
+      operation_id: file.operationId,
+      work_cell_id: file.workCellId,
+      before_sha256: file.beforeSha256,
+      after_sha256: file.afterSha256,
+      authority_event_sequence: file.authorityEventSequence,
+    }));
     return {
       active: this.session !== null,
-      flow: this.session?.current() ?? null,
-      harness: this.session?.harnessView() ?? null,
+      flow: flow === null ? null : {
+        goalId: flow.goalId,
+        objective: flow.objective,
+        mode: flow.mode,
+        phase: flow.phase,
+        workCell: flow.workCell ?? null,
+         routeHealth: flow.routeHealth,
+         nextAction: flow.nextAction,
+         blocker: flow.blocker,
+         unresolvedOperationIds: flow.unresolvedOperationIds,
+       },
+      harness: harness === null ? null : {
+        runId: harness.runId,
+        status: harness.status,
+        nextReadyShardId: harness.nextReadyShardId,
+        requestedTopology: harness.requestedTopology,
+        effectiveTopology: harness.effectiveTopology,
+        topologyReasonCode: harness.topologyReasonCode,
+        shards: harness.shards.map((shard) => ({ ...shard, role: shard.role, status: shard.status })),
+      },
       execution_subject: this.session?.executionSubject() ?? null,
       context: this.runtimeResolution === null ? null : {
         input_context_error: this.runtimeResolution.inputContextError,
@@ -690,9 +1705,18 @@ export class CodingHarnessHostRuntime {
       },
       output: { enabled: this.runtimeResolution?.config.modules.output.enabled ?? false, mode: this.runtimeResolution?.config.modules.output.mode ?? "NORMAL" },
       ui: this.runtimeResolution?.config.ui ?? { widget: false, status: false, debounce_ms: 250, max_widget_lines: 4 },
-      open_clarifications: this.session?.openClarifications() ?? [],
+      open_clarifications: openClarifications,
+      decision_inbox: decisionInbox,
       plan_review: planReview === null ? null : {
         summary: planReview.summary, artifact_path: planReview.artifactPath, route_sha256: planReview.routeSha256,
+        plan_revision_sha256: planReview.planRevisionSha256, stage_gate_sha256: planReview.stageGateSha256,
+      },
+      contract_review: contractReview === null ? null : {
+        decision_requirement_revision_id: contractReview.decisionRequirementRevisionId,
+        requirement_revision_sha256: contractReview.requirementRevisionSha256,
+        decision_frontier_sha256: contractReview.decisionFrontierSha256,
+        contract_diff: contractReview.contractDiff,
+        requirement_diff: contractReview.requirementDiff,
       },
       generation_governor: (() => {
         const frontier = this.optionalGenerationFrontier();
@@ -702,6 +1726,10 @@ export class CodingHarnessHostRuntime {
       intent: this.entered?.intent ?? null,
       topology: this.entered?.topology ?? null,
       control_frame: this.contextRuntime?.currentControlFrame() ?? null,
+      session_binding: sessionBinding ? toSessionGoalBindingMarker(sessionBinding) : null,
+      presentation,
+      current_work_cell: currentWorkCell,
+      changed_files: changedFiles,
     };
   }
 

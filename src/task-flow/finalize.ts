@@ -1,7 +1,10 @@
 import { canonicalJsonSha256 } from "../authority/canonical-json.js";
 import { sha256Hex } from "../foundation/crypto.js";
 import { idFromSha256 } from "../foundation/ids.js";
-import { inferAcceptanceFacetMinimum } from "../planning/intake-classifier.js";
+import { assertAcceptanceFacetProposalsV2 } from "../acceptance-v2/finalize.js";
+import type { AcceptanceFacetProposalV2 } from "../acceptance-v2/domain.js";
+import type { GoalFitAssessmentProposalV2 } from "../intake-v2/domain.js";
+import { normalizeGoalFitAssessmentProposalV2 } from "../intake-v2/finalize.js";
 import { mayUseDirectCell } from "./admission.js";
 import {
   assertTargetPerformanceRoute,
@@ -44,6 +47,11 @@ export interface GoalContractProposal {
   readonly obligations: readonly ObligationProposal[];
   readonly acceptance_policy?: Readonly<Record<string, unknown>>;
   readonly authorization_ceiling: AuthorizationCeiling;
+}
+
+export interface GoalContractAuthorityProposalV2 extends GoalContractProposal {
+  readonly acceptance_facets: readonly AcceptanceFacetProposalV2[];
+  readonly goal_fit_assessment: GoalFitAssessmentProposalV2;
 }
 
 export interface WorkCellProposal {
@@ -105,6 +113,10 @@ export interface RouteProposal {
   readonly deferred_outcomes?: readonly DeferredOutcomeProposal[];
 }
 
+export interface RouteAuthorityProposalV2 extends RouteProposal {
+  readonly goal_fit_assessment: GoalFitAssessmentProposalV2;
+}
+
 const authorizationCeilings = ["READ_ONLY", "LOCAL_REVERSIBLE", "EXTERNAL_IDEMPOTENT", "IRREVERSIBLE_REQUIRES_USER"] as const;
 
 function proposalRecord(value: unknown, label: string): Record<string, unknown> {
@@ -162,6 +174,44 @@ function assertGoalContractProposalShape(value: unknown): asserts value is GoalC
     proposalRecord(entry.oracle, `${label}.oracle`);
     proposalStringArray(entry.dependencies, `${label}.dependencies`, true);
   });
+}
+
+export function splitGoalContractAuthorityProposalV2(value: unknown): {
+  readonly contract: GoalContractProposal;
+  readonly acceptanceFacets: readonly AcceptanceFacetProposalV2[];
+  readonly goalFitAssessment: GoalFitAssessmentProposalV2;
+} {
+  const proposal = proposalRecord(value, "GoalContract Authority V2 proposal");
+  proposalExactKeys(proposal, [
+    "user_outcomes", "acceptance_facets", "scope", "non_goals", "constraints", "assumption_refs", "decision_refs",
+    "obligations", "acceptance_policy", "authorization_ceiling", "goal_fit_assessment",
+  ], "GoalContract Authority V2 proposal");
+  assertAcceptanceFacetProposalsV2(proposal.acceptance_facets);
+  const goalFitAssessment = normalizeGoalFitAssessmentProposalV2(proposal.goal_fit_assessment);
+  const { acceptance_facets: acceptanceFacets, goal_fit_assessment: _goalFitAssessment, ...contract } = proposal;
+  void _goalFitAssessment;
+  assertGoalContractProposalShape(contract);
+  return {
+    contract,
+    acceptanceFacets,
+    goalFitAssessment,
+  };
+}
+
+export function splitRouteAuthorityProposalV2(value: unknown): {
+  readonly route: RouteProposal;
+  readonly goalFitAssessment: GoalFitAssessmentProposalV2;
+} {
+  const proposal = proposalRecord(value, "Route Authority V2 proposal");
+  proposalExactKeys(proposal, [
+    "lane", "outcomes", "assumptions", "risks", "alternatives", "work_cells", "near_horizon",
+    "deferred_outcomes", "goal_fit_assessment",
+  ], "Route Authority V2 proposal");
+  const goalFitAssessment = normalizeGoalFitAssessmentProposalV2(proposal.goal_fit_assessment);
+  const { goal_fit_assessment: _goalFitAssessment, ...route } = proposal;
+  void _goalFitAssessment;
+  assertRouteProposalShape(route);
+  return { route, goalFitAssessment };
 }
 
 function assertRouteProposalShape(value: unknown): asserts value is RouteProposal {
@@ -289,7 +339,6 @@ export function finalizeGoalContract(input: {
   readonly sourceIntakeSha256: string;
   readonly version: number;
   readonly parentContractId: string | null;
-  readonly acceptanceFacetMinimum?: number;
   readonly proposal: GoalContractProposal;
   readonly createdAtMs: number;
 }): GoalContractRecord {
@@ -297,15 +346,13 @@ export function finalizeGoalContract(input: {
   if (input.proposal.obligations.length === 0 || input.proposal.obligations.length > 256) {
     throw new TypeError("GoalContract requires 1..256 obligations");
   }
-  const acceptanceFacetMinimum = input.acceptanceFacetMinimum ?? inferAcceptanceFacetMinimum(input.objective);
-  if (!Number.isSafeInteger(acceptanceFacetMinimum) || acceptanceFacetMinimum < 1 || acceptanceFacetMinimum > 6) {
-    throw new TypeError("GoalContract acceptanceFacetMinimum must be an integer from 1 through 6");
-  }
-  const mustCount = input.proposal.obligations.filter((entry) => entry.priority === "MUST").length;
-  if (input.proposal.user_outcomes.length < acceptanceFacetMinimum || mustCount < acceptanceFacetMinimum) {
-    throw new TypeError(
-      `GoalContract requires at least ${acceptanceFacetMinimum} independent user_outcomes and MUST obligations from the explicit acceptance facets`,
-    );
+  const userOutcomes = normalizedList(input.proposal.user_outcomes, "user_outcomes");
+  const mustProposals = input.proposal.obligations.filter((entry) => entry.priority === "MUST");
+  const mustStatements = mustProposals.map((entry, index) => normalizedText(
+    entry.statement, `MUST obligation[${index}] statement`,
+  ).toLocaleLowerCase("en-US"));
+  if (new Set(mustStatements).size !== mustStatements.length) {
+    throw new TypeError("GoalContract MUST obligation statements must remain independently distinguishable");
   }
   const proposalHash = canonicalJsonSha256(input.proposal);
   const contractId = derivedId("CONTRACT", input.goalId, input.version, proposalHash);
@@ -342,7 +389,7 @@ export function finalizeGoalContract(input: {
     schema_version: 1, contract_id: contractId, goal_id: input.goalId, version: input.version,
     parent_contract_id: input.parentContractId, intent: input.intent, lane: input.lane,
     objective: normalizedText(input.objective, "objective"),
-    user_outcomes: normalizedList(input.proposal.user_outcomes, "user_outcomes"),
+    user_outcomes: userOutcomes,
     scope: normalizedList(input.proposal.scope, "scope"),
     non_goals: normalizedList(input.proposal.non_goals, "non_goals"),
     constraints: normalizedList(input.proposal.constraints, "constraints", 512),

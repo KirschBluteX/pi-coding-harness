@@ -3,6 +3,8 @@
 /dist/
 /coverage/
 /.cache/
+/.playwright-cli/
+/output/
 *.tsbuildinfo
 
 # Secrets and local configuration

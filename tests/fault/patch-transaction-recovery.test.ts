@@ -7,6 +7,9 @@ import type { CodingHarnessConfig } from "../../src/config/types.js";
 import { workerRoles } from "../../src/harness/domain.js";
 import { sha256Hex } from "../../src/foundation/crypto.js";
 import { TaskFlowSession } from "../../src/runtime/task-flow-session.js";
+import { withAcceptanceV2 } from "../helpers/acceptance-v2.js";
+import { passingGoalFitAssessment } from "../helpers/goal-fit.js";
+import { approvePendingTaskFlowContract } from "../helpers/task-flow-session.js";
 
 const roots: string[] = [];
 const sessions = new Set<TaskFlowSession>();
@@ -64,12 +67,13 @@ function crashFixture(label: string, fault: "AFTER_PREPARE" | "AFTER_APPLY", fau
     topology: "MULTI", createdByHostHmac: sha256Hex("host"),
     configSha256: sha256Hex("config"), decisionSha256: sha256Hex("decision"),
   });
-  session.submitContract({
+  session.submitContract(withAcceptanceV2({
     user_outcomes: ["The source patch is applied"], scope: ["src"],
     obligations: [{ key: "patched", priority: "MUST", statement: "Apply and verify the source patch", oracle: { command: "npm test" } }],
     authorization_ceiling: "LOCAL_REVERSIBLE",
-  });
-  session.submitRoute({ outcomes: ["Apply the source patch"], work_cells: [{
+  }));
+  approvePendingTaskFlowContract(session);
+  session.submitRoute({ goal_fit_assessment: passingGoalFitAssessment(), outcomes: ["Apply the source patch"], work_cells: [{
     key: "patch", outcome: "Apply files under src", obligation_keys: ["patched"], read_roots: ["src"], write_roots: ["src"],
     effect_classes: ["LOCAL_REVERSIBLE"], oracle: { command: "npm test" }, risk: "LOW", reversible: true,
   }], near_horizon: ["patch"] });
@@ -86,6 +90,39 @@ function closeForRestart(session: TaskFlowSession): void {
 }
 
 describe("PatchTransaction crash recovery", () => {
+  it("defers canonical recovery while an active-Goal turn is pending", () => {
+    const fixture = crashFixture("PENDING-ACTIVE-GOAL", "AFTER_APPLY");
+    const execution = fixture.session.startNextHarnessWorker({ modelFingerprintHmacByRole, ownerHmac: sha256Hex("owner") });
+    const submitted = fixture.session.submitHarnessWorkerResult({
+      execution, output: "Update the source.", usage,
+      patches: [{
+        operation: "MODIFY", path: "src/example.ts", beforeSha256: sha256Hex("export const value = 1;\n"),
+        content: Buffer.from("export const value = 2;\n"),
+      }],
+    });
+    expect(() => fixture.session.integrateHarnessPatch(execution, submitted.patchSet!)).toThrow("SIMULATED_CRASH_AFTER_APPLY");
+    expect(readFileSync(resolve(fixture.cwd, "src", "example.ts"), "utf8")).toContain("value = 2");
+    expect(fixture.session.startFromInput("Explain the current recovery evidence.", fixture.context)).toBeNull();
+    const pending = fixture.session.resources()!.authority.readPendingActiveGoalUserTurns(fixture.goalId)[0]!;
+    closeForRestart(fixture.session);
+
+    const blocked = newSession(fixture);
+    expect(blocked.current()).toMatchObject({ blocker: expect.stringMatching(/typed classification/i) });
+    expect(readFileSync(resolve(fixture.cwd, "src", "example.ts"), "utf8")).toContain("value = 2");
+    expect(blocked.resources()!.authority.readOpenPatchTransactions(fixture.goalId)).toHaveLength(1);
+
+    blocked.classifyActiveGoalInput({
+      user_turn_id: pending.user_turn_id,
+      expected_user_turn_sha256: pending.record_sha256,
+      classification: "DISCUSSION_ONLY",
+      materiality: "LOW",
+      change_kind: null,
+      changed_subjects: [],
+    });
+    expect(readFileSync(resolve(fixture.cwd, "src", "example.ts"), "utf8")).toContain("value = 1");
+    expect(blocked.resources()!.authority.readOpenPatchTransactions(fixture.goalId)).toEqual([]);
+  });
+
   it("restores a dispatched CREATE and removes transaction-created parent directories", () => {
     const fixture = crashFixture("RESTORE", "AFTER_APPLY");
     const execution = fixture.session.startNextHarnessWorker({ modelFingerprintHmacByRole, ownerHmac: sha256Hex("owner") });

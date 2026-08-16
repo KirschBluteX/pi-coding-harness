@@ -114,6 +114,26 @@ describe("forward-only core migration", () => {
     expect(() => openAuthorityConnection({ path: join(linked, "authority.sqlite3") })).toThrow(UnsafePathError);
   });
 
+  it("explains Windows SQLite sidecar path exhaustion when a long authority path cannot open", () => {
+    if (process.platform !== "win32") return;
+    const root = directory();
+    const fileName = "authority.sqlite3";
+    const paddingLength = Math.max(1, 253 - join(root, fileName).length - 1);
+    const databasePath = join(root, "x".repeat(paddingLength), fileName);
+    expect(databasePath.length).toBeGreaterThan(251);
+    let connection: ReturnType<typeof openAuthorityConnection> | undefined;
+    let openError: unknown;
+    try {
+      connection = openAuthorityConnection({ path: databasePath });
+    } catch (error) {
+      openError = error;
+    } finally {
+      if (connection) closeAuthorityConnection(connection);
+    }
+    expect(openError).toBeInstanceOf(UnsafePathError);
+    expect(String(openError)).toMatch(/SQLite WAL sidecars on Windows; shorten the configured data root/u);
+  });
+
   it("applies migration 002 only after core and records the immutable hash", () => {
     const connection = openAuthorityConnection({ path: join(directory(), "authority.sqlite3") });
     try {

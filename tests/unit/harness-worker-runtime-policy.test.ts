@@ -46,10 +46,16 @@ describe("Multi worker runtime policy", () => {
     });
     expect(resolved.PLANNER).toEqual({
       runtime: { provider: "configured-provider", api: "configured-api", model: "planner-model", thinking_level: "medium", context_window: 64_000 },
-      source: "PI_CONFIG", fallback_reason: null,
+      source: "PI_CONFIG", source_profile_id: "PI_CONFIG_ROLE:PLANNER", fallback_reason: null,
     });
-    expect(resolved.EXPLORER).toMatchObject({ runtime: supervisor, source: "SUPERVISOR_FALLBACK", fallback_reason: "MODEL_NOT_FOUND" });
-    expect(resolved.VERIFIER).toMatchObject({ runtime: supervisor, source: "SUPERVISOR_FALLBACK", fallback_reason: "AUTH_NOT_CONFIGURED" });
+    expect(resolved.EXPLORER).toMatchObject({
+      runtime: supervisor, source: "SUPERVISOR_FALLBACK", source_profile_id: "PI_CONFIG_ROLE:EXPLORER",
+      fallback_reason: "MODEL_NOT_FOUND",
+    });
+    expect(resolved.VERIFIER).toMatchObject({
+      runtime: supervisor, source: "SUPERVISOR_FALLBACK", source_profile_id: "PI_CONFIG_ROLE:VERIFIER",
+      fallback_reason: "AUTH_NOT_CONFIGURED",
+    });
     expect(resolved.IMPLEMENTER).toMatchObject({ runtime: supervisor, source: "SUPERVISOR_INHERITED", fallback_reason: null });
   });
 });

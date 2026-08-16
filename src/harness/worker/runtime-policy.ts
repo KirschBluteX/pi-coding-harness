@@ -15,6 +15,7 @@ export type WorkerRuntimeSource = "SUPERVISOR_INHERITED" | "PI_CONFIG" | "SUPERV
 export interface ResolvedWorkerRuntime {
   readonly runtime: WorkerRuntimeSelection;
   readonly source: WorkerRuntimeSource;
+  readonly source_profile_id?: string;
   readonly fallback_reason: "MODEL_NOT_FOUND" | "AUTH_NOT_CONFIGURED" | null;
 }
 
@@ -30,10 +31,12 @@ export type WorkerModelLookup = (
 function inherited(
   supervisor: WorkerRuntimeSelection,
   fallbackReason: ResolvedWorkerRuntime["fallback_reason"] = null,
+  sourceProfileId?: string,
 ): ResolvedWorkerRuntime {
   return {
     runtime: supervisor,
     source: fallbackReason === null ? "SUPERVISOR_INHERITED" : "SUPERVISOR_FALLBACK",
+    ...(sourceProfileId === undefined ? {} : { source_profile_id: sourceProfileId }),
     fallback_reason: fallbackReason,
   };
 }
@@ -52,7 +55,7 @@ export function resolveWorkerRuntimeMap(
     if (!profile || profile.source === "INHERIT_SUPERVISOR") return [role, inherited(supervisor)];
     if (!lookup) throw new TypeError("PI_CONFIG worker roles require the Pi model catalog");
     const found = lookup(profile.provider_id, profile.model_id);
-    if (!found.ok) return [role, inherited(supervisor, found.reason)];
+    if (!found.ok) return [role, inherited(supervisor, found.reason, `PI_CONFIG_ROLE:${role}`)];
     return [role, {
       runtime: {
         provider: profile.provider_id,
@@ -64,6 +67,7 @@ export function resolveWorkerRuntimeMap(
         context_window: found.contextWindow,
       },
       source: "PI_CONFIG",
+      source_profile_id: `PI_CONFIG_ROLE:${role}`,
       fallback_reason: null,
     }];
   });

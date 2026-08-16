@@ -1,5 +1,6 @@
 import { HostIpcServer } from "./server.js";
 import { CodingHarnessHostRuntime } from "./runtime.js";
+import { createProductionDynamicMultiHostPortsFactory } from "./production-dynamic-multi.js";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
@@ -15,6 +16,7 @@ const runtime = new CodingHarnessHostRuntime({
   packageRoot: requiredEnvironment("PCH_PACKAGE_ROOT"),
   configPath: requiredEnvironment("PCH_CONFIG_PATH"),
   hostSecret: secret,
+  dynamicMulti: createProductionDynamicMultiHostPortsFactory(),
   ...(process.env.PCH_DATA_ROOT === undefined ? {} : { dataRoot: process.env.PCH_DATA_ROOT }),
 });
 const server = new HostIpcServer(secret, (method, params) => runtime.dispatch(method, params), {

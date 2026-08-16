@@ -25,10 +25,12 @@ export interface GoalRow {
 export interface LeaseRow {
   readonly goalId: string;
   readonly ownerSessionId: string;
+  readonly ownerInstanceId: string | null;
   readonly generation: number;
   readonly fencingToken: number;
   readonly acquiredAtMs: number;
   readonly expiresAtMs: number;
+  readonly releasedAtMs: number | null;
   readonly lastProgressEventSequence: number;
   readonly rowVersion: number;
 }
@@ -39,6 +41,12 @@ export interface PersistedCommandResult {
   readonly goalVersion: number;
   readonly eventSha256: string;
   readonly eventType: string;
+}
+
+function decodeOptionalText(value: unknown, field: string): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "string") return value;
+  throw new AuthorityIntegrityError(`Authority ${field} is malformed`);
 }
 
 function requiredText(value: unknown, field: string): string {
@@ -114,7 +122,13 @@ function decodeCommandReceipt(
 }
 
 export class AuthorityRepository {
-  constructor(private readonly connection: AuthorityConnection) {}
+  private readonly hasLeaseRuntimeOwnership: boolean;
+
+  constructor(private readonly connection: AuthorityConnection) {
+    const columns = connection.prepare("PRAGMA table_info(execution_leases)").all() as Record<string, unknown>[];
+    this.hasLeaseRuntimeOwnership = columns.some((column) => column.name === "owner_instance_id")
+      && columns.some((column) => column.name === "released_at_ms");
+  }
 
   storeMeta(): StoreMetaRow {
     const row = this.connection.prepare("SELECT store_id,store_generation,leader_epoch FROM store_meta WHERE singleton=1").get() as {
@@ -228,21 +242,38 @@ export class AuthorityRepository {
   }
 
   lease(goalId: string): LeaseRow | null {
-    const row = this.connection.prepare(`SELECT goal_id,owner_session_id,generation,fencing_token,acquired_at_ms,expires_at_ms,last_progress_event_sequence,row_version FROM execution_leases WHERE goal_id=?`).get(goalId) as Record<string, unknown> | undefined;
+    const runtimeColumns = this.hasLeaseRuntimeOwnership ? ",owner_instance_id,released_at_ms" : "";
+    const row = this.connection.prepare(`SELECT goal_id,owner_session_id,generation,fencing_token,acquired_at_ms,expires_at_ms,last_progress_event_sequence,row_version${runtimeColumns} FROM execution_leases WHERE goal_id=?`).get(goalId) as Record<string, unknown> | undefined;
     if (!row) return null;
     return {
-      goalId: String(row.goal_id), ownerSessionId: String(row.owner_session_id), generation: Number(row.generation), fencingToken: Number(row.fencing_token),
-      acquiredAtMs: Number(row.acquired_at_ms), expiresAtMs: Number(row.expires_at_ms), lastProgressEventSequence: Number(row.last_progress_event_sequence),
-      rowVersion: Number(row.row_version),
+      goalId: String(row.goal_id), ownerSessionId: String(row.owner_session_id),
+      ownerInstanceId: decodeOptionalText(row.owner_instance_id, "owner_instance_id"),
+      generation: Number(row.generation), fencingToken: Number(row.fencing_token),
+      acquiredAtMs: Number(row.acquired_at_ms), expiresAtMs: Number(row.expires_at_ms),
+      releasedAtMs: row.released_at_ms === undefined || row.released_at_ms === null ? null : Number(row.released_at_ms),
+      lastProgressEventSequence: Number(row.last_progress_event_sequence), rowVersion: Number(row.row_version),
     };
   }
 
   insertLease(input: LeaseRow): void {
+    if (this.hasLeaseRuntimeOwnership) {
+      this.connection.prepare(`INSERT INTO execution_leases(goal_id,owner_session_id,owner_instance_id,generation,fencing_token,acquired_at_ms,expires_at_ms,released_at_ms,last_progress_event_sequence,row_version) VALUES(?,?,?,?,?,?,?,?,?,?)`)
+        .run(input.goalId, input.ownerSessionId, input.ownerInstanceId, input.generation, input.fencingToken, input.acquiredAtMs,
+          input.expiresAtMs, input.releasedAtMs, input.lastProgressEventSequence, input.rowVersion);
+      return;
+    }
     this.connection.prepare(`INSERT INTO execution_leases(goal_id,owner_session_id,generation,fencing_token,acquired_at_ms,expires_at_ms,last_progress_event_sequence,row_version) VALUES(?,?,?,?,?,?,?,?)`)
       .run(input.goalId, input.ownerSessionId, input.generation, input.fencingToken, input.acquiredAtMs, input.expiresAtMs, input.lastProgressEventSequence, input.rowVersion);
   }
 
   replaceLease(previous: LeaseRow, next: LeaseRow): boolean {
+    if (this.hasLeaseRuntimeOwnership) {
+      const result = this.connection.prepare(`UPDATE execution_leases SET owner_session_id=?,owner_instance_id=?,generation=?,fencing_token=?,acquired_at_ms=?,expires_at_ms=?,released_at_ms=?,last_progress_event_sequence=?,row_version=? WHERE goal_id=? AND generation=? AND fencing_token=? AND row_version=?`)
+        .run(next.ownerSessionId, next.ownerInstanceId, next.generation, next.fencingToken, next.acquiredAtMs, next.expiresAtMs,
+          next.releasedAtMs, next.lastProgressEventSequence, next.rowVersion, previous.goalId, previous.generation,
+          previous.fencingToken, previous.rowVersion);
+      return Number(result.changes) === 1;
+    }
     const result = this.connection.prepare(`UPDATE execution_leases SET owner_session_id=?,generation=?,fencing_token=?,acquired_at_ms=?,expires_at_ms=?,last_progress_event_sequence=?,row_version=? WHERE goal_id=? AND generation=? AND fencing_token=? AND row_version=?`)
       .run(next.ownerSessionId, next.generation, next.fencingToken, next.acquiredAtMs, next.expiresAtMs, next.lastProgressEventSequence,
         next.rowVersion, previous.goalId, previous.generation, previous.fencingToken, previous.rowVersion);

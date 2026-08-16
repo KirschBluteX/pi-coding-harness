@@ -8,7 +8,7 @@ describe("AcceptanceLedger", () => {
     const source = "Implement fast parsing\nDo not use network access";
     const contract = finalizeGoalContract({
       goalId: "GOAL-1", objective: source, intent: "BUILD", lane: "ADAPTIVE_ROUTE",
-      sourceIntakeSha256: sha256Hex(source), version: 1, parentContractId: null, acceptanceFacetMinimum: 1,
+      sourceIntakeSha256: sha256Hex(source), version: 1, parentContractId: null,
       createdAtMs: 1,
       proposal: {
         user_outcomes: ["Implement fast parsing"], scope: ["src"], non_goals: ["Do not use network access"],
@@ -27,7 +27,7 @@ describe("AcceptanceLedger", () => {
     const source = "Fix the parser";
     const contract = finalizeGoalContract({
       goalId: "GOAL-2", objective: source, intent: "BUILD", lane: "DIRECT_CELL",
-      sourceIntakeSha256: sha256Hex(source), version: 1, parentContractId: null, acceptanceFacetMinimum: 1,
+      sourceIntakeSha256: sha256Hex(source), version: 1, parentContractId: null,
       createdAtMs: 1,
       proposal: {
         user_outcomes: ["Parsing is correct"], scope: ["src/parser.ts"], authorization_ceiling: "LOCAL_REVERSIBLE",

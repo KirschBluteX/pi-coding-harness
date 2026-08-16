@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
@@ -23,21 +23,25 @@ function runMigration(name, required = true) {
 
 function runExternallyTransactionalMigration(name) {
   const path = resolve(root, "schemas", "sql", name);
+  const rebuildsReferencedTable = name === "026_goal_fit_review_identity_v2.sql";
   try {
+    if (rebuildsReferencedTable) db.exec("PRAGMA foreign_keys=OFF; PRAGMA legacy_alter_table=ON");
     db.exec("BEGIN IMMEDIATE");
     db.exec(readFileSync(path, "utf8"));
+    if (rebuildsReferencedTable && db.prepare("PRAGMA foreign_key_check").get()) {
+      throw new Error("table rebuild produced a foreign-key violation");
+    }
     db.exec("COMMIT");
     migrations.push({ file: relative(root, path).replaceAll("\\", "/"), status: "PASS", transaction_owner: "external" });
   } catch (error) {
     try { db.exec("ROLLBACK"); } catch { /* Preserve the migration failure. */ }
     migrations.push({ file: relative(root, path).replaceAll("\\", "/"), status: "FAIL", error: error.message });
     failures.push(`${name}: ${error.message}`);
+  } finally {
+    if (rebuildsReferencedTable) db.exec("PRAGMA legacy_alter_table=OFF; PRAGMA foreign_keys=ON");
   }
 }
 
-runMigration("001_core.sql");
-runMigration("002_experiments.sql");
-runMigration("003_memory.sql");
 let fts5 = false;
 try {
   db.exec("CREATE VIRTUAL TABLE __pch_fts_probe USING fts5(content); DROP TABLE __pch_fts_probe;");
@@ -45,24 +49,55 @@ try {
 } catch {
   fts5 = false;
 }
-if (fts5) runMigration("004_memory_fts.sql");
-else migrations.push({ file: "schemas/sql/004_memory_fts.sql", status: "SKIP", reason: "FTS5 unavailable; migration 003 TAG_PATH authority remains active." });
-runMigration("005_memory_claims.sql");
-if (fts5) runMigration("006_memory_claims_fts.sql");
-else migrations.push({ file: "schemas/sql/006_memory_claims_fts.sql", status: "SKIP", reason: "FTS5 unavailable; Memory v2 exact indexes and pending overlay remain active." });
-runMigration("007_memory_checkpoint.sql");
-runMigration("008_memory_v3_vault.sql");
-runMigration("009_memory_v3_lifecycle.sql");
-runMigration("010_memory_v3_1_capture.sql");
-runExternallyTransactionalMigration("011_task_flow_kernel_v1.sql");
-runExternallyTransactionalMigration("012_input_context_v1.sql");
-runExternallyTransactionalMigration("013_coding_harness_v1.sql");
-runExternallyTransactionalMigration("014_cache_v2.sql");
-runExternallyTransactionalMigration("015_compaction_v2_1.sql");
-runExternallyTransactionalMigration("016_provider_turn_ledger_v2.sql");
-runExternallyTransactionalMigration("017_target_performance_receipts.sql");
-runExternallyTransactionalMigration("018_control_plane_v2.sql");
-runExternallyTransactionalMigration("019_patch_transaction_v1.sql");
+
+const authoritySchema = Number(JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"))
+  .codingHarness?.authoritySchema);
+const migrationFiles = readdirSync(resolve(root, "schemas", "sql"))
+  .filter((name) => /^\d{3}_[a-z0-9_]+\.sql$/u.test(name))
+  .sort((left, right) => left.localeCompare(right, "en-US"));
+if (!Number.isSafeInteger(authoritySchema) || authoritySchema < 1) {
+  failures.push("package.json codingHarness.authoritySchema is invalid");
+}
+if (migrationFiles.length !== authoritySchema) {
+  failures.push(`migration file count ${migrationFiles.length} does not match authority schema ${authoritySchema}`);
+}
+for (const [index, name] of migrationFiles.entries()) {
+  const expectedPrefix = String(index + 1).padStart(3, "0");
+  if (!name.startsWith(`${expectedPrefix}_`)) {
+    failures.push(`migration sequence gap: expected ${expectedPrefix}, found ${name}`);
+  }
+  if (!fts5 && name === "004_memory_fts.sql") {
+    migrations.push({ file: `schemas/sql/${name}`, status: "SKIP", reason: "FTS5 unavailable; migration 003 TAG_PATH authority remains active." });
+  } else if (!fts5 && name === "006_memory_claims_fts.sql") {
+    migrations.push({ file: `schemas/sql/${name}`, status: "SKIP", reason: "FTS5 unavailable; Memory v2 exact indexes and pending overlay remain active." });
+  } else if (index < 10) {
+    runMigration(name);
+  } else {
+    runExternallyTransactionalMigration(name);
+  }
+}
+
+const acceptanceV2Tables = [
+  "acceptance_source_revisions_v2", "acceptance_source_spans_v2", "acceptance_facets_v2",
+  "acceptance_facet_span_members_v2", "acceptance_obligations_v2", "facet_obligation_bindings_v2",
+  "evidence_requirements_v2", "acceptance_authority_roots_v2",
+  "acceptance_authority_span_members_v2", "acceptance_authority_facet_members_v2",
+  "acceptance_authority_obligation_members_v2", "acceptance_authority_binding_members_v2",
+  "acceptance_authority_requirement_members_v2", "legacy_authority_dispositions_v2",
+  "oracle_execution_descriptors_v2", "oracle_execution_observations_v2", "oracle_pass_receipts_v2",
+  "acceptance_evidence_bindings_v2", "acceptance_evidence_witness_members_v2",
+  "work_cell_completion_receipts_v2", "work_cell_completion_evidence_members_v2",
+  "work_cell_completion_obligation_members_v2", "deliverable_manifests_v2",
+  "deliverable_completion_members_v2", "deliverable_artifact_members_v2",
+];
+
+const intakeV2Tables = [
+  "requirement_revisions_v2", "requirement_items_v2", "requirement_item_facet_members_v2",
+  "requirement_item_span_members_v2", "decision_requirements_v2",
+  "decision_requirement_item_members_v2", "decision_requirement_span_members_v2",
+  "decision_due_event_receipts_v2", "decision_authority_inputs_v2", "decision_resolutions_v2", "decision_closures_v2",
+  "decision_closure_members_v2", "goal_fit_reviews_v2", "contract_freeze_receipts_v2",
+];
 
 const requiredTables = [
   "goals", "requirement_revisions", "requirement_items", "plan_revisions", "plan_stages",
@@ -99,8 +134,9 @@ const requiredTables = [
   "harness_compaction_transitions_v21", "input_context_prompt_requests_v2", "provider_turn_ledgers_v2",
   "provider_turn_attempts_v2", "provider_turn_contributions_v2", "target_performance_measurements_v1",
   "target_performance_verdicts_v1", "task_flow_intake_evidence_v1", "acceptance_ledgers_v1",
-  "patch_transaction_preparations_v1"
+  "patch_transaction_preparations_v1", "provider_turn_goal_bindings_v1"
 ];
+requiredTables.push(...acceptanceV2Tables, ...intakeV2Tables);
 if (fts5) requiredTables.push("memory_fts", "memory_claims_fts");
 for (const table of requiredTables) {
   const row = db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type='table' AND name=?").get(table);
@@ -184,6 +220,20 @@ for (const table of [
   "provider_turn_contributions_v2", "target_performance_measurements_v1", "target_performance_verdicts_v1",
   "task_flow_intake_evidence_v1", "acceptance_ledgers_v1", "patch_transaction_preparations_v1",
 ]) {
+  for (const operation of ["update", "delete"]) {
+    const trigger = db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type='trigger' AND name=?")
+      .get(`no_${operation}_${table}`);
+    if (Number(trigger.count) !== 1) failures.push(`immutable trigger missing: no_${operation}_${table}`);
+  }
+}
+for (const table of acceptanceV2Tables) {
+  for (const operation of ["update", "delete"]) {
+    const trigger = db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type='trigger' AND name=?")
+      .get(`no_${operation}_${table}`);
+    if (Number(trigger.count) !== 1) failures.push(`immutable trigger missing: no_${operation}_${table}`);
+  }
+}
+for (const table of intakeV2Tables) {
   for (const operation of ["update", "delete"]) {
     const trigger = db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type='trigger' AND name=?")
       .get(`no_${operation}_${table}`);

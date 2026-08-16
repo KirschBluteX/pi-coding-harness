@@ -7,13 +7,36 @@ $rootPath = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
 $manifestPath = Join-Path $rootPath 'manifests\MIGRATION-MANIFEST.json'
 $outputPath = Join-Path $rootPath 'manifests\SOURCE-HASHES.json'
 $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$excludedDirectories = @('node_modules', 'dist', '.tmp', 'reports', '.git')
+$package = Get-Content -LiteralPath (Join-Path $rootPath 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$excludedDirectories = @($package.codingHarness.releaseExcludedDirectories)
+$excludedFiles = @($package.codingHarness.releaseExcludedFiles)
+if ($excludedDirectories.Count -eq 0 -or @($excludedDirectories | Where-Object {
+    -not ($_ -is [string]) -or -not $_ -or $_ -match '\\' -or
+    $_.StartsWith('/') -or $_.EndsWith('/') -or $_ -match '(^|/)\.\.?($|/)' -or $_ -match '//'
+}).Count -gt 0) { throw 'package.json releaseExcludedDirectories is invalid.' }
+if ($excludedFiles.Count -eq 0 -or @($excludedFiles | Where-Object {
+    -not ($_ -is [string]) -or -not $_ -or $_ -match '[/\\]'
+}).Count -gt 0) { throw 'package.json releaseExcludedFiles is invalid.' }
+
+function Test-ExcludedFile([string]$Name) {
+    foreach ($pattern in $excludedFiles) {
+        if ($Name -like $pattern) { return $true }
+    }
+    return $false
+}
+
+function Test-ExcludedDirectory([string]$FullName) {
+    $relative = $FullName.Substring($rootPath.Length).TrimStart('\', '/').Replace('\', '/')
+    return $excludedDirectories -contains $relative
+}
 
 function Get-SelectedFiles([string]$Directory) {
     foreach ($item in Get-ChildItem -LiteralPath $Directory -Force) {
-        if ($excludedDirectories -contains $item.Name) { continue }
+        if ($item.PSIsContainer -and (Test-ExcludedDirectory $item.FullName)) { continue }
         if ($item.PSIsContainer) { Get-SelectedFiles $item.FullName }
-        elseif ($item.Name -notlike '.MIGRATION-MANIFEST.tmp.*' -and $item.Name -notlike '.SOURCE-HASHES.tmp.*') { $item }
+        elseif (-not (Test-ExcludedFile $item.Name) -and
+            $item.Name -notlike '.MIGRATION-MANIFEST.tmp.*' -and
+            $item.Name -notlike '.SOURCE-HASHES.tmp.*') { $item }
     }
 }
 

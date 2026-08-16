@@ -46,7 +46,7 @@ function proposal(withPerformance = true): GoalContractProposal {
 
 function contract(withPerformance = true) {
   return finalizeGoalContract({
-    goalId: "GOAL-PERFORMANCE-001", objective: "优化 src/parser.ts 的性能并降低 P95 延迟", intent: "BUILD",
+    goalId: "GOAL-PERFORMANCE-001", objective: "TargetPerformance=OPTIMIZE; improve src/parser.ts P95 latency", intent: "BUILD",
     lane: "ADAPTIVE_ROUTE", sourceIntakeSha256: "a".repeat(64), version: 1, parentContractId: null,
     proposal: proposal(withPerformance), createdAtMs: now,
   });
@@ -80,9 +80,9 @@ function route(): RouteProposal {
 }
 
 describe("target-project performance Task Flow", () => {
-  it("detects Chinese and English performance demand without affecting ordinary tasks", () => {
-    expect(targetPerformanceDemand("优化解析器性能并降低延迟")).toBe("OPTIMIZE");
-    expect(targetPerformanceDemand("Preserve current throughput while fixing the parser")).toBe("NON_REGRESSION");
+  it("uses only the typed performance directive and never keyword inference", () => {
+    expect(targetPerformanceDemand("优化解析器性能并降低延迟")).toBe("NONE");
+    expect(targetPerformanceDemand("Preserve current throughput while fixing the parser")).toBe("NONE");
     expect(targetPerformanceDemand("Fix one parser correctness regression")).toBe("NONE");
     expect(targetPerformanceDemand("Fix an SVG regression. Benchmark constraints: use only the local repository.")).toBe("NONE");
     expect(targetPerformanceDemand("Do not optimize performance; only fix correctness.")).toBe("NONE");

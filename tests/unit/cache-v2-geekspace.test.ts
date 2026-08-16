@@ -7,7 +7,8 @@ import {
   resolveGeekspaceOpenAiCompletions,
 } from "../../src/cache-v2/geekspace-openai-completions.js";
 
-const config = (JSON.parse(readFileSync("config/default.json", "utf8")) as CodingHarnessConfig).modules.cache;
+const defaults = (JSON.parse(readFileSync("config/default.json", "utf8")) as CodingHarnessConfig).modules.cache;
+const config = { ...defaults, provider_integration: geekspaceOpenAiCompletionsIntegrationId };
 const selected = {
   provider: "geekspace", api: "openai-completions", base_url: "https://geekspace.cloud/v1/",
   model: "user-selected-model", thinking_level: "max", context_window: 272_000,
@@ -17,6 +18,7 @@ describe("Geekspace OpenAI-completions Cache contract", () => {
   it("matches provider, API and normalized base URL without pinning model settings", () => {
     expect(resolveGeekspaceOpenAiCompletions(config, selected)).toMatchObject({
       integrationId: geekspaceOpenAiCompletionsIntegrationId,
+      usageSemanticsId: "PI-0.82-USAGE-DISJOINT-INPUT-CACHE-OUTPUT-V1",
     });
     expect(resolveGeekspaceOpenAiCompletions(config, { ...selected, model: "another-user-model", thinking_level: "off" }))
       .not.toBeNull();

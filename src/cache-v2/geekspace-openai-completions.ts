@@ -1,22 +1,32 @@
 import type { CacheModuleConfig } from "../config/types.js";
 import type { WorkerRuntimeSelection } from "../harness/worker/runtime-policy.js";
-import type { CacheRequestAttributionV2 } from "./domain.js";
+import {
+  classifyPositiveProviderCacheRead,
+  type CacheProviderContract,
+  type CacheUsageObservation,
+} from "./provider-contract.js";
 
 export const geekspaceOpenAiCompletionsIntegrationId = "geekspace-openai-completions-positive-usage-v1";
 
-export interface GeekspaceOpenAiCompletionsContract {
+export interface GeekspaceOpenAiCompletionsContract extends CacheProviderContract {
   readonly integrationId: typeof geekspaceOpenAiCompletionsIntegrationId;
-  readonly securityEpoch: "GEEKSPACE-OPENAI-COMPLETIONS-C1-001";
-}
-
-export interface CacheUsageClassification {
-  readonly observationState: CacheRequestAttributionV2["observation_state"];
-  readonly evidenceLevel: CacheRequestAttributionV2["evidence_level"];
+  readonly securityEpoch: "GEEKSPACE-OPENAI-COMPLETIONS-C1-002";
+  readonly usageSemanticsId: "PI-0.82-USAGE-DISJOINT-INPUT-CACHE-OUTPUT-V1";
 }
 
 const contract: GeekspaceOpenAiCompletionsContract = {
   integrationId: geekspaceOpenAiCompletionsIntegrationId,
-  securityEpoch: "GEEKSPACE-OPENAI-COMPLETIONS-C1-001",
+  securityEpoch: "GEEKSPACE-OPENAI-COMPLETIONS-C1-002",
+  usageSemanticsId: "PI-0.82-USAGE-DISJOINT-INPUT-CACHE-OUTPUT-V1",
+  canonicalTransportIdentity: (runtime) => ({
+    provider: "geekspace",
+    api: "openai-completions",
+    baseUrl: normalizedBaseUrl(runtime.base_url)!,
+    model: runtime.model,
+    thinkingLevel: runtime.thinking_level,
+    contextWindow: runtime.context_window,
+  }),
+  classifyUsage: classifyPositiveProviderCacheRead,
 };
 
 function normalizedBaseUrl(value: string | undefined): string | null {
@@ -41,29 +51,6 @@ export function resolveGeekspaceOpenAiCompletions(
   return contract;
 }
 
-function token(value: number | null): number | null {
-  return value !== null && Number.isSafeInteger(value) && value >= 0 ? value : null;
-}
-
-export function classifyGeekspaceOpenAiCompletionsUsage(input: {
-  readonly usage: CacheRequestAttributionV2["usage"];
-  readonly responseStatus: number | null;
-}): CacheUsageClassification {
-  if (input.responseStatus !== null && input.responseStatus >= 400) {
-    return { observationState: "ERROR", evidenceLevel: "METADATA_ONLY" };
-  }
-  if (input.responseStatus === null || input.responseStatus < 200 || input.responseStatus >= 300) {
-    return { observationState: "UNOBSERVABLE", evidenceLevel: "METADATA_ONLY" };
-  }
-  const uncached = token(input.usage.input);
-  const cacheRead = token(input.usage.cacheRead);
-  const cacheWrite = token(input.usage.cacheWrite);
-  if (uncached === null || cacheRead === null || cacheWrite === null) {
-    return { observationState: "UNOBSERVABLE", evidenceLevel: "METADATA_ONLY" };
-  }
-  // Pi 0.82.1 normalizes a missing cached_tokens field to zero. Positive values
-  // prove provider-reported reuse; zero must remain unknown rather than MISS.
-  return cacheRead > 0
-    ? { observationState: "HIT", evidenceLevel: "PROVIDER_USAGE" }
-    : { observationState: "UNOBSERVABLE", evidenceLevel: "METADATA_ONLY" };
+export function classifyGeekspaceOpenAiCompletionsUsage(input: CacheUsageObservation) {
+  return classifyPositiveProviderCacheRead(input);
 }

@@ -1,5 +1,7 @@
 import { canonicalJsonSha256 } from "../authority/canonical-json.js";
 import type { GoalContractRecord, RouteSkeletonRecord } from "./domain.js";
+import type { GoalFitAssessmentProposalV2 } from "../intake-v2/domain.js";
+import { normalizeGoalFitAssessmentProposalV2 } from "../intake-v2/finalize.js";
 import type {
   DeferredOutcomeProposal,
   RouteAlternativeProposal,
@@ -18,6 +20,10 @@ export interface RouteRevisionPatch {
   readonly risks?: readonly RouteRiskProposal[];
   readonly alternatives?: readonly RouteAlternativeProposal[];
   readonly deferred_outcomes?: readonly DeferredOutcomeProposal[];
+}
+
+export interface RouteRevisionAuthorityPatchV2 extends RouteRevisionPatch {
+  readonly goal_fit_assessment: GoalFitAssessmentProposalV2;
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -130,4 +136,19 @@ export function applyRouteRevisionPatch(input: {
     throw new TypeError("RouteRevision patch does not change the prior RouteSkeleton");
   }
   return merged;
+}
+
+export function splitRouteRevisionAuthorityPatchV2(value: unknown): {
+  readonly patch: RouteRevisionPatch;
+  readonly goalFitAssessment: GoalFitAssessmentProposalV2;
+} {
+  const proposal = record(value, "RouteRevision Authority V2 patch");
+  exactKeys(proposal, [
+    "lane", "outcomes", "work_cells", "near_horizon", "assumptions", "risks", "alternatives",
+    "deferred_outcomes", "goal_fit_assessment",
+  ], "RouteRevision Authority V2 patch");
+  const goalFitAssessment = normalizeGoalFitAssessmentProposalV2(proposal.goal_fit_assessment);
+  const { goal_fit_assessment: _goalFitAssessment, ...patch } = proposal;
+  void _goalFitAssessment;
+  return { patch: patch as unknown as RouteRevisionPatch, goalFitAssessment };
 }

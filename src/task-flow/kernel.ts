@@ -1,9 +1,11 @@
-import type { AuthorityStore, CommandResult, MutationMeta } from "../authority/transactions.js";
+import type {
+  AuthorityStore, CommandResult, HostTaskFlowUserInputMeta, MutationMeta,
+} from "../authority/transactions.js";
 import type { CodingHarnessConfig } from "../config/types.js";
 import type { Clock } from "../foundation/clock.js";
 import { systemClock } from "../foundation/clock.js";
 import { createId } from "../foundation/ids.js";
-import { classifyGoalIntake, inferAcceptanceFacetMinimum } from "../planning/intake-classifier.js";
+import { classifyGoalIntake } from "../planning/intake-classifier.js";
 import { classifyTaskFlowInput, type TaskFlowAdmission } from "./admission.js";
 import type {
   DeliverableManifestRecord,
@@ -21,6 +23,12 @@ import type {
 import { sealTaskFlowRecord } from "./domain.js";
 import { assessRouteHealth, type DeterministicRouteDecision, type RouteHealthInput } from "./health.js";
 import type { TaskFlowCurrentView } from "./repository.js";
+import type { AcceptanceFacetProposalV2 } from "../acceptance-v2/domain.js";
+import type { GoalContractProposal } from "./finalize.js";
+import type { GoalFitAssessmentProposalV2 } from "../intake-v2/domain.js";
+import type {
+  CaptureActiveGoalUserTurnCommand, ClassifyActiveGoalUserTurnCommand, ResolveGoalContractReviewCommand,
+} from "./commands.js";
 
 export interface TaskFlowAdmissionContext {
   readonly workspaceId: string;
@@ -65,7 +73,6 @@ export class TaskFlowKernel {
       intent: admission.intent, lane,
       requirementProfile: selection.requirementProfile, planningDepth: selection.planningDepth,
       classification: selection.classification,
-      acceptanceFacetMinimum: inferAcceptanceFacetMinimum(admission.taskText),
       sourceIntakeSha256: context.sourceIntakeSha256,
       sourceText: admission.taskText,
       activationSha256: context.activationSha256,
@@ -73,8 +80,40 @@ export class TaskFlowKernel {
     return { admission, authority };
   }
 
-  submitContract(goalId: string, contract: GoalContractRecord, mutation: MutationMeta): CommandResult {
-    return this.authority.transactTaskFlow({ type: "SUBMIT_GOAL_CONTRACT", goalId, contract }, mutation);
+  submitContract(
+    goalId: string,
+    proposal: GoalContractProposal,
+    acceptanceFacets: readonly AcceptanceFacetProposalV2[],
+    goalFitAssessment: GoalFitAssessmentProposalV2,
+    mutation: MutationMeta,
+  ): CommandResult {
+    return this.authority.transactTaskFlow({
+      type: "SUBMIT_GOAL_CONTRACT", goalId, proposal, acceptanceFacets, goalFitAssessment,
+    }, mutation);
+  }
+
+  resolveContractReview(
+    command: ResolveGoalContractReviewCommand,
+    input: HostTaskFlowUserInputMeta,
+  ): CommandResult {
+    return this.authority.transactTaskFlowUserInput(command, input);
+  }
+
+  captureActiveGoalUserTurn(
+    command: CaptureActiveGoalUserTurnCommand,
+    input: HostTaskFlowUserInputMeta,
+  ): CommandResult {
+    return this.authority.transactTaskFlowUserInput(command, input);
+  }
+
+  classifyActiveGoalUserTurn(command: ClassifyActiveGoalUserTurnCommand, input: MutationMeta): CommandResult {
+    return this.authority.transactTaskFlow(command, input);
+  }
+
+  finalizeContractIntake(goalId: string, mutation: MutationMeta): CommandResult {
+    return this.authority.transactTaskFlow({
+      type: "FINALIZE_GOAL_CONTRACT_INTAKE", goalId,
+    }, mutation);
   }
 
   openContractRevision(
@@ -88,8 +127,21 @@ export class TaskFlowKernel {
     }, mutation);
   }
 
-  submitRoute(goalId: string, route: RouteSkeletonRecord, contract: GoalContractRecord, mutation: MutationMeta): CommandResult {
-    return this.authority.transactTaskFlow({ type: "SUBMIT_ROUTE_SKELETON", goalId, route, contract }, mutation);
+  submitRoute(
+    goalId: string, route: RouteSkeletonRecord, contract: GoalContractRecord,
+    goalFitAssessment: GoalFitAssessmentProposalV2, mutation: MutationMeta,
+  ): CommandResult {
+    return this.authority.transactTaskFlow({
+      type: "SUBMIT_ROUTE_SKELETON", goalId, route, contract, goalFitAssessment,
+    }, mutation);
+  }
+
+  finalizePlan(goalId: string, mutation: MutationMeta): CommandResult {
+    return this.authority.transactTaskFlow({ type: "FINALIZE_TASK_FLOW_PLAN", goalId }, mutation);
+  }
+
+  commitPlanGate(goalId: string, mutation: MutationMeta): CommandResult {
+    return this.authority.transactTaskFlow({ type: "COMMIT_TASK_FLOW_PLAN_GATE", goalId }, mutation);
   }
 
   recordBaseline(goalId: string, baseline: WorkspaceBaselineRecord, mutation: MutationMeta): CommandResult {
@@ -101,7 +153,9 @@ export class TaskFlowKernel {
   }
 
   prepareOperation(goalId: string, attempt: OperationAttemptRecord, prepared: OperationTransitionRecord, reconcileLocator: OperationReconcileLocatorRecord | null, mutation: MutationMeta): CommandResult {
-    return this.authority.transactTaskFlow({ type: "PREPARE_OPERATION", goalId, attempt, prepared, reconcileLocator }, mutation);
+    return this.authority.transactTaskFlow({
+      type: "PREPARE_OPERATION", goalId, attempt, prepared, reconcileLocator, oracleExecution: null,
+    }, mutation);
   }
 
   transitionOperation(goalId: string, transition: OperationTransitionRecord, mutation: MutationMeta): CommandResult {
@@ -110,6 +164,20 @@ export class TaskFlowKernel {
 
   attest(goalId: string, attestation: EvidenceAttestationRecord, mutation: MutationMeta): CommandResult {
     return this.authority.transactTaskFlow({ type: "ATTEST_EVIDENCE", goalId, attestation }, mutation);
+  }
+
+  deriveAcceptanceEvidenceV2(
+    goalId: string,
+    attemptId: string,
+    terminalTransitionId: string,
+    mutation: MutationMeta,
+  ): CommandResult {
+    return this.authority.transactTaskFlow({
+      type: "DERIVE_ACCEPTANCE_EVIDENCE_V2",
+      goalId,
+      attemptId,
+      terminalTransitionId,
+    }, mutation);
   }
 
   assess(goalId: string, routeId: string, workCellId: string | null, input: RouteHealthInput, mutation: MutationMeta): { readonly decision: DeterministicRouteDecision; readonly health: RouteHealthRecord; readonly authority: CommandResult } {
@@ -155,6 +223,10 @@ export class TaskFlowKernel {
     return this.authority.transactTaskFlow({ type: "COMPLETE_WORK_CELL", goalId, workCellId, completionSummarySha256 }, mutation);
   }
 
+  completeWorkV2(goalId: string, workCellId: string, mutation: MutationMeta): CommandResult {
+    return this.authority.transactTaskFlow({ type: "COMPLETE_WORK_CELL_V2", goalId, workCellId }, mutation);
+  }
+
   resolvePlanContinuation(goalId: string, choice: "BUILD" | "KEEP" | "REVISE", decision: TaskDecisionEntryRecord, mutation: MutationMeta): CommandResult {
     return this.authority.transactTaskFlow({
       type: "RESOLVE_PLAN_CONTINUATION", goalId, choice, decision,
@@ -177,6 +249,10 @@ export class TaskFlowKernel {
 
   closeGoal(goalId: string, deliverable: DeliverableManifestRecord, mutation: MutationMeta): CommandResult {
     return this.authority.transactTaskFlow({ type: "CLOSE_TASK_FLOW_GOAL", goalId, deliverable }, mutation);
+  }
+
+  closeGoalV2(goalId: string, mutation: MutationMeta): CommandResult {
+    return this.authority.transactTaskFlow({ type: "CLOSE_TASK_FLOW_GOAL_V2", goalId }, mutation);
   }
 
   recover(goalId: string): TaskFlowRecoveryProjection {

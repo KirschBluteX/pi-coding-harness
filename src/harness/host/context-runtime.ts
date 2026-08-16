@@ -1,4 +1,5 @@
 import { canonicalJsonSha256 } from "../../authority/canonical-json.js";
+import { piRuntimeFingerprintSha256 } from "../runtime-fingerprint.js";
 import type { CodingHarnessConfig } from "../../config/types.js";
 import { normalizeToolEffect, type ToolInvocation } from "../../effects/normalize.js";
 import { InputContextRuntime, type InputContextAddition } from "../../input-context/runtime.js";
@@ -45,6 +46,7 @@ export class HarnessContextRuntime {
     readonly session: TaskFlowSession;
     readonly config: CodingHarnessConfig;
     readonly runtimeSelection: WorkerRuntimeSelection;
+    readonly sessionId: string;
   }) {
     const resources = options.session.resources();
     if (!resources) throw new TypeError("Harness context requires initialized runtime resources");
@@ -76,11 +78,7 @@ export class HarnessContextRuntime {
     const workflow = this.options.session.workflowPrompt();
     const protectedState = this.options.session.protectedProjection();
     const subject = this.options.session.executionSubject();
-    const runtimeFingerprintSha256 = canonicalJsonSha256({
-      domain: "PCH-RUNTIME-FINGERPRINT-V1", provider: this.currentRuntime.provider, api: this.currentRuntime.api,
-      model: this.currentRuntime.model, thinkingLevel: this.currentRuntime.thinking_level,
-      contextWindow: this.currentRuntime.context_window,
-    });
+    const runtimeFingerprintSha256 = piRuntimeFingerprintSha256(this.currentRuntime);
     const memoryEligible = this.options.config.modules.memory.enabled
       && this.options.config.modules.memory.mode !== "OFF";
     const memory = memoryEligible ? this.options.session.memoryProjection() : null;
@@ -172,18 +170,24 @@ export class HarnessContextRuntime {
     readonly payloadShapeSha256: string;
     readonly history: ProviderTurnHistorySummary;
     readonly toolSchemaBytes: number;
-  }): boolean {
-    if (!this.lastCacheSeed || !this.options.config.modules.input_context.enabled) return false;
-    this.runtime.beginProviderTurn({
+  }): string | null {
+    if (!this.lastCacheSeed || !this.options.config.modules.input_context.enabled) return null;
+    const current = this.options.session.current();
+    const harness = this.options.session.harnessView();
+    if (!current || !harness || harness.goalId !== current.goalId) {
+      throw new TypeError("Provider accounting requires the current Goal/run binding");
+    }
+    return this.runtime.beginProviderTurn({
       promptGenerationId: this.lastCacheSeed.promptGenerationId,
       payloadShapeSha256: input.payloadShapeSha256,
       history: input.history,
       toolSchemaBytes: input.toolSchemaBytes,
+      goalBinding: { goalId: current.goalId, runId: harness.runId, sessionId: this.options.sessionId },
     });
-    return this.runtime.lastError() === null;
   }
 
   settleProviderTurn(input: {
+    readonly attemptId?: string;
     readonly usage: ProviderUsage | null;
     readonly responseStatus: number | null;
     readonly outcome: "RESPONDED" | "FAILED" | "OUTCOME_UNKNOWN";
@@ -206,7 +210,22 @@ export class HarnessContextRuntime {
     readonly isError: boolean;
   }): void {
     const seed = this.options.session.inputContextSeed();
-    if (seed) this.runtime.captureToolResult({ seed, ...input });
+    if (!seed) return;
+    const effect = normalizeToolEffect({
+      toolCallId: "context-capture", toolName: input.toolName, input: input.toolInput,
+      cwd: this.options.session.workspaceRoot(),
+    });
+    if (!input.isError && ["ALLOWLISTED_LOCAL_FORMATTER", "ALLOWLISTED_LOCAL_FORMATTER_BATCH"]
+      .includes(effect.classificationReason)) {
+      const targets = effect.normalizedTargets?.length ? effect.normalizedTargets : [effect.normalizedTarget];
+      for (const path of targets) {
+        this.runtime.captureToolResult({
+          seed, toolName: "edit", toolInput: { path }, result: input.result, isError: false,
+        });
+      }
+      return;
+    }
+    this.runtime.captureToolResult({ seed, ...input });
   }
 
   shutdown(): void { this.runtime.shutdown(); }

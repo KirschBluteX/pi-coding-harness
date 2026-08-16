@@ -41,7 +41,7 @@ describe("loadConfig", () => {
     expect(config.modules.input_context).toMatchObject({ enabled: true, mode: "AUTO_GUARDED" });
     expect(config.modules.cache).toMatchObject({
       enabled: true, arm: "C1_PREFIX",
-      provider_integration: "geekspace-openai-completions-positive-usage-v1",
+      provider_integration: "codex-local-openai-responses-positive-usage-v1",
       allow_payload_mutation: false, allow_live_canary: false,
     });
     expect(config.modules.output).toMatchObject({

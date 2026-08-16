@@ -17,6 +17,8 @@ export interface IntakeFacts {
   readonly highRework: boolean;
   readonly highImpactUnknowns: number;
   readonly irreversibleOrSensitive: boolean;
+  readonly semanticAssessment: "UNRESOLVED" | "USER_CONFIRMED" | "CONTRACT_DERIVED";
+  readonly structuralComplexity: 1 | 2 | 3 | 4;
 }
 
 export interface SpecificationClassification {

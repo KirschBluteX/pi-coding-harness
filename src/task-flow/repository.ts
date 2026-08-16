@@ -30,6 +30,9 @@ import {
 } from "./domain.js";
 import { requiresWorkspaceMutation } from "./admission.js";
 import { assertAcceptanceLedger, type AcceptanceLedgerRecord } from "./acceptance-ledger.js";
+import type { GoalFitAssessmentProposalV2 } from "../intake-v2/domain.js";
+import { normalizeGoalFitAssessmentProposalV2 } from "../intake-v2/finalize.js";
+import type { PlanStageGateV2 } from "../plan-v2/stage-gate.js";
 
 export interface TaskFlowCurrentView {
   readonly goalId: string;
@@ -58,20 +61,56 @@ export interface TaskFlowIntegritySummary {
   readonly unresolvedOperations: number;
 }
 
+export interface TaskFlowChangedFile {
+  readonly path: string;
+  readonly change: "CREATED" | "MODIFIED" | "DELETED" | "MOVED";
+  readonly operationId: string;
+  readonly workCellId: string;
+  readonly beforeSha256: string;
+  readonly afterSha256: string | null;
+  readonly authorityEventSequence: number;
+}
+
 export interface ActiveTaskFlowGoal {
   readonly goalId: string;
   readonly workspaceId: string;
   readonly originSessionId: string;
   readonly objective: string;
   readonly objectiveSha256: string;
-  readonly acceptanceFacetMinimum: number;
   readonly version: number;
+}
+
+export interface ContractFinalizationContext {
+  readonly objective: string;
+  readonly intent: TaskFlowIntent;
+  readonly lane: TaskFlowLane;
+  readonly sourceIntakeSha256: string;
+  readonly version: number;
+  readonly parentContractId: string | null;
+  readonly parentSourceRevisionId: string | null;
+}
+
+export interface TaskFlowPlanGateIdentity {
+  readonly planRevisionId: string;
+  readonly planRevisionSha256: string;
+  readonly gate: Extract<PlanStageGateV2, "PLAN_ENTRY" | "MATERIAL_CHANGE">;
+  readonly decisionClosureId: string;
+  readonly decisionClosureSha256: string;
+  readonly goalFitReviewId: string;
+  readonly goalFitReviewSha256: string;
+  readonly changeAcceptanceClosureId: string | null;
+  readonly changeAcceptanceClosureSha256: string | null;
+}
+
+export interface StagedTaskFlowPlanGate extends TaskFlowPlanGateIdentity {
+  readonly planValidatedEventSha256: string;
 }
 
 export interface TaskFlowOperationSnapshot {
   readonly attempt: OperationAttemptRecord;
   readonly state: OperationState;
   readonly ordinal: number;
+  readonly transitionId: string;
   readonly transitionSha256: string;
   readonly outputSha256: string | null;
   readonly readbackSha256: string | null;
@@ -128,6 +167,68 @@ export class TaskFlowRepository {
 
   available(): boolean {
     return tableExists(this.connection, "goal_contract_versions_v1") && tableExists(this.connection, "operation_transitions_v1");
+  }
+
+  readSubmittedGoalFitAssessment(
+    goalId: string, eventType: "GOAL_CONTRACT_DRAFTED" | "ROUTE_SKELETON_FROZEN",
+    subjectSha256: string,
+  ): GoalFitAssessmentProposalV2 {
+    const row = this.connection.prepare(`SELECT payload_json FROM events
+      WHERE goal_id=? AND event_type=? ORDER BY sequence DESC LIMIT 1`).get(
+      goalId, eventType,
+    ) as Record<string, unknown> | undefined;
+    if (!row) throw new AuthorityIntegrityError("Goal Fit assessment proposal event is missing");
+    const payload = parseJson<Record<string, unknown>>(row.payload_json, "Goal Fit assessment proposal event");
+    const actualSubject = eventType === "GOAL_CONTRACT_DRAFTED" ? payload.contractSha256 : payload.routeSha256;
+    if (actualSubject !== subjectSha256) throw new AuthorityIntegrityError("Goal Fit assessment proposal subject is stale");
+    try { return normalizeGoalFitAssessmentProposalV2(payload.goalFitAssessment); }
+    catch (error) { throw new AuthorityIntegrityError("Stored Goal Fit assessment proposal is invalid", error); }
+  }
+
+  readStagedPlanGate(goalId: string): StagedTaskFlowPlanGate {
+    const row = this.connection.prepare(`SELECT e.payload_json,e.event_sha256
+      FROM task_flow_goal_heads_v1 h JOIN events e
+        ON e.goal_id=h.goal_id AND e.sequence=h.updated_event_sequence
+      WHERE h.goal_id=? AND h.status='PLANNING' AND h.next_action_code='COMMIT_PLAN_GATE'
+        AND e.event_type='PLAN_VALIDATED'`).get(goalId) as Record<string, unknown> | undefined;
+    if (!row) throw new AuthorityIntegrityError("Task Flow staged Plan gate event is missing");
+    const payload = parseJson<Record<string, unknown>>(row.payload_json, "Task Flow staged Plan gate event");
+    const expectedKeys = [
+      "changeAcceptanceClosureId", "changeAcceptanceClosureSha256", "decisionClosureId",
+      "decisionClosureSha256", "gate", "goalFitReviewId", "goalFitReviewSha256",
+      "planRevisionId", "planRevisionSha256",
+    ];
+    if (Object.keys(payload).sort().join("\0") !== expectedKeys.sort().join("\0")) {
+      throw new AuthorityIntegrityError("Task Flow staged Plan gate event has an unexpected shape");
+    }
+    const gate = payload.gate;
+    if (gate !== "PLAN_ENTRY" && gate !== "MATERIAL_CHANGE") {
+      throw new AuthorityIntegrityError("Task Flow staged Plan gate is invalid");
+    }
+    const changeAcceptanceClosureId = payload.changeAcceptanceClosureId;
+    const changeAcceptanceClosureSha256 = payload.changeAcceptanceClosureSha256;
+    if ((gate === "MATERIAL_CHANGE" && (typeof changeAcceptanceClosureId !== "string"
+      || typeof changeAcceptanceClosureSha256 !== "string"))
+      || (gate === "PLAN_ENTRY" && (changeAcceptanceClosureId !== null
+        || changeAcceptanceClosureSha256 !== null))) {
+      throw new AuthorityIntegrityError("Task Flow staged Plan gate Change Acceptance identity is invalid");
+    }
+    return {
+      planRevisionId: boundedId(payload.planRevisionId, "Staged Plan revision ID"),
+      planRevisionSha256: sha(payload.planRevisionSha256, "Staged Plan revision"),
+      gate,
+      decisionClosureId: boundedId(payload.decisionClosureId, "Staged Decision closure ID"),
+      decisionClosureSha256: sha(payload.decisionClosureSha256, "Staged Decision closure"),
+      goalFitReviewId: boundedId(payload.goalFitReviewId, "Staged Goal Fit review ID"),
+      goalFitReviewSha256: sha(payload.goalFitReviewSha256, "Staged Goal Fit review"),
+      changeAcceptanceClosureId: changeAcceptanceClosureId === null
+        ? null
+        : boundedId(changeAcceptanceClosureId, "Staged Change Acceptance closure ID"),
+      changeAcceptanceClosureSha256: changeAcceptanceClosureSha256 === null
+        ? null
+        : sha(changeAcceptanceClosureSha256, "Staged Change Acceptance closure"),
+      planValidatedEventSha256: sha(row.event_sha256, "Staged PLAN_VALIDATED event"),
+    };
   }
 
   private assertAvailable(): void {
@@ -209,10 +310,87 @@ export class TaskFlowRepository {
     return { sourceText: row.source_text, fidelity: row.fidelity as "EXACT" | "LEGACY_HASH_ONLY" };
   }
 
-  insertContract(contract: GoalContractRecord, acceptanceLedger: AcceptanceLedgerRecord, eventSequence: number): boolean {
+  originSessionId(goalId: string): string {
+    const row = this.connection.prepare("SELECT origin_session_id FROM goals WHERE goal_id=?")
+      .get(goalId) as { readonly origin_session_id?: unknown } | undefined;
+    if (!row || typeof row.origin_session_id !== "string" || row.origin_session_id.length < 1) {
+      throw new AuthorityIntegrityError("Task Flow Goal lacks its origin session authority");
+    }
+    return row.origin_session_id;
+  }
+
+  resolveContractReview(
+    goalId: string,
+    action: "APPROVE" | "REJECT" | "EDIT" | "DEFER",
+    eventSequence: number,
+  ): void {
+    this.assertAvailable();
+    const next = action === "APPROVE"
+      ? { status: "CONTRACTING", action: "FINALIZE_INTAKE" }
+      : action === "DEFER"
+        ? { status: "WAITING_USER", action: "REVIEW_CONTRACT" }
+        : { status: "CONTRACTING", action: "SUBMIT_CONTRACT" };
+    const changed = this.connection.prepare(`UPDATE task_flow_goal_heads_v1
+      SET status=?,next_action_code=?,current_work_cell_id=NULL,updated_event_sequence=?
+      WHERE goal_id=? AND status='WAITING_USER' AND next_action_code='REVIEW_CONTRACT'`)
+      .run(next.status, next.action, eventSequence, goalId);
+    if (Number(changed.changes) !== 1) {
+      throw new AuthorityIntegrityError("Goal Contract review requires the current REVIEW_CONTRACT boundary");
+    }
+  }
+
+  finalizeContractIntake(
+    goalId: string,
+    contractFreezeReceiptSha256: string,
+    eventSequence: number,
+  ): void {
+    this.assertAvailable();
+    sha(contractFreezeReceiptSha256, "ContractFreeze V2 receipt");
+    const current = this.connection.prepare(`SELECT h.contract_id,h.contract_sha256,f.record_sha256
+      FROM goal_contract_heads_v1 h
+      JOIN contract_freeze_receipts_v2 f ON f.goal_id=h.goal_id AND f.contract_id=h.contract_id
+        AND f.contract_sha256=h.contract_sha256
+      WHERE h.goal_id=? ORDER BY f.generation DESC LIMIT 1`).get(goalId) as Record<string, unknown> | undefined;
+    if (!current || sha(current.record_sha256, "ContractFreeze V2 receipt") !== contractFreezeReceiptSha256) {
+      throw new AuthorityIntegrityError("Goal Contract finalization requires the current ContractFreeze V2 receipt");
+    }
+    const changed = this.connection.prepare(`UPDATE task_flow_goal_heads_v1
+      SET status='PLANNING',next_action_code='SUBMIT_ROUTE',current_work_cell_id=NULL,updated_event_sequence=?
+      WHERE goal_id=? AND status='CONTRACTING' AND next_action_code='FINALIZE_INTAKE'
+        AND current_contract_id=?`).run(eventSequence, goalId, boundedId(current.contract_id, "contract_id"));
+    if (Number(changed.changes) !== 1) {
+      throw new AuthorityIntegrityError("Goal Contract finalization requires the current FINALIZE_INTAKE boundary");
+    }
+  }
+
+  contractFinalizationContext(goalId: string): ContractFinalizationContext {
+    this.assertAvailable();
+    const row = this.connection.prepare(`SELECT g.objective,m.intent,m.lane,m.source_intake_sha256,
+        h.contract_id,h.version,s.source_revision_id
+      FROM goals g JOIN task_flow_modes_v1 m ON m.goal_id=g.goal_id
+      LEFT JOIN goal_contract_heads_v1 h ON h.goal_id=g.goal_id
+      LEFT JOIN acceptance_source_revisions_v2 s ON s.contract_id=h.contract_id
+      WHERE g.goal_id=?`).get(goalId) as Record<string, unknown> | undefined;
+    if (!row) throw new AuthorityIntegrityError("Task Flow contract finalization context is missing");
+    const parentContractId = row.contract_id === null ? null : boundedId(row.contract_id, "contract_id");
+    const parentSourceRevisionId = row.source_revision_id === null ? null : boundedId(row.source_revision_id, "source_revision_id");
+    if ((parentContractId === null) !== (parentSourceRevisionId === null)) {
+      throw new AuthorityIntegrityError("Current GoalContract lacks its Acceptance V2 source revision");
+    }
+    return {
+      objective: String(row.objective),
+      intent: String(row.intent) as TaskFlowIntent,
+      lane: String(row.lane) as TaskFlowLane,
+      sourceIntakeSha256: sha(row.source_intake_sha256, "source_intake_sha256"),
+      version: parentContractId === null ? 1 : Number(row.version) + 1,
+      parentContractId,
+      parentSourceRevisionId,
+    };
+  }
+
+  insertContractCore(contract: GoalContractRecord, eventSequence: number): boolean {
     this.assertAvailable();
     assertGoalContract(contract);
-    assertAcceptanceLedger(acceptanceLedger, contract);
     const existing = this.connection.prepare("SELECT record_sha256 FROM goal_contract_versions_v1 WHERE contract_id=?").get(contract.contract_id) as { record_sha256?: unknown } | undefined;
     if (existing) {
       if (existing.record_sha256 !== contract.record_sha256) throw new AuthorityIntegrityError("GoalContract ID substitution");
@@ -252,24 +430,25 @@ export class TaskFlowRepository {
       canonicalJson(obligation.oracle), canonicalJson(obligation.dependencies),
       obligation.record_sha256, obligation.ordinal,
     );
-    this.connection.prepare(`INSERT INTO acceptance_ledgers_v1(
-      ledger_id,goal_id,contract_id,source_intake_sha256,source_content_sha256,
-      source_fidelity,source_length,ledger_json,record_sha256,created_event_sequence
-    ) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
-      acceptanceLedger.ledger_id, acceptanceLedger.goal_id, acceptanceLedger.contract_id,
-      acceptanceLedger.source_intake_sha256, acceptanceLedger.source_content_sha256,
-      acceptanceLedger.source_fidelity, acceptanceLedger.source_length,
-      canonicalJson(acceptanceLedger), acceptanceLedger.record_sha256,
-      eventSequence,
-    );
+    return false;
+  }
+
+  publishContract(contract: GoalContractRecord, eventSequence: number): void {
+    this.assertAvailable();
+    const stored = this.connection.prepare("SELECT record_sha256 FROM goal_contract_versions_v1 WHERE contract_id=?")
+      .get(contract.contract_id) as { record_sha256?: unknown } | undefined;
+    const authority = this.connection.prepare("SELECT record_sha256 FROM acceptance_authority_roots_v2 WHERE contract_id=?")
+      .get(contract.contract_id) as { record_sha256?: unknown } | undefined;
+    if (stored?.record_sha256 !== contract.record_sha256 || typeof authority?.record_sha256 !== "string") {
+      throw new AuthorityIntegrityError("GoalContract cannot publish without its exact Acceptance V2 authority root");
+    }
     this.connection.prepare(`INSERT INTO goal_contract_heads_v1(goal_id,contract_id,version,contract_sha256,updated_event_sequence)
       VALUES(?,?,?,?,?) ON CONFLICT(goal_id) DO UPDATE SET contract_id=excluded.contract_id,
       version=excluded.version,contract_sha256=excluded.contract_sha256,updated_event_sequence=excluded.updated_event_sequence`).run(
       contract.goal_id, contract.contract_id, contract.version, contract.record_sha256, eventSequence,
     );
-    this.connection.prepare("UPDATE task_flow_goal_heads_v1 SET status='PLANNING',next_action_code='SUBMIT_ROUTE',current_contract_id=?,current_route_id=NULL,current_work_cell_id=NULL,updated_event_sequence=? WHERE goal_id=?")
+    this.connection.prepare("UPDATE task_flow_goal_heads_v1 SET status='WAITING_USER',next_action_code='REVIEW_CONTRACT',current_contract_id=?,current_route_id=NULL,current_work_cell_id=NULL,updated_event_sequence=? WHERE goal_id=?")
       .run(contract.contract_id, eventSequence, contract.goal_id);
-    return false;
   }
 
   acceptanceLedger(contractId: string): AcceptanceLedgerRecord | null {
@@ -301,6 +480,15 @@ export class TaskFlowRepository {
     }
     const contractHead = this.connection.prepare("SELECT contract_id FROM goal_contract_heads_v1 WHERE goal_id=?").get(route.goal_id) as { contract_id?: unknown } | undefined;
     if (contractHead?.contract_id !== route.contract_id) throw new AuthorityIntegrityError("RouteSkeleton is not bound to the current GoalContract");
+    const freeze = this.connection.prepare(`SELECT f.contract_id,f.contract_sha256,f.contract_freeze_receipt_id
+      FROM contract_freeze_receipts_v2 f JOIN goal_contract_heads_v1 h
+        ON h.goal_id=f.goal_id AND h.contract_id=f.contract_id AND h.contract_sha256=f.contract_sha256
+      WHERE f.goal_id=? ORDER BY f.generation DESC LIMIT 1`).get(route.goal_id) as Record<string, unknown> | undefined;
+    if (!freeze || freeze.contract_id !== route.contract_id
+      || freeze.contract_sha256 !== contract.record_sha256
+      || typeof freeze.contract_freeze_receipt_id !== "string") {
+      throw new AuthorityIntegrityError("RouteSkeleton requires the current ContractFreeze V2 authority");
+    }
     const head = this.connection.prepare("SELECT route_id,revision FROM route_skeleton_heads_v1 WHERE goal_id=?").get(route.goal_id) as { route_id?: unknown; revision?: unknown } | undefined;
     const latest = this.connection.prepare("SELECT route_id,revision FROM route_skeleton_versions_v1 WHERE goal_id=? ORDER BY revision DESC LIMIT 1").get(route.goal_id) as { route_id?: unknown; revision?: unknown } | undefined;
     const predecessor = head ?? latest;
@@ -339,16 +527,111 @@ export class TaskFlowRepository {
       route_sha256=excluded.route_sha256,health=excluded.health,updated_event_sequence=excluded.updated_event_sequence`).run(
       route.goal_id, route.route_id, route.revision, route.record_sha256, "HEALTHY", eventSequence,
     );
-    const intent = this.connection.prepare("SELECT intent FROM task_flow_modes_v1 WHERE goal_id=?").get(route.goal_id) as { intent?: unknown } | undefined;
-    const waiting = intent?.intent === "PLAN";
-    this.connection.prepare("UPDATE task_flow_goal_heads_v1 SET status=?,next_action_code=?,current_route_id=?,current_work_cell_id=NULL,updated_event_sequence=? WHERE goal_id=?")
-      .run(waiting ? "WAITING_USER" : "BUILDING", waiting ? "PLAN_CONTINUATION" : "AUTHORIZE_WORK", route.route_id, eventSequence, route.goal_id);
+    this.connection.prepare("UPDATE task_flow_goal_heads_v1 SET status='PLANNING',next_action_code='FINALIZE_PLAN',current_route_id=?,current_work_cell_id=NULL,updated_event_sequence=? WHERE goal_id=?")
+      .run(route.route_id, eventSequence, route.goal_id);
     return false;
   }
 
   private invalidateRouteHead(routeId: string, eventSequence: number, nowMs: number): void {
     this.connection.prepare("UPDATE work_cell_heads_v1 SET status='INVALIDATED',updated_event_sequence=? WHERE route_id=? AND status NOT IN ('SUCCEEDED','FAILED','INVALIDATED')").run(eventSequence, routeId);
     this.connection.prepare("UPDATE execution_authorizations_v1 SET revoked_at_ms=? WHERE route_id=? AND revoked_at_ms IS NULL").run(nowMs, routeId);
+  }
+
+  stagePlanGate(
+    goalId: string,
+    identity: TaskFlowPlanGateIdentity,
+    eventSequence: number,
+  ): void {
+    this.assertAvailable();
+    const authority = this.connection.prepare(`SELECT p.plan_revision_id,p.record_sha256 plan_sha256,
+        p.created_event_sequence plan_sequence,g.goal_fit_review_id,g.record_sha256 review_sha256,
+        g.created_event_sequence review_sequence,d.decision_closure_id,d.record_sha256 closure_sha256,
+        b.qualification_status,b.derived_verdict
+      FROM plan_heads_v2 h
+      JOIN plan_revisions_v2 p ON p.plan_revision_id=h.plan_revision_id
+      JOIN goal_fit_reviews_v2 g ON g.goal_fit_review_id=? AND g.requirement_revision_id=p.requirement_revision_id
+        AND g.goal_id=p.goal_id AND g.gate=? AND g.verdict='FIT'
+      JOIN goal_fit_review_assessment_bindings_v2 b ON b.goal_fit_review_id=g.goal_fit_review_id
+      JOIN decision_closures_v2 d ON d.decision_closure_id=g.decision_closure_id
+      WHERE h.goal_id=?`).get(identity.goalFitReviewId, identity.gate, goalId) as Record<string, unknown> | undefined;
+    if (!authority || authority.plan_revision_id !== identity.planRevisionId
+      || authority.plan_sha256 !== identity.planRevisionSha256
+      || authority.goal_fit_review_id !== identity.goalFitReviewId
+      || authority.review_sha256 !== identity.goalFitReviewSha256
+      || authority.decision_closure_id !== identity.decisionClosureId
+      || authority.closure_sha256 !== identity.decisionClosureSha256
+      || authority.qualification_status !== "CURRENT_ASSESSED" || authority.derived_verdict !== "FIT"
+      || Number(authority.plan_sequence) !== eventSequence
+      || Number(authority.review_sequence) > eventSequence) {
+      throw new AuthorityIntegrityError("Task Flow Plan staging requires the exact current Plan gate authority");
+    }
+    const acceptance = identity.changeAcceptanceClosureId === null ? null : this.connection.prepare(`SELECT record_sha256
+      FROM change_acceptance_closures_v2 WHERE change_acceptance_closure_id=? AND goal_id=?
+        AND successor_plan_revision_id=? AND decision_closure_id=?`).get(
+      identity.changeAcceptanceClosureId, goalId, identity.planRevisionId, identity.decisionClosureId,
+    ) as Record<string, unknown> | undefined;
+    if ((identity.gate === "MATERIAL_CHANGE" && (!acceptance
+      || acceptance.record_sha256 !== identity.changeAcceptanceClosureSha256))
+      || (identity.gate === "PLAN_ENTRY" && (identity.changeAcceptanceClosureId !== null
+        || identity.changeAcceptanceClosureSha256 !== null))) {
+      throw new AuthorityIntegrityError("Task Flow Plan staging has a mismatched Change Acceptance authority");
+    }
+    const changed = this.connection.prepare(`UPDATE task_flow_goal_heads_v1
+      SET status='PLANNING',next_action_code='COMMIT_PLAN_GATE',current_work_cell_id=NULL,updated_event_sequence=?
+      WHERE goal_id=? AND status='PLANNING' AND next_action_code='FINALIZE_PLAN'`)
+      .run(eventSequence, goalId);
+    if (Number(changed.changes) !== 1) {
+      throw new AuthorityIntegrityError("Task Flow Plan staging requires the current FINALIZE_PLAN boundary");
+    }
+  }
+
+  finalizePlan(
+    goalId: string,
+    gate: Extract<PlanStageGateV2, "PLAN_ENTRY" | "MATERIAL_CHANGE">,
+    stageGateReceiptSha256: string,
+    eventSequence: number,
+  ): void {
+    this.assertAvailable();
+    sha(stageGateReceiptSha256, `${gate} StageGate receipt`);
+    const authority = this.connection.prepare(`SELECT m.intent,g.record_sha256
+      FROM task_flow_modes_v1 m
+      JOIN route_skeleton_heads_v1 r ON r.goal_id=m.goal_id
+      JOIN plan_heads_v2 p ON p.goal_id=r.goal_id
+      JOIN plan_revisions_v2 v ON v.plan_revision_id=p.plan_revision_id AND v.route_id=r.route_id
+      JOIN stage_gate_receipts_v2 g ON g.goal_id=p.goal_id AND g.plan_revision_id=v.plan_revision_id
+        AND g.gate=?
+      WHERE m.goal_id=? AND 1=(SELECT count(*) FROM stage_gate_receipts_v2 current_gate
+        WHERE current_gate.goal_id=p.goal_id AND current_gate.plan_revision_id=p.plan_revision_id
+          AND current_gate.gate IN ('PLAN_ENTRY','MATERIAL_CHANGE'))`).get(gate, goalId) as Record<string, unknown> | undefined;
+    if (!authority || sha(authority.record_sha256, `${gate} StageGate receipt`) !== stageGateReceiptSha256) {
+      throw new AuthorityIntegrityError(`Task Flow Plan finalization requires the current ${gate} StageGate`);
+    }
+    const waiting = authority.intent === "PLAN";
+    const changed = this.connection.prepare(`UPDATE task_flow_goal_heads_v1
+      SET status=?,next_action_code=?,current_work_cell_id=NULL,updated_event_sequence=?
+      WHERE goal_id=? AND status='PLANNING' AND next_action_code='COMMIT_PLAN_GATE'`)
+      .run(waiting ? "WAITING_USER" : "BUILDING", waiting ? "PLAN_CONTINUATION" : "AUTHORIZE_WORK", eventSequence, goalId);
+    if (Number(changed.changes) !== 1) {
+      throw new AuthorityIntegrityError("Task Flow Plan finalization requires the current COMMIT_PLAN_GATE boundary");
+    }
+  }
+
+  assertPlanFinalizationBoundary(goalId: string): void {
+    this.assertAvailable();
+    const head = this.connection.prepare("SELECT status,next_action_code FROM task_flow_goal_heads_v1 WHERE goal_id=?")
+      .get(goalId) as Record<string, unknown> | undefined;
+    if (!head || head.status !== "PLANNING" || head.next_action_code !== "FINALIZE_PLAN") {
+      throw new AuthorityIntegrityError("Task Flow Plan finalization requires the current FINALIZE_PLAN boundary");
+    }
+  }
+
+  assertPlanGateCommitBoundary(goalId: string): void {
+    this.assertAvailable();
+    const head = this.connection.prepare("SELECT status,next_action_code FROM task_flow_goal_heads_v1 WHERE goal_id=?")
+      .get(goalId) as Record<string, unknown> | undefined;
+    if (!head || head.status !== "PLANNING" || head.next_action_code !== "COMMIT_PLAN_GATE") {
+      throw new AuthorityIntegrityError("Task Flow Plan gate commit requires the current COMMIT_PLAN_GATE boundary");
+    }
   }
 
   insertBaseline(record: WorkspaceBaselineRecord, eventSequence: number): boolean {
@@ -379,9 +662,26 @@ export class TaskFlowRepository {
       if (existing.record_sha256 !== record.record_sha256) throw new AuthorityIntegrityError("ExecutionAuthorization ID substitution");
       return true;
     }
-    const current = this.connection.prepare("SELECT route_id FROM route_skeleton_heads_v1 WHERE goal_id=?").get(record.goal_id) as { route_id?: unknown } | undefined;
+    const current = this.connection.prepare(`SELECT h.status,h.next_action_code,c.contract_id,r.route_id,
+        g.decision_closure_sha256
+      FROM task_flow_goal_heads_v1 h
+      JOIN goal_contract_heads_v1 c ON c.goal_id=h.goal_id
+      JOIN route_skeleton_heads_v1 r ON r.goal_id=h.goal_id
+      JOIN plan_heads_v2 p ON p.goal_id=h.goal_id
+      JOIN plan_revisions_v2 v ON v.plan_revision_id=p.plan_revision_id
+        AND v.contract_id=c.contract_id AND v.route_id=r.route_id
+      JOIN stage_gate_receipts_v2 g ON g.goal_id=h.goal_id AND g.plan_revision_id=p.plan_revision_id
+        AND g.gate IN ('PLAN_ENTRY','MATERIAL_CHANGE')
+      WHERE h.goal_id=? AND 1=(SELECT count(*) FROM stage_gate_receipts_v2 current_gate
+        WHERE current_gate.goal_id=h.goal_id AND current_gate.plan_revision_id=p.plan_revision_id
+          AND current_gate.gate IN ('PLAN_ENTRY','MATERIAL_CHANGE'))`).get(record.goal_id) as Record<string, unknown> | undefined;
     const cell = this.connection.prepare("SELECT status,route_id FROM work_cell_heads_v1 WHERE work_cell_id=? AND goal_id=?").get(record.work_cell_id, record.goal_id) as { status?: unknown; route_id?: unknown } | undefined;
-    if (current?.route_id !== record.route_id || cell?.route_id !== record.route_id || !["READY", "REPAIRING"].includes(String(cell.status))) throw new AuthorityIntegrityError("WorkCell is not eligible for authorization");
+    if (!current || current.status !== "BUILDING" || current.next_action_code !== "AUTHORIZE_WORK"
+      || current.contract_id !== record.contract_id || current.route_id !== record.route_id
+      || current.decision_closure_sha256 !== record.decision_closure_sha256
+      || cell?.route_id !== record.route_id || !["READY", "REPAIRING"].includes(String(cell.status))) {
+      throw new AuthorityIntegrityError("WorkCell is not eligible for current Plan authority");
+    }
     const unresolved = Number((this.connection.prepare("SELECT count(*) count FROM operation_heads_v1 WHERE goal_id=? AND state IN ('PREPARED','DISPATCHED','OBSERVED','OUTCOME_UNKNOWN')").get(record.goal_id) as { count?: unknown } | undefined)?.count ?? 0);
     if (unresolved > 0) throw new AuthorityIntegrityError("ExecutionAuthorization requires zero unresolved operations");
     this.connection.prepare(`INSERT INTO execution_authorizations_v1(
@@ -455,22 +755,7 @@ export class TaskFlowRepository {
       JOIN execution_authorizations_v1 a ON a.work_cell_id=h.work_cell_id AND a.revoked_at_ms IS NULL
       WHERE h.goal_id=? AND h.work_cell_id=?`).get(goalId, workCellId) as Record<string, unknown> | undefined;
     if (!row || row.status !== "RUNNING") throw new AuthorityIntegrityError("WorkCell completion requires the current running authorization");
-    const goal = this.connection.prepare("SELECT objective FROM goals WHERE goal_id=?").get(goalId) as { objective?: unknown } | undefined;
-    if (!goal || typeof goal.objective !== "string") throw new AuthorityIntegrityError("WorkCell completion requires the admitted Goal objective");
-    const remainingPeerCells = Number((this.connection.prepare(`SELECT count(*) count FROM work_cell_heads_v1
-      WHERE goal_id=? AND work_cell_id<>? AND status IN ('PROPOSED','READY','RUNNING','WAITING_USER','REPAIRING')`)
-      .get(goalId, workCellId) as { count?: unknown } | undefined)?.count ?? 0);
-    if (remainingPeerCells === 0 && row.effect_ceiling !== "READ_ONLY" && requiresWorkspaceMutation(goal.objective)) {
-      const committedMutations = Number((this.connection.prepare(`SELECT count(*) count
-        FROM operation_attempts_v1 a JOIN operation_transitions_v1 t ON t.attempt_id=a.attempt_id
-        WHERE a.goal_id=? AND a.operation_kind IN ('WRITE','EDIT','DELETE','MOVE','COMMAND')
-          AND t.state='COMMITTED'`).get(goalId) as { count?: unknown } | undefined)?.count ?? 0);
-      if (committedMutations === 0) {
-        throw new AuthorityIntegrityError(
-          "PCH_MUTATION_REQUIRED: explicit implementation Goal cannot close without a committed workspace mutation; implement the change, or obtain user confirmation and revise the GoalContract to READ_ONLY for a verified no-change outcome",
-        );
-      }
-    }
+    this.assertCompletionMutation(goalId, workCellId, String(row.effect_ceiling));
     const unresolved = Number((this.connection.prepare(`SELECT count(*) count FROM operation_heads_v1
       WHERE goal_id=? AND work_cell_id=? AND state IN ('PREPARED','DISPATCHED','OBSERVED','OUTCOME_UNKNOWN')`).get(goalId, workCellId) as { count?: unknown } | undefined)?.count ?? 0);
     const obligationIds = parseJson<unknown[]>(row.obligation_ids_json, "WorkCell obligation IDs");
@@ -491,9 +776,52 @@ export class TaskFlowRepository {
       if (Number(evidence?.count ?? 0) === 0) missing += 1;
     }
     if (unresolved > 0 || missing > 0) throw new AuthorityIntegrityError("WorkCell evidence closure is incomplete");
+    this.settleWorkCellCompletion(goalId, workCellId, boundedId(row.authorization_id, "authorization_id"), progressSha256, eventSequence, nowMs);
+  }
+
+  completeWorkCellV2(goalId: string, workCellId: string, completionReceiptSha256: string, eventSequence: number, nowMs: number): void {
+    this.assertAvailable();
+    sha(completionReceiptSha256, "WorkCell completion receipt");
+    const row = this.connection.prepare(`SELECT h.status,z.authorization_id,z.effect_ceiling,r.record_sha256
+      FROM work_cell_heads_v1 h JOIN execution_authorizations_v1 z ON z.work_cell_id=h.work_cell_id AND z.revoked_at_ms IS NULL
+      JOIN work_cell_completion_receipts_v2 r ON r.work_cell_id=h.work_cell_id AND r.authorization_id=z.authorization_id
+        AND r.created_event_sequence=?
+      WHERE h.goal_id=? AND h.work_cell_id=?`).get(eventSequence, goalId, workCellId) as Record<string, unknown> | undefined;
+    if (!row || String(row.status) !== "RUNNING" || sha(row.record_sha256, "completion receipt") !== completionReceiptSha256) {
+      throw new AuthorityIntegrityError("WorkCell V2 completion requires the current Host-derived receipt");
+    }
+    this.assertCompletionMutation(goalId, workCellId, String(row.effect_ceiling));
+    this.settleWorkCellCompletion(
+      goalId, workCellId, boundedId(row.authorization_id, "authorization_id"), completionReceiptSha256, eventSequence, nowMs,
+    );
+  }
+
+  private assertCompletionMutation(goalId: string, workCellId: string, effectCeiling: string): void {
+    const goal = this.connection.prepare("SELECT objective FROM goals WHERE goal_id=?").get(goalId) as { objective?: unknown } | undefined;
+    if (!goal || typeof goal.objective !== "string") throw new AuthorityIntegrityError("WorkCell completion requires the admitted Goal objective");
+    const remainingPeerCells = Number((this.connection.prepare(`SELECT count(*) count FROM work_cell_heads_v1
+      WHERE goal_id=? AND work_cell_id<>? AND status IN ('PROPOSED','READY','RUNNING','WAITING_USER','REPAIRING')`)
+      .get(goalId, workCellId) as { count?: unknown } | undefined)?.count ?? 0);
+    if (remainingPeerCells === 0 && effectCeiling !== "READ_ONLY" && requiresWorkspaceMutation(goal.objective)) {
+      const committedMutations = Number((this.connection.prepare(`SELECT count(*) count
+        FROM operation_attempts_v1 a JOIN operation_transitions_v1 t ON t.attempt_id=a.attempt_id
+        WHERE a.goal_id=? AND a.operation_kind IN ('WRITE','EDIT','DELETE','MOVE','COMMAND')
+          AND t.state='COMMITTED'`).get(goalId) as { count?: unknown } | undefined)?.count ?? 0);
+      if (committedMutations === 0) {
+        throw new AuthorityIntegrityError(
+          "PCH_MUTATION_REQUIRED: explicit implementation Goal cannot close without a committed workspace mutation; implement the change, or obtain user confirmation and revise the GoalContract to READ_ONLY for a verified no-change outcome",
+        );
+      }
+    }
+  }
+
+  private settleWorkCellCompletion(
+    goalId: string, workCellId: string, authorizationId: string, progressSha256: string,
+    eventSequence: number, nowMs: number,
+  ): void {
     this.transitionWorkCell(workCellId, "RUNNING", "SUCCEEDED", eventSequence, progressSha256);
     this.connection.prepare("UPDATE execution_authorizations_v1 SET revoked_at_ms=? WHERE authorization_id=? AND revoked_at_ms IS NULL")
-      .run(nowMs, boundedId(row.authorization_id, "authorization_id"));
+      .run(nowMs, authorizationId);
     const remaining = Number((this.connection.prepare("SELECT count(*) count FROM work_cell_heads_v1 WHERE goal_id=? AND status IN ('PROPOSED','READY','RUNNING','WAITING_USER','REPAIRING')").get(goalId) as { count?: unknown } | undefined)?.count ?? 0);
     const routeRow = this.connection.prepare(`SELECT v.route_json FROM route_skeleton_heads_v1 h
       JOIN route_skeleton_versions_v1 v ON v.route_id=h.route_id WHERE h.goal_id=?`).get(goalId) as { route_json?: unknown } | undefined;
@@ -820,6 +1148,22 @@ export class TaskFlowRepository {
     return false;
   }
 
+  closeGoalV2(goalId: string, manifestSha256: string, eventSequence: number): void {
+    this.assertAvailable();
+    sha(manifestSha256, "Deliverable V2 manifest");
+    const row = this.connection.prepare(`SELECT d.record_sha256,h.status,h.next_action_code
+      FROM deliverable_manifests_v2 d JOIN task_flow_goal_heads_v1 h ON h.goal_id=d.goal_id
+      WHERE d.goal_id=? AND d.created_event_sequence=?`).get(goalId, eventSequence) as Record<string, unknown> | undefined;
+    if (!row || sha(row.record_sha256, "Deliverable V2 manifest") !== manifestSha256
+      || String(row.status) !== "BUILDING" || String(row.next_action_code) !== "CLOSE_GOAL") {
+      throw new AuthorityIntegrityError("Goal V2 closure requires the current Host-derived deliverable manifest");
+    }
+    const changed = this.connection.prepare(`UPDATE task_flow_goal_heads_v1
+      SET status='SUCCEEDED',next_action_code='NONE',current_work_cell_id=NULL,updated_event_sequence=?
+      WHERE goal_id=? AND status='BUILDING' AND next_action_code='CLOSE_GOAL'`).run(eventSequence, goalId);
+    if (Number(changed.changes) !== 1) throw new AuthorityIntegrityError("Goal V2 closure lost its expected head");
+  }
+
   private assertGoalClosure(goalId: string, contractId: string, routeId: string, baselineId: string): void {
     const heads = this.connection.prepare("SELECT c.contract_id,r.route_id FROM goal_contract_heads_v1 c JOIN route_skeleton_heads_v1 r ON r.goal_id=c.goal_id WHERE c.goal_id=?").get(goalId) as Record<string, unknown> | undefined;
     if (!heads || heads.contract_id !== contractId || heads.route_id !== routeId) throw new AuthorityIntegrityError("DeliverableManifest is not bound to current contract/route heads");
@@ -868,6 +1212,17 @@ export class TaskFlowRepository {
       unresolvedOperationIds: unresolved, latestHealth: health };
   }
 
+  contractById(contractId: string): GoalContractRecord | null {
+    this.assertAvailable();
+    const row = this.connection.prepare("SELECT contract_json FROM goal_contract_versions_v1 WHERE contract_id=?")
+      .get(contractId) as { contract_json?: unknown } | undefined;
+    if (!row) return null;
+    const contract = parseJson<GoalContractRecord>(row.contract_json, "GoalContract");
+    assertGoalContract(contract);
+    if (contract.contract_id !== contractId) throw new AuthorityIntegrityError("GoalContract lookup returned a different Contract");
+    return contract;
+  }
+
   latestRouteRef(goalId: string): { readonly route_id: string; readonly revision: number } | null {
     this.assertAvailable();
     const row = this.connection.prepare(
@@ -880,22 +1235,35 @@ export class TaskFlowRepository {
   activeGoal(workspaceId: string, originSessionId?: string): ActiveTaskFlowGoal | null {
     this.assertAvailable();
     const row = this.connection.prepare(`SELECT g.goal_id,g.workspace_id,g.origin_session_id,g.objective,g.objective_sha256,
-        json_extract(e.payload_json,'$.acceptanceFacetMinimum') acceptance_facet_minimum,
         COALESCE((SELECT MAX(e.sequence) FROM events e WHERE e.goal_id=g.goal_id),0) version
       FROM goals g JOIN task_flow_goal_heads_v1 h ON h.goal_id=g.goal_id
       JOIN events e ON e.goal_id=g.goal_id AND e.sequence=1 AND e.event_type='GOAL_ADMITTED'
       WHERE g.workspace_id=? AND h.status NOT IN ('SUCCEEDED','FAILED','CANCELED')
         AND (? IS NULL OR g.origin_session_id=?)
       ORDER BY g.created_at_ms DESC,g.goal_id DESC LIMIT 1`).get(workspaceId, originSessionId ?? null, originSessionId ?? null) as Record<string, unknown> | undefined;
-    if (!row) return null;
+    return row ? this.activeGoalFromRow(row) : null;
+  }
+
+  activeGoalById(workspaceId: string, goalId: string): ActiveTaskFlowGoal | null {
+    this.assertAvailable();
+    const row = this.connection.prepare(`SELECT g.goal_id,g.workspace_id,g.origin_session_id,g.objective,g.objective_sha256,
+        COALESCE((SELECT MAX(e.sequence) FROM events e WHERE e.goal_id=g.goal_id),0) version
+      FROM goals g JOIN task_flow_goal_heads_v1 h ON h.goal_id=g.goal_id
+      JOIN events e ON e.goal_id=g.goal_id AND e.sequence=1 AND e.event_type='GOAL_ADMITTED'
+      WHERE g.workspace_id=? AND g.goal_id=? AND h.status NOT IN ('SUCCEEDED','FAILED','CANCELED')
+      LIMIT 1`).get(workspaceId, goalId) as Record<string, unknown> | undefined;
+    return row ? this.activeGoalFromRow(row) : null;
+  }
+
+  private activeGoalFromRow(row: Record<string, unknown>): ActiveTaskFlowGoal {
+    const version = Number(row.version);
+    if (!Number.isSafeInteger(version) || version < 1) {
+      throw new AuthorityIntegrityError("Active Goal event version is invalid");
+    }
     return {
       goalId: boundedId(row.goal_id, "goal_id"), workspaceId: boundedId(row.workspace_id, "workspace_id"),
       originSessionId: String(row.origin_session_id), objective: String(row.objective),
-      objectiveSha256: sha(row.objective_sha256, "objective_sha256"),
-      acceptanceFacetMinimum: Number.isSafeInteger(row.acceptance_facet_minimum)
-        && Number(row.acceptance_facet_minimum) >= 1 && Number(row.acceptance_facet_minimum) <= 6
-        ? Number(row.acceptance_facet_minimum) : 1,
-      version: Number(row.version),
+      objectiveSha256: sha(row.objective_sha256, "objective_sha256"), version,
     };
   }
 
@@ -903,6 +1271,41 @@ export class TaskFlowRepository {
     this.assertAvailable();
     const row = this.connection.prepare("SELECT COALESCE(MAX(sequence),0) version FROM events WHERE goal_id=?").get(goalId) as { version?: unknown } | undefined;
     return Number(row?.version ?? 0);
+  }
+
+  changedFiles(goalId: string): readonly TaskFlowChangedFile[] {
+    this.assertAvailable();
+    const rows = this.connection.prepare(`SELECT locator.target_relative,locator.preimage_sha256,
+        locator.expected_postimage_sha256,transition.readback_sha256,attempt.operation_id,attempt.work_cell_id,
+        attempt.operation_kind,head.updated_event_sequence
+      FROM operation_reconcile_locators_v1 locator
+      JOIN operation_attempts_v1 attempt ON attempt.attempt_id=locator.attempt_id
+      JOIN operation_heads_v1 head ON head.attempt_id=attempt.attempt_id
+      JOIN operation_transitions_v1 transition ON transition.attempt_id=head.attempt_id AND transition.ordinal=head.ordinal
+      WHERE attempt.goal_id=? AND attempt.operation_kind IN ('WRITE','EDIT','DELETE','MOVE')
+        AND head.state IN ('COMMITTED','RECONCILED') AND transition.postcondition='PASS'
+      ORDER BY head.updated_event_sequence,locator.target_relative`).all(goalId) as Record<string, unknown>[];
+    const files = new Map<string, TaskFlowChangedFile>();
+    for (const row of rows) {
+      const path = String(row.target_relative).replaceAll("\\", "/");
+      const afterSha256 = row.expected_postimage_sha256 !== null
+        ? sha(row.expected_postimage_sha256, "expected_postimage_sha256")
+        : row.readback_sha256 !== null ? sha(row.readback_sha256, "readback_sha256") : null;
+      const operationKind = String(row.operation_kind);
+      files.set(path, {
+        path,
+        change: afterSha256 === null ? "DELETED"
+          : operationKind === "MOVE" ? "MOVED"
+            : operationKind === "WRITE" && sha(row.preimage_sha256, "preimage_sha256") === sha256Hex("") ? "CREATED"
+              : "MODIFIED",
+        operationId: boundedId(row.operation_id, "operation_id"),
+        workCellId: boundedId(row.work_cell_id, "work_cell_id"),
+        beforeSha256: sha(row.preimage_sha256, "preimage_sha256"),
+        afterSha256,
+        authorityEventSequence: Number(row.updated_event_sequence),
+      });
+    }
+    return [...files.values()].sort((left, right) => left.path.localeCompare(right.path));
   }
 
   nextReadyWorkCell(goalId: string): WorkCellRecord | null {
@@ -927,7 +1330,7 @@ export class TaskFlowRepository {
   operationSnapshot(goalId: string, operationId: string): TaskFlowOperationSnapshot | null {
     this.assertAvailable();
     const row = this.connection.prepare(`SELECT a.*,h.state,h.ordinal,h.transition_sha256,
-        t.output_sha256,t.readback_sha256,t.failure_signature_sha256,t.postcondition,l.locator_id,l.target_relative,
+        t.transition_id,t.output_sha256,t.readback_sha256,t.failure_signature_sha256,t.postcondition,l.locator_id,l.target_relative,
         l.preimage_sha256,l.expected_postimage_sha256,l.record_sha256 locator_record_sha256,
         l.created_at_ms locator_created_at_ms
       FROM operation_attempts_v1 a JOIN operation_heads_v1 h ON h.attempt_id=a.attempt_id
@@ -958,6 +1361,7 @@ export class TaskFlowRepository {
     if (reconcileLocator) assertOperationReconcileLocator(reconcileLocator);
     return {
       attempt, state: String(row.state) as OperationState, ordinal: Number(row.ordinal),
+      transitionId: boundedId(row.transition_id, "transition_id"),
       transitionSha256: sha(row.transition_sha256, "transition_sha256"),
       outputSha256: row.output_sha256 === null ? null : sha(row.output_sha256, "output_sha256"),
       readbackSha256: row.readback_sha256 === null ? null : sha(row.readback_sha256, "readback_sha256"),
@@ -1126,9 +1530,11 @@ export class TaskFlowRepository {
       const live = this.connection.prepare("SELECT created_event_sequence FROM execution_authorizations_v1 WHERE goal_id=? AND work_cell_id=? AND revoked_at_ms IS NULL LIMIT 1").get(goalId, workCellId) as Record<string, unknown> | undefined;
       const status: WorkCellStatus = routeId !== currentRouteId ? "INVALIDATED" : completed ? "SUCCEEDED" : live ? "RUNNING" : "PROPOSED";
       const completionPayload = completed ? parseJson<Record<string, unknown>>(completed.payload_json, "WorkCell completion event") : null;
-      const completionSummarySha256 = completionPayload?.completionSummarySha256 === undefined
+      const completionProgressSha256 = completionPayload?.completionReceiptSha256
+        ?? completionPayload?.completionSummarySha256;
+      const completionSummarySha256 = completionProgressSha256 === undefined
         ? null
-        : sha(completionPayload.completionSummarySha256, "completionSummarySha256");
+        : sha(completionProgressSha256, "WorkCell completion progress SHA-256");
       insertCellHead.run(workCellId, goalId, routeId, status, live ? 1 : 0,
         completionSummarySha256, Number(completed?.sequence ?? live?.created_event_sequence ?? eventSequence));
     }
@@ -1147,6 +1553,11 @@ export class TaskFlowRepository {
     const unresolved = Number((this.connection.prepare("SELECT count(*) count FROM operation_heads_v1 WHERE goal_id=? AND state IN ('PREPARED','DISPATCHED','OBSERVED','OUTCOME_UNKNOWN')").get(goalId) as { count?: unknown } | undefined)?.count ?? 0);
     const liveAuthorization = this.connection.prepare("SELECT work_cell_id FROM execution_authorizations_v1 WHERE goal_id=? AND revoked_at_ms IS NULL LIMIT 1").get(goalId) as { work_cell_id?: unknown } | undefined;
     const deliverable = this.connection.prepare("SELECT result FROM deliverable_manifests_v1 WHERE goal_id=?").get(goalId) as { result?: unknown } | undefined;
+    const deliverableV2 = tableExists(this.connection, "deliverable_manifests_v2") && contract && route
+      ? this.connection.prepare(`SELECT 1 present FROM deliverable_manifests_v2
+          WHERE goal_id=? AND contract_id=? AND route_id=? ORDER BY revision DESC LIMIT 1`)
+        .get(goalId, boundedId(contract.contract_id, "contract_id"), boundedId(route.route_id, "route_id")) as { present?: unknown } | undefined
+      : undefined;
     const continuation = this.connection.prepare("SELECT selection_json FROM task_decision_entries_v1 WHERE goal_id=? AND decision_key='PLAN_CONTINUATION' AND state='RESOLVED' ORDER BY created_event_sequence DESC LIMIT 1").get(goalId) as { selection_json?: unknown } | undefined;
     const continuationChoice = continuation ? parseJson<{ choice?: unknown }>(continuation.selection_json, "Plan continuation").choice : null;
     const control = this.connection.prepare("SELECT selection_json FROM task_decision_entries_v1 WHERE goal_id=? AND decision_key='USER_CONTROL' AND state='RESOLVED' ORDER BY created_event_sequence DESC LIMIT 1").get(goalId) as { selection_json?: unknown } | undefined;
@@ -1156,6 +1567,7 @@ export class TaskFlowRepository {
     let nextActionCode: string;
     if (controlAction === "CANCEL") { status = "CANCELED"; nextActionCode = "NONE"; }
     else if (controlAction === "PAUSE") { status = "WAITING_USER"; nextActionCode = "RESUME"; }
+    else if (deliverableV2) { status = "SUCCEEDED"; nextActionCode = "NONE"; }
     else if (deliverable) { status = String(deliverable.result) as TaskFlowCurrentView["status"]; nextActionCode = "NONE"; }
     else if (continuationChoice === "KEEP") { status = "SUCCEEDED"; nextActionCode = "NONE"; }
     else if (unresolved > 0) { status = "RECONCILING"; nextActionCode = "RECONCILE_OPERATION"; }

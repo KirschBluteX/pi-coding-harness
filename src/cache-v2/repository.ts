@@ -71,6 +71,8 @@ export interface CacheV2RunSummary {
 }
 
 export class CacheV2Repository {
+  private readonly knownPartitions = new Map<string, { readonly identity: string; readonly recordSha256: string }>();
+  private readonly knownFamilies = new Map<string, { readonly identity: string; readonly recordSha256: string }>();
   constructor(private readonly connection: AuthorityConnection) {}
 
   available(): boolean {
@@ -127,46 +129,63 @@ export class CacheV2Repository {
     if (partition.run_id !== family.run_id || partition.partition_id !== family.partition_id
       || input.run_id !== partition.run_id || input.partition_id !== partition.partition_id
       || input.family_id !== family.family_id) throw new AuthorityIntegrityError("Cache prepare binding mismatch");
+    const partitionIdentity = stableIdentity(partition);
+    const familyIdentity = stableIdentity(family);
+    const knownPartition = this.knownPartitions.get(partition.partition_id);
+    const knownFamily = this.knownFamilies.get(family.family_id);
+    if (knownPartition && knownPartition.identity !== partitionIdentity) {
+      throw new AuthorityIntegrityError("Cache partition identity collision");
+    }
+    if (knownFamily && knownFamily.identity !== familyIdentity) {
+      throw new AuthorityIntegrityError("Cache prefix family identity collision");
+    }
+    let partitionRecordSha256 = knownPartition?.recordSha256 ?? partition.record_sha256;
+    let familyRecordSha256 = knownFamily?.recordSha256 ?? family.record_sha256;
     let request: CacheLogicalRequestV2 | null = null;
     runImmediateTransaction(this.connection, () => {
-      const existingPartitionRow = this.connection.prepare("SELECT * FROM cache_security_partitions_v2 WHERE partition_id=?").get(partition.partition_id) as Record<string, unknown> | undefined;
-      const existingPartition = existingPartitionRow ? storedPartition(existingPartitionRow) : null;
-      if (existingPartition) {
-        if (stableIdentity(existingPartition) !== stableIdentity(partition)) throw new AuthorityIntegrityError("Cache partition identity collision");
+      if (!knownPartition) {
+        const existingPartitionRow = this.connection.prepare("SELECT * FROM cache_security_partitions_v2 WHERE partition_id=?").get(partition.partition_id) as Record<string, unknown> | undefined;
+        const existingPartition = existingPartitionRow ? storedPartition(existingPartitionRow) : null;
+        if (existingPartition) {
+          if (stableIdentity(existingPartition) !== partitionIdentity) throw new AuthorityIntegrityError("Cache partition identity collision");
+          partitionRecordSha256 = existingPartition.record_sha256;
+        }
+        else this.connection.prepare(`INSERT INTO cache_security_partitions_v2(partition_id,run_id,transport_hmac,provider_hmac,api_hmac,model_hmac,
+          security_epoch_hmac,record_sha256,created_at_ms) VALUES(?,?,?,?,?,?,?,?,?)`).run(
+          partition.partition_id, partition.run_id, partition.transport_hmac, partition.provider_hmac, partition.api_hmac,
+          partition.model_hmac, partition.security_epoch_hmac, partition.record_sha256, partition.created_at_ms,
+        );
       }
-      else this.connection.prepare(`INSERT INTO cache_security_partitions_v2(partition_id,run_id,transport_hmac,provider_hmac,api_hmac,model_hmac,
-        security_epoch_hmac,record_sha256,created_at_ms) VALUES(?,?,?,?,?,?,?,?,?)`).run(
-        partition.partition_id, partition.run_id, partition.transport_hmac, partition.provider_hmac, partition.api_hmac,
-        partition.model_hmac, partition.security_epoch_hmac, partition.record_sha256, partition.created_at_ms,
-      );
-      const existingFamilyRow = this.connection.prepare("SELECT * FROM cache_stable_prefix_families_v2 WHERE family_id=?").get(family.family_id) as Record<string, unknown> | undefined;
-      const existingFamily = existingFamilyRow ? storedFamily(existingFamilyRow) : null;
-      if (existingFamily) {
-        if (stableIdentity(existingFamily) !== stableIdentity(family)) throw new AuthorityIntegrityError("Cache prefix family identity collision");
+      if (!knownFamily) {
+        const existingFamilyRow = this.connection.prepare("SELECT * FROM cache_stable_prefix_families_v2 WHERE family_id=?").get(family.family_id) as Record<string, unknown> | undefined;
+        const existingFamily = existingFamilyRow ? storedFamily(existingFamilyRow) : null;
+        if (existingFamily) {
+          if (stableIdentity(existingFamily) !== familyIdentity) throw new AuthorityIntegrityError("Cache prefix family identity collision");
+          familyRecordSha256 = existingFamily.record_sha256;
+        }
+        else this.connection.prepare(`INSERT INTO cache_stable_prefix_families_v2(family_id,run_id,partition_id,prompt_generation_id,
+          system_prompt_sha256,layout_manifest_sha256,tool_surface_sha256,context_subject_sha256,record_sha256,created_at_ms) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
+          family.family_id, family.run_id, family.partition_id, family.prompt_generation_id, family.system_prompt_sha256,
+          family.layout_manifest_sha256, family.tool_surface_sha256, family.context_subject_sha256, family.record_sha256, family.created_at_ms,
+        );
       }
-      else this.connection.prepare(`INSERT INTO cache_stable_prefix_families_v2(family_id,run_id,partition_id,prompt_generation_id,
-        system_prompt_sha256,layout_manifest_sha256,tool_surface_sha256,context_subject_sha256,record_sha256,created_at_ms) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
-        family.family_id, family.run_id, family.partition_id, family.prompt_generation_id, family.system_prompt_sha256,
-        family.layout_manifest_sha256, family.tool_surface_sha256, family.context_subject_sha256, family.record_sha256, family.created_at_ms,
-      );
       const sequenceRow = this.connection.prepare("SELECT COALESCE(MAX(request_sequence),0)+1 next FROM cache_logical_requests_v2 WHERE run_id=?")
         .get(input.run_id) as { next?: unknown } | undefined;
       const sequence = Number(sequenceRow?.next ?? 1);
-      const stableFamily = existingFamily ?? family;
       request = sealCacheRecord("PCH-CACHE-LOGICAL-REQUEST-V2", {
         ...input,
-        request_id: idFromSha256("CACHE_REQ", sha256Hex(`${input.run_id}\0${sequence}\0${stableFamily.record_sha256}`)),
+        request_id: idFromSha256("CACHE_REQ", sha256Hex(`${input.run_id}\0${sequence}\0${familyRecordSha256}`)),
         request_sequence: sequence,
       });
-      const existingRequest = this.connection.prepare("SELECT record_sha256 FROM cache_logical_requests_v2 WHERE request_id=?").get(request.request_id) as { record_sha256?: unknown } | undefined;
-      if (existingRequest) same(existingRequest.record_sha256, request.record_sha256, "Cache logical request");
-      else this.connection.prepare(`INSERT INTO cache_logical_requests_v2(request_id,run_id,partition_id,family_id,request_sequence,
+      this.connection.prepare(`INSERT INTO cache_logical_requests_v2(request_id,run_id,partition_id,family_id,request_sequence,
         subject_binding_sha256,record_sha256,created_at_ms) VALUES(?,?,?,?,?,?,?,?)`).run(
         request.request_id, request.run_id, request.partition_id, request.family_id, request.request_sequence,
         request.subject_binding_sha256, request.record_sha256, request.created_at_ms,
       );
     });
     if (!request) throw new AuthorityIntegrityError("Cache logical request was not prepared");
+    this.knownPartitions.set(partition.partition_id, { identity: partitionIdentity, recordSha256: partitionRecordSha256 });
+    this.knownFamilies.set(family.family_id, { identity: familyIdentity, recordSha256: familyRecordSha256 });
     return request;
   }
 

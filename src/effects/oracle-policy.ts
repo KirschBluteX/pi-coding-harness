@@ -7,6 +7,7 @@ export interface OraclePolicyDecision {
   readonly allow: boolean;
   readonly reason_code: string;
   readonly message: string;
+  readonly evidence_role: "FROZEN_ORACLE" | "SUPPLEMENTAL_VALIDATION";
   readonly command: string;
   readonly timeout_ms: number;
   readonly max_output_bytes: number;
@@ -109,20 +110,28 @@ export function evaluateOraclePolicy(input: {
   readonly command: string;
   readonly cwd: string;
   readonly declared_commands: readonly string[];
+  readonly allow_supplemental_validation?: boolean;
   readonly timeout_ms?: number;
   readonly max_output_bytes?: number;
 }): OraclePolicyDecision {
   const command = input.command.trim().normalize("NFC");
   const timeout = input.timeout_ms ?? 120_000;
   const maximumOutput = input.max_output_bytes ?? 50 * 1024;
+  const evidenceRole = input.declared_commands.includes(command) ? "FROZEN_ORACLE" : "SUPPLEMENTAL_VALIDATION";
   let packageScriptGraphSha256: string | null = null;
   const deny = (reason: string): OraclePolicyDecision => ({
-    allow: false, reason_code: reason, message: policyMessage(reason, command), command, timeout_ms: timeout,
+    allow: false, reason_code: reason, message: policyMessage(reason, command), evidence_role: evidenceRole,
+    command, timeout_ms: timeout,
     max_output_bytes: maximumOutput, package_script_graph_sha256: packageScriptGraphSha256,
     network: "STATIC_EXTERNAL_EFFECT_SCREEN", environment: "PI_INHERITED_NOT_SANDBOXED",
   });
-  if (!input.declared_commands.includes(command)) return deny("ORACLE_NOT_FROZEN");
-  const classification = classifyLocalValidationCommand(command);
+  if (evidenceRole === "SUPPLEMENTAL_VALIDATION" && input.allow_supplemental_validation !== true) {
+    return deny("ORACLE_NOT_FROZEN");
+  }
+  const buildOutputs = localBuildOutputPaths(command);
+  if (buildOutputs === null) return deny("ORACLE_BUILD_OUTPUT_INVALID");
+  if (buildOutputs.some((path) => !contained(input.cwd, path))) return deny("ORACLE_BUILD_OUTPUT_OUTSIDE_WORKSPACE");
+  const classification = classifyLocalValidationCommand(command, input.cwd);
   if (!classification.allow) {
     const reason = classification.reason_code === "LOCAL_VALIDATION_SHELL_COMPOSITION_DENIED" ? "ORACLE_SHELL_COMPOSITION_DENIED"
       : classification.reason_code === "LOCAL_VALIDATION_NPM_EXEC_DENIED" ? "ORACLE_NPM_EXEC_DENIED"
@@ -135,9 +144,6 @@ export function evaluateOraclePolicy(input: {
   if (goTestCommand.test(command) && !existsSync(resolve(input.cwd, "go.mod")) && !existsSync(resolve(input.cwd, "go.work"))) {
     return deny("ORACLE_GO_MODULE_NOT_FOUND");
   }
-  const buildOutputs = localBuildOutputPaths(command);
-  if (buildOutputs === null) return deny("ORACLE_BUILD_OUTPUT_INVALID");
-  if (buildOutputs.some((path) => !contained(input.cwd, path))) return deny("ORACLE_BUILD_OUTPUT_OUTSIDE_WORKSPACE");
   if (!Number.isSafeInteger(timeout) || timeout < 1_000 || timeout > 900_000) return deny("ORACLE_TIMEOUT_INVALID");
   if (!Number.isSafeInteger(maximumOutput) || maximumOutput < 4_096 || maximumOutput > 8_388_608) return deny("ORACLE_OUTPUT_BOUND_INVALID");
   if (forbiddenEffect.test(command)) return deny("ORACLE_EXTERNAL_EFFECT_DENIED");
@@ -153,7 +159,14 @@ export function evaluateOraclePolicy(input: {
     }
   }
   return {
-    allow: true, reason_code: "ORACLE_POLICY_PASS", message: "Validation Oracle policy passed.", command, timeout_ms: timeout,
+    allow: true,
+    reason_code: evidenceRole === "FROZEN_ORACLE" ? "ORACLE_POLICY_PASS" : "SUPPLEMENTAL_VALIDATION_POLICY_PASS",
+    message: evidenceRole === "FROZEN_ORACLE"
+      ? "Validation Oracle policy passed."
+      : "Supplemental validation policy passed; this result cannot attest frozen obligations.",
+    evidence_role: evidenceRole,
+    command,
+    timeout_ms: timeout,
     max_output_bytes: maximumOutput, package_script_graph_sha256: packageScriptGraphSha256,
     network: "STATIC_EXTERNAL_EFFECT_SCREEN", environment: "PI_INHERITED_NOT_SANDBOXED",
   };

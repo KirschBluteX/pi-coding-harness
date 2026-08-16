@@ -1,10 +1,15 @@
-# Third-party notices
+# License inventory
 
-Pi Coding Harness source in this project is private project code and has no public distribution license declared by
-this file. The project depends on `@earendil-works/pi-coding-agent`, whose MIT license notice is preserved in
-`PI-CODING-AGENT-MIT.txt`.
+Pi Coding Harness source is licensed under Apache-2.0 unless a file or directory
+states otherwise. The root license and attribution are in `LICENSE` and `NOTICE`.
 
-Other npm dependency licenses remain in their installed packages and lockfile metadata; dependency directories are
-not part of the source migration or Git commit. Before public distribution, generate a current dependency-license
-inventory from the exact lockfile and review every direct/transitive package. External papers, documentation and
-repositories cited by the blueprint are links and are not vendored.
+The repository depends on MIT-licensed third-party work:
+
+- `@earendil-works/pi-coding-agent` is a runtime peer/development dependency. Its
+  license is preserved in `PI-CODING-AGENT-MIT.txt`.
+
+Dependency directories are not committed. Before a public release, dependency
+licenses are scanned from the lockfile; the audit report is generated outside
+the source closure so it cannot silently become stale. External papers,
+documentation, and repositories cited by the blueprint are links and are not
+vendored.

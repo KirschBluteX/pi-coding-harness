@@ -645,6 +645,8 @@ export class MemoryRepository {
         issuedEventSequence: integer(row, "issued_event_sequence"), eventSha256: text(row, "event_sha256"),
       };
     }
+    const acceptanceV2 = this.acceptanceV2ReceiptAttestation(receiptId, workspaceId);
+    if (acceptanceV2) return acceptanceV2;
     const taskFlowAvailable = this.connection.prepare(
       "SELECT 1 present FROM sqlite_master WHERE type='table' AND name='evidence_attestations_v1'",
     ).get() as { present?: unknown } | undefined;
@@ -683,6 +685,76 @@ export class MemoryRepository {
       result: record.result === "PASS" ? "SUCCEEDED" : record.result === "FAIL" ? "FAILED" : "UNKNOWN_OUTCOME",
       bodySha256: record.record_sha256, outputSha256: record.output_sha256, failureSignatureSha256: null,
       issuedEventSequence: sequence, eventSha256: text(evidence, "event_sha256"),
+    };
+  }
+
+  private acceptanceV2ReceiptAttestation(
+    receiptId: string,
+    workspaceId: string,
+  ): MemoryReceiptAttestationSource | null {
+    const available = this.connection.prepare(
+      "SELECT 1 present FROM sqlite_master WHERE type='table' AND name='oracle_pass_receipts_v2'",
+    ).get() as { present?: unknown } | undefined;
+    if (available?.present !== 1) return null;
+    const row = this.connection.prepare(`SELECT p.*,g.workspace_id,e.event_sha256,e.prev_event_sha256
+      FROM oracle_pass_receipts_v2 p JOIN goals g ON g.goal_id=p.goal_id
+      JOIN events e ON e.goal_id=p.goal_id AND e.sequence=p.created_event_sequence
+      WHERE p.pass_receipt_id=? AND g.workspace_id=?`).get(receiptId, workspaceId) as Record<string, unknown> | undefined;
+    if (!row) return null;
+    const record = {
+      schema_version: 2,
+      pass_receipt_id: text(row, "pass_receipt_id"), authority_root_id: text(row, "authority_root_id"),
+      goal_id: text(row, "goal_id"), contract_id: text(row, "contract_id"), route_id: text(row, "route_id"),
+      work_cell_id: text(row, "work_cell_id"), evidence_requirement_id: text(row, "evidence_requirement_id"),
+      observation_id: text(row, "observation_id"), attempt_id: text(row, "attempt_id"),
+      terminal_transition_id: text(row, "terminal_transition_id"),
+      terminal_transition_sha256: text(row, "terminal_transition_sha256"),
+      authorization_id: text(row, "authorization_id"), authorization_sha256: text(row, "authorization_sha256"),
+      lease_generation: integer(row, "lease_generation"), fencing_token: integer(row, "fencing_token"),
+      postimage_root_sha256: text(row, "postimage_root_sha256"),
+      environment_sha256: text(row, "environment_sha256"),
+      integration_root_sha256: text(row, "integration_root_sha256"),
+      topology_revision_sha256: text(row, "topology_revision_sha256"),
+      observation_root_sha256: text(row, "observation_root_sha256"),
+      predecessor_authority_head_sha256: text(row, "predecessor_authority_head_sha256"),
+    };
+    const recordSha256 = canonicalJsonSha256({ domain: "PCH-ORACLE-PASS-RECEIPT-V2", ...record });
+    if (recordSha256 !== text(row, "record_sha256")
+      || nullableText(row, "prev_event_sha256") !== record.predecessor_authority_head_sha256) {
+      throw new AuthorityIntegrityError(`Oracle PASS receipt ${receiptId} failed integrity verification`);
+    }
+    const sequence = integer(row, "created_event_sequence");
+    const closure = this.connection.prepare(`SELECT p.evidence_requirement_id,b.evidence_binding_id,b.record_sha256,
+        p.attempt_id,p.terminal_transition_id,p.work_cell_id
+      FROM oracle_pass_receipts_v2 p JOIN acceptance_evidence_bindings_v2 b
+        ON b.pass_receipt_id=p.pass_receipt_id
+      WHERE p.goal_id=? AND p.created_event_sequence=? ORDER BY p.evidence_requirement_id`)
+      .all(record.goal_id, sequence) as Record<string, unknown>[];
+    if (closure.length === 0) {
+      throw new AuthorityIntegrityError(`Oracle PASS receipt ${receiptId} lacks its evidence closure`);
+    }
+    const first = closure[0]!;
+    const expectedPayload = {
+      attemptId: text(first, "attempt_id"), terminalTransitionId: text(first, "terminal_transition_id"),
+      evidenceRequirementIds: closure.map((entry) => text(entry, "evidence_requirement_id")),
+      evidenceBindingIds: closure.map((entry) => text(entry, "evidence_binding_id")),
+      evidenceBindingRootSha256: canonicalJsonSha256({
+        domain: "PCH-ACCEPTANCE-EVIDENCE-EVENT-ROOT-V2",
+        members: closure.map((entry) => text(entry, "record_sha256")).sort(),
+      }),
+      workCellId: text(first, "work_cell_id"),
+    };
+    if (expectedPayload.attemptId !== record.attempt_id
+      || expectedPayload.terminalTransitionId !== record.terminal_transition_id
+      || expectedPayload.workCellId !== record.work_cell_id
+      || !expectedPayload.evidenceRequirementIds.includes(record.evidence_requirement_id)) {
+      throw new AuthorityIntegrityError(`Oracle PASS receipt ${receiptId} has a mixed evidence closure`);
+    }
+    this.verifyLinkedEvent(record.goal_id, sequence, "EVIDENCE_ATTESTED", expectedPayload);
+    return {
+      receiptId: record.pass_receipt_id, goalId: record.goal_id, workspaceId: text(row, "workspace_id"),
+      result: "SUCCEEDED", bodySha256: recordSha256, outputSha256: record.observation_root_sha256,
+      failureSignatureSha256: null, issuedEventSequence: sequence, eventSha256: text(row, "event_sha256"),
     };
   }
 

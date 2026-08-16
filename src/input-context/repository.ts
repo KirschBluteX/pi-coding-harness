@@ -11,6 +11,7 @@ import {
   assertContextWorkingSet,
   assertEvidenceValidityTransition,
   assertProviderTurnAttempt,
+  assertProviderTurnGoalBinding,
   assertProviderTurnLedger,
   assertProviderTurnRequest,
   assertProjectKnowledgeClaim,
@@ -28,6 +29,7 @@ import {
   type ProviderPayloadFinality,
   type ProviderTurnAttemptRecord,
   type ProviderTurnContributionRecord,
+  type ProviderTurnGoalBindingRecord,
   type ProviderTurnLedgerRecord,
   type ProviderTurnRequestRecord,
   type ProjectKnowledgeClaimRecord,
@@ -61,6 +63,46 @@ export interface PendingProviderTurnRecord {
   readonly ledger: ProviderTurnLedgerRecord | null;
 }
 
+export interface GoalProviderTurnUsageSummaryV2 {
+  readonly requests: number;
+  readonly input_tokens: number | null;
+  readonly output_tokens: number | null;
+  readonly cache_read_tokens: number | null;
+  readonly accounting_completeness: "COMPLETE" | "PARTIAL" | "UNOBSERVABLE";
+  readonly receipt_refs: readonly string[];
+}
+
+export interface ProviderTurnUsageWindowV1 {
+  readonly goal_id: string;
+  readonly run_id: string;
+  readonly started_at_ms: number;
+  readonly completed_at_ms: number;
+}
+
+interface ProviderTurnUsageWindowBaseV1 {
+  readonly requests: number;
+  readonly receipt_refs: readonly string[];
+  readonly evidence_root_sha256: string;
+}
+
+export type ProviderTurnUsageWindowResultV1 =
+  | ProviderTurnUsageWindowBaseV1 & {
+      readonly accounting_completeness: "COMPLETE";
+      readonly input_tokens: number;
+      readonly output_tokens: number;
+      readonly cache_read_tokens: number;
+      readonly cache_write_tokens: number;
+      readonly incomplete_reasons: readonly [];
+    }
+  | ProviderTurnUsageWindowBaseV1 & {
+      readonly accounting_completeness: "PARTIAL" | "UNOBSERVABLE";
+      readonly input_tokens: null;
+      readonly output_tokens: null;
+      readonly cache_read_tokens: null;
+      readonly cache_write_tokens: null;
+      readonly incomplete_reasons: readonly string[];
+    };
+
 export interface InputContextIntegritySummary {
   readonly readEvidenceReceipts: number;
   readonly validityTransitions: number;
@@ -72,6 +114,7 @@ export interface InputContextIntegritySummary {
   readonly projectionTransitions: number;
   readonly providerTurnLedgers: number;
   readonly providerTurnAttempts: number;
+  readonly providerTurnGoalBindings: number;
   readonly queryScopeHeads: number;
   readonly projectSourceManifests: number;
   readonly projectKnowledgeClaims: number;
@@ -495,6 +538,20 @@ function decodeProviderTurnLedger(connection: AuthorityConnection, row: SqlRow):
   return stored(`ProviderTurnLedger ${promptRequestId}`, value, assertProviderTurnLedger);
 }
 
+function decodeProviderTurnGoalBinding(row: SqlRow): ProviderTurnGoalBindingRecord {
+  const value: ProviderTurnGoalBindingRecord = {
+    schema_version: 1,
+    prompt_request_id: text(row, "prompt_request_id"),
+    prompt_request_sha256: text(row, "prompt_request_sha256"),
+    goal_id: text(row, "goal_id"),
+    run_id: text(row, "run_id"),
+    session_id: text(row, "session_id"),
+    created_at_ms: integer(row, "created_at_ms"),
+    record_sha256: text(row, "record_sha256"),
+  };
+  return stored(`ProviderTurnGoalBinding ${value.prompt_request_id}`, value, assertProviderTurnGoalBinding);
+}
+
 function decodeProviderTurnAttempt(row: SqlRow): ProviderTurnAttemptRecord {
   const value: ProviderTurnAttemptRecord = {
     schema_version: 1,
@@ -584,6 +641,10 @@ export class InputContextRepository {
     if (!this.providerTurnsAvailable()) {
       throw new AuthorityIntegrityError("Input Context provider-turn migration 016 is not available");
     }
+  }
+
+  private providerGoalBindingsAvailable(): boolean {
+    return tableExists(this.connection, "provider_turn_goal_bindings_v1");
   }
 
   insertReadEvidenceReceipt(receipt: ReadEvidenceReceiptRecord): { readonly reused: boolean; readonly record: ReadEvidenceReceiptRecord } {
@@ -1055,6 +1116,219 @@ export class InputContextRepository {
     return row ? decodeProviderTurnLedger(this.connection, row) : null;
   }
 
+  readGoalProviderTurnUsage(goalId: string): GoalProviderTurnUsageSummaryV2 {
+    this.assertProviderTurnsAvailable();
+    if (!this.providerGoalBindingsAvailable()) {
+      return {
+        requests: 0, input_tokens: null, output_tokens: null, cache_read_tokens: null,
+        accounting_completeness: "UNOBSERVABLE", receipt_refs: [],
+      };
+    }
+    const bound = "EXISTS (SELECT 1 FROM provider_turn_goal_bindings_v1 binding WHERE binding.prompt_request_id=request.prompt_request_id AND binding.goal_id=?)";
+    const started = this.connection.prepare(`SELECT count(*) count
+      FROM provider_turn_attempts_v2 attempt
+      JOIN input_context_prompt_requests_v2 request ON request.prompt_request_id=attempt.prompt_request_id
+      WHERE attempt.transition_ordinal=0 AND ${bound}`).get(goalId) as SqlRow | undefined;
+    const rows = this.connection.prepare(`SELECT ledger.*
+      FROM provider_turn_ledgers_v2 ledger
+      JOIN input_context_prompt_requests_v2 request ON request.prompt_request_id=ledger.prompt_request_id
+      WHERE ${bound}
+      ORDER BY ledger.created_at_ms,ledger.prompt_request_id`).all(goalId) as SqlRow[];
+    const pending = this.connection.prepare(`SELECT count(*) count
+      FROM provider_turn_attempts_v2 attempt
+      JOIN input_context_prompt_requests_v2 request ON request.prompt_request_id=attempt.prompt_request_id
+      WHERE attempt.transition_ordinal=0 AND ${bound}
+        AND NOT EXISTS (SELECT 1 FROM provider_turn_attempts_v2 terminal
+          WHERE terminal.attempt_id=attempt.attempt_id AND terminal.transition_ordinal=1)`).get(goalId) as SqlRow | undefined;
+    const requests = Number(started?.count ?? 0);
+    const hasPending = Number(pending?.count ?? 0) > 0;
+    const ledgers = rows.map((row) => decodeProviderTurnLedger(this.connection, row));
+    const incomplete = ledgers.filter((ledger) => ledger.accounting_completeness !== "COMPLETE");
+    const completeness: GoalProviderTurnUsageSummaryV2["accounting_completeness"] = requests === 0
+      ? "COMPLETE"
+      : hasPending || ledgers.length === 0 || incomplete.some((ledger) => ledger.accounting_completeness === "UNOBSERVABLE")
+        ? (ledgers.some((ledger) => ledger.accounting_completeness === "COMPLETE") ? "PARTIAL" : "UNOBSERVABLE")
+        : incomplete.length > 0 ? "PARTIAL" : "COMPLETE";
+    const completeUsage = completeness === "COMPLETE";
+    const sum = (pick: (ledger: ProviderTurnLedgerRecord) => number | null): number | null => {
+      const values = ledgers.map(pick);
+      return completeUsage && values.every((value): value is number => value !== null)
+        ? values.reduce((total, value) => total + value, 0)
+        : null;
+    };
+    return {
+      requests,
+      input_tokens: sum((ledger) => ledger.provider_uncached_input_tokens),
+      output_tokens: sum((ledger) => ledger.provider_generated_output_tokens),
+      cache_read_tokens: sum((ledger) => ledger.provider_cache_read_tokens),
+      accounting_completeness: completeness,
+      receipt_refs: ledgers.map((ledger) => ledger.record_sha256),
+    };
+  }
+
+  readRunProviderTurnUsage(scope: ProviderTurnUsageWindowV1): ProviderTurnUsageWindowResultV1 {
+    this.assertProviderTurnsAvailable();
+    if (!scope.goal_id || !scope.run_id || scope.goal_id.length > 256 || scope.run_id.length > 256
+      || !Number.isSafeInteger(scope.started_at_ms) || scope.started_at_ms < 0
+      || !Number.isSafeInteger(scope.completed_at_ms) || scope.completed_at_ms < scope.started_at_ms) {
+      throw new TypeError("Provider usage window is invalid");
+    }
+    const seal = (input: {
+      readonly requests: number;
+      readonly refs: readonly string[];
+      readonly reasons: readonly string[];
+      readonly totals?: {
+        readonly input: number;
+        readonly output: number;
+        readonly cacheRead: number;
+        readonly cacheWrite: number;
+      };
+      readonly unobservable?: boolean;
+    }): ProviderTurnUsageWindowResultV1 => {
+      const refs = [...new Set(input.refs)].sort();
+      const reasons = [...new Set(input.reasons)].sort();
+      const evidenceRoot = canonicalJsonSha256({
+        domain: "PCH-PROVIDER-TURN-USAGE-WINDOW-V1",
+        scope,
+        requests: input.requests,
+        refs,
+        reasons,
+        totals: input.totals ?? null,
+      });
+      if (reasons.length === 0 && input.totals) return {
+        requests: input.requests,
+        input_tokens: input.totals.input,
+        output_tokens: input.totals.output,
+        cache_read_tokens: input.totals.cacheRead,
+        cache_write_tokens: input.totals.cacheWrite,
+        accounting_completeness: "COMPLETE",
+        incomplete_reasons: [],
+        receipt_refs: refs,
+        evidence_root_sha256: evidenceRoot,
+      };
+      return {
+        requests: input.requests,
+        input_tokens: null,
+        output_tokens: null,
+        cache_read_tokens: null,
+        cache_write_tokens: null,
+        accounting_completeness: input.unobservable ? "UNOBSERVABLE" : "PARTIAL",
+        incomplete_reasons: reasons,
+        receipt_refs: refs,
+        evidence_root_sha256: evidenceRoot,
+      };
+    };
+    if (!this.providerGoalBindingsAvailable()) return seal({
+      requests: 0,
+      refs: [],
+      reasons: ["GOAL_RUN_BINDING_UNAVAILABLE"],
+      unobservable: true,
+    });
+
+    const bindingRows = this.connection.prepare(`SELECT * FROM provider_turn_goal_bindings_v1
+      WHERE goal_id=? AND run_id=? ORDER BY prompt_request_id`).all(
+      scope.goal_id, scope.run_id,
+    ) as SqlRow[];
+    const refs: string[] = [];
+    const reasons: string[] = [];
+    const includedLedgers = new Map<string, ProviderTurnLedgerRecord>();
+    let requests = 0;
+
+    for (const bindingRow of bindingRows) {
+      const binding = decodeProviderTurnGoalBinding(bindingRow);
+      const requestRow = this.connection.prepare(
+        "SELECT * FROM input_context_prompt_requests_v2 WHERE prompt_request_id=?",
+      ).get(binding.prompt_request_id) as SqlRow | undefined;
+      if (!requestRow) {
+        reasons.push("BOUND_REQUEST_MISSING");
+        refs.push(binding.record_sha256);
+        continue;
+      }
+      const request = decodeProviderTurnRequest(requestRow);
+      const attemptRows = this.connection.prepare(`SELECT * FROM provider_turn_attempts_v2
+        WHERE prompt_request_id=? ORDER BY attempt_number,transition_ordinal`).all(
+        binding.prompt_request_id,
+      ) as SqlRow[];
+      const attempts = attemptRows.map(decodeProviderTurnAttempt);
+      const starts = attempts.filter((attempt) => attempt.transition_ordinal === 0);
+      const overlapping = starts.flatMap((started) => {
+        const terminal = attempts.find((attempt) => attempt.attempt_id === started.attempt_id
+          && attempt.transition_ordinal === 1) ?? null;
+        const terminalAt = terminal?.completed_at_ms ?? Number.POSITIVE_INFINITY;
+        return started.started_at_ms <= scope.completed_at_ms && terminalAt >= scope.started_at_ms
+          ? [{ started, terminal }] : [];
+      });
+      if (overlapping.length === 0) continue;
+      refs.push(binding.record_sha256, request.record_sha256, ...attempts.map((attempt) => attempt.record_sha256));
+      if (starts.length !== 1) reasons.push("RETRY_USAGE_UNPROVEN");
+      for (const { started, terminal } of overlapping) {
+        if (started.started_at_ms < scope.started_at_ms) reasons.push("WINDOW_CROSSING");
+        if (!terminal || terminal.completed_at_ms === null || terminal.completed_at_ms > scope.completed_at_ms) {
+          reasons.push("PENDING_OR_WINDOW_CROSSING");
+          continue;
+        }
+        if (started.started_at_ms < scope.started_at_ms || terminal.completed_at_ms < scope.started_at_ms) continue;
+        requests += 1;
+        if (terminal.outcome !== "RESPONDED") reasons.push("NON_RESPONDED_PROVIDER_TURN");
+        const ledgerRow = this.connection.prepare(
+          "SELECT * FROM provider_turn_ledgers_v2 WHERE prompt_request_id=?",
+        ).get(binding.prompt_request_id) as SqlRow | undefined;
+        if (!ledgerRow) {
+          reasons.push("LEDGER_MISSING");
+          continue;
+        }
+        const ledger = decodeProviderTurnLedger(this.connection, ledgerRow);
+        refs.push(ledger.record_sha256);
+        if (ledger.accounting_completeness !== "COMPLETE") reasons.push("LEDGER_INCOMPLETE");
+        const usageContribution = this.connection.prepare(`SELECT count(*) count
+          FROM provider_turn_contributions_v2
+          WHERE prompt_request_id=? AND contribution_sha256=?`).get(
+          binding.prompt_request_id, terminal.usage_contribution_sha256,
+        ) as SqlRow | undefined;
+        if (ledger.created_at_ms < started.started_at_ms || ledger.created_at_ms > terminal.completed_at_ms
+          || Number(usageContribution?.count ?? 0) !== 1) {
+          reasons.push("LEDGER_ATTEMPT_CLOSURE_MISMATCH");
+        }
+        includedLedgers.set(ledger.prompt_request_id, ledger);
+      }
+    }
+
+    const unboundRows = this.connection.prepare(`SELECT started.*,terminal.completed_at_ms terminal_completed_at_ms
+      FROM provider_turn_attempts_v2 started
+      LEFT JOIN provider_turn_attempts_v2 terminal
+        ON terminal.attempt_id=started.attempt_id AND terminal.transition_ordinal=1
+      WHERE started.transition_ordinal=0 AND started.started_at_ms<=?
+        AND coalesce(terminal.completed_at_ms,9223372036854775807)>=?
+        AND NOT EXISTS (SELECT 1 FROM provider_turn_goal_bindings_v1 binding
+          WHERE binding.prompt_request_id=started.prompt_request_id)`).all(
+      scope.completed_at_ms, scope.started_at_ms,
+    ) as SqlRow[];
+    if (unboundRows.length > 0) {
+      reasons.push("UNBOUND_PROVIDER_TURN");
+      refs.push(...unboundRows.map((row) => text(row, "record_sha256")));
+    }
+
+    const ledgers = [...includedLedgers.values()];
+    const completeNumbers = ledgers.every((ledger) => ledger.accounting_completeness === "COMPLETE"
+      && ledger.provider_uncached_input_tokens !== null && ledger.provider_cache_read_tokens !== null
+      && ledger.provider_cache_write_tokens !== null && ledger.provider_generated_output_tokens !== null);
+    if (!completeNumbers) reasons.push("CORE_USAGE_UNOBSERVABLE");
+    const total = (pick: (ledger: ProviderTurnLedgerRecord) => number): number =>
+      ledgers.reduce((sum, ledger) => sum + pick(ledger), 0);
+    return seal({
+      requests,
+      refs,
+      reasons,
+      ...(reasons.length === 0 && completeNumbers ? { totals: {
+        input: total((ledger) => ledger.provider_uncached_input_tokens!
+          + ledger.provider_cache_read_tokens! + ledger.provider_cache_write_tokens!),
+        output: total((ledger) => ledger.provider_generated_output_tokens!),
+        cacheRead: total((ledger) => ledger.provider_cache_read_tokens!),
+        cacheWrite: total((ledger) => ledger.provider_cache_write_tokens!),
+      } } : {}),
+    });
+  }
+
   appendProviderTurnAttempt(attempt: ProviderTurnAttemptRecord): { readonly reused: boolean; readonly record: ProviderTurnAttemptRecord } {
     assertProviderTurnAttempt(attempt);
     this.assertProviderTurnsAvailable();
@@ -1123,6 +1397,7 @@ export class InputContextRepository {
   beginProviderTurn(
     request: ProviderTurnRequestRecord,
     started: ProviderTurnAttemptRecord,
+    binding?: ProviderTurnGoalBindingRecord,
   ): { readonly requestReused: boolean; readonly attemptReused: boolean } {
     this.assertProviderTurnsAvailable();
     if (started.prompt_request_id !== request.prompt_request_id || started.transition_ordinal !== 0
@@ -1132,8 +1407,33 @@ export class InputContextRepository {
     return atomic(this.connection, () => {
       const requestResult = this.insertProviderTurnRequest(request);
       const attemptResult = this.appendProviderTurnAttempt(started);
+      if (binding !== undefined) this.insertProviderTurnGoalBinding(binding);
       return { requestReused: requestResult.reused, attemptReused: attemptResult.reused };
     });
+  }
+
+  insertProviderTurnGoalBinding(binding: ProviderTurnGoalBindingRecord): { readonly reused: boolean; readonly record: ProviderTurnGoalBindingRecord } {
+    if (!this.providerGoalBindingsAvailable()) {
+      throw new AuthorityIntegrityError("Provider turn Goal binding migration 031 is not available");
+    }
+    assertProviderTurnGoalBinding(binding);
+    const existing = this.connection.prepare(
+      "SELECT * FROM provider_turn_goal_bindings_v1 WHERE prompt_request_id=?",
+    ).get(binding.prompt_request_id) as SqlRow | undefined;
+    if (existing) {
+      const decoded = decodeProviderTurnGoalBinding(existing);
+      assertSameRecord(`ProviderTurnGoalBinding ${binding.prompt_request_id}`, decoded, binding);
+      return { reused: true, record: decoded };
+    }
+    this.connection.prepare(`INSERT INTO provider_turn_goal_bindings_v1(
+      prompt_request_id,prompt_request_sha256,goal_id,run_id,session_id,created_at_ms,record_sha256
+    ) VALUES(?,?,?,?,?,?,?)`).run(
+      binding.prompt_request_id, binding.prompt_request_sha256, binding.goal_id, binding.run_id,
+      binding.session_id, binding.created_at_ms, binding.record_sha256,
+    );
+    return { reused: false, record: decodeProviderTurnGoalBinding(this.connection.prepare(
+      "SELECT * FROM provider_turn_goal_bindings_v1 WHERE prompt_request_id=?",
+    ).get(binding.prompt_request_id) as SqlRow) };
   }
 
   readProviderTurnAttempts(promptRequestId: string, limit = 1024): ProviderTurnAttemptRecord[] {
@@ -1312,6 +1612,8 @@ export class InputContextRepository {
       projectionTransitions: this.verifyProjections(pageSize),
       providerTurnLedgers: this.providerTurnsAvailable() ? this.verifyProviderTurnLedgers(pageSize) : 0,
       providerTurnAttempts: this.providerTurnsAvailable() ? this.verifyAttempts(pageSize) : 0,
+      providerTurnGoalBindings: this.providerGoalBindingsAvailable()
+        ? this.verifyProviderTurnGoalBindings(pageSize) : 0,
       queryScopeHeads: this.verifyQueryScopeHeads(pageSize),
       projectSourceManifests: this.verifyKeyset("project_source_manifests_v1", "manifest_id", decodeProjectSourceManifest, pageSize),
       projectKnowledgeClaims: this.verifyKeyset("project_knowledge_claims_v1", "claim_id", decodeProjectKnowledgeClaim, pageSize),
@@ -1398,6 +1700,31 @@ export class InputContextRepository {
             || previous.request_sequence + 1 !== request.request_sequence) {
             throw new AuthorityIntegrityError(`ProviderTurnRequest ${promptRequestId} lineage is invalid`);
           }
+        }
+        total += 1;
+      }
+    }
+    return total;
+  }
+
+  private verifyProviderTurnGoalBindings(pageSize: number): number {
+    let promptRequestId = "";
+    let total = 0;
+    while (true) {
+      const rows = this.connection.prepare(`SELECT * FROM provider_turn_goal_bindings_v1
+        WHERE prompt_request_id>? ORDER BY prompt_request_id LIMIT ?`).all(promptRequestId, pageSize) as SqlRow[];
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        const binding = decodeProviderTurnGoalBinding(row);
+        promptRequestId = binding.prompt_request_id;
+        const authority = this.connection.prepare(`SELECT request.record_sha256 prompt_request_sha256,
+            run.goal_id run_goal_id
+          FROM input_context_prompt_requests_v2 request
+          JOIN managed_runs_v1 run ON run.run_id=?
+          WHERE request.prompt_request_id=?`).get(binding.run_id, binding.prompt_request_id) as SqlRow | undefined;
+        if (!authority || text(authority, "prompt_request_sha256") !== binding.prompt_request_sha256
+          || text(authority, "run_goal_id") !== binding.goal_id) {
+          throw new AuthorityIntegrityError(`ProviderTurnGoalBinding ${promptRequestId} authority is invalid`);
         }
         total += 1;
       }

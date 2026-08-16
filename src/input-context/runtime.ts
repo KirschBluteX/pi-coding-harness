@@ -10,6 +10,7 @@ import { hmacSha256Hex, sha256Hex } from "../foundation/crypto.js";
 import { idFromSha256 } from "../foundation/ids.js";
 import type { ExecutionSubjectRef } from "../task-flow/domain.js";
 import type { RehydrationSource } from "./batch-rehydrator.js";
+import { allocateContextBudget, type ContextBudgetInput } from "./budget.js";
 import { inputContextHashDomains, sealInputContextRecord } from "./canonical.js";
 import { ContextCompiler, type ContextCompileResult } from "./context-compiler.js";
 import { ContextToolRuntime, type ContextToolRequest, type ContextToolResponse, type ContextToolSnapshot } from "./context-tool.js";
@@ -80,6 +81,8 @@ interface EnrichedLayoutSegment extends PromptLayoutSegment {
 const mutationTools = new Set(["write", "edit", "write_file", "edit_file"]);
 const exactEditPreimageMaximumBytes = 8 * 1024 * 1024;
 const exactEditArgumentMaximumBytes = 1024 * 1024;
+const outputReserveTokens = 1_024;
+const unknownCandidateTokens = 512;
 
 function estimateTokens(content: string): number { return Math.max(1, Math.ceil(Buffer.byteLength(content, "utf8") / 4)); }
 
@@ -232,7 +235,18 @@ export class InputContextRuntime {
     }
 
     try {
-      const demand = this.demand(input.seed, input.runtimeFingerprintSha256, input.contextWindowTokens, input.currentInputTokens);
+      const budgetInput: ContextBudgetInput = {
+        contextWindowTokens: input.contextWindowTokens,
+        currentInputTokens: input.currentInputTokens,
+        outputReserveTokens,
+        softEvidenceTokens: this.options.config.soft_evidence_tokens,
+        hardEvidenceTokens: this.options.config.hard_evidence_tokens,
+      };
+      const demand = this.demand(
+        input.seed,
+        input.runtimeFingerprintSha256,
+        allocateContextBudget(budgetInput).pressure,
+      );
       this.currentProfile = demand.profile;
       const candidateContents = this.candidates(input.seed, additions, input.memory);
       const candidates = [...candidateContents.values()].map((entry) => entry.candidate);
@@ -240,14 +254,8 @@ export class InputContextRuntime {
       const compile = this.compiler.compile({
         demand, candidates, retainedRootSha256: retained.rootSha256, retainedCandidates: [],
         promptGenerationId: input.generationId,
-        budget: {
-          contextWindowTokens: input.contextWindowTokens,
-          currentInputTokens: input.currentInputTokens,
-          outputReserveTokens: 1_024,
-          softEvidenceTokens: this.options.config.soft_evidence_tokens,
-          hardEvidenceTokens: this.options.config.hard_evidence_tokens,
-        },
-        unknownCandidateTokens: 512,
+        budget: budgetInput,
+        unknownCandidateTokens,
         nowMs: this.nowMs(),
       });
       contextStep("WORKING_SET_PERSIST_FAILED", () =>
@@ -372,7 +380,12 @@ export class InputContextRuntime {
     readonly payloadShapeSha256: string;
     readonly history: ProviderTurnHistorySummary;
     readonly toolSchemaBytes: number;
-  }): void {
+    readonly goalBinding?: {
+      readonly goalId: string;
+      readonly runId: string;
+      readonly sessionId: string;
+    };
+  }): string | null {
     try {
       const historySeeds: ContributionSeed[] = [];
       if (input.history.userBytes > 0) historySeeds.push({
@@ -390,18 +403,24 @@ export class InputContextRuntime {
         owner: "PI", inputSurface: "TOOL_SCHEMAS", logicalBytes: input.toolSchemaBytes,
         tokens: null, evidence: "UNOBSERVABLE",
       });
-      this.turns.begin({
+      const attempt = this.turns.begin({
         promptGenerationId: input.promptGenerationId, payloadShapeSha256: input.payloadShapeSha256,
         history: input.history, toolSchemaBytes: input.toolSchemaBytes,
         contextEnvelopeSha256: this.currentCompile?.envelope.record_sha256 ?? null,
         layout: this.currentLayout,
         contributions: [...this.currentContributionSeeds, ...historySeeds],
+        ...(input.goalBinding === undefined ? {} : { goalBinding: input.goalBinding }),
       });
       if (this.saga.latest()?.projection_state === "APPLIED") this.saga.transition("REQUEST_OBSERVED", "PCH_HOOK_OUTPUT");
-    } catch (error) { this.lastErrorValue = error instanceof Error ? error.message : String(error); }
+      return attempt.attempt_id;
+    } catch (error) {
+      this.lastErrorValue = error instanceof Error ? error.message : String(error);
+      return null;
+    }
   }
 
   settleProviderTurn(input: {
+    readonly attemptId?: string;
     readonly usage: ProviderUsage | null;
     readonly responseStatus: number | null;
     readonly outcome: "RESPONDED" | "FAILED" | "OUTCOME_UNKNOWN";
@@ -419,6 +438,7 @@ export class InputContextRuntime {
         logicalBytes: input.toolArgumentBytes, tokens: null, evidence: "UNOBSERVABLE",
       });
       const ledger = this.turns.settle({
+        ...(input.attemptId === undefined ? {} : { attemptId: input.attemptId }),
         usage: input.usage, responseStatus: input.responseStatus, outcome: input.outcome, outputSeeds,
       });
       this.lastLedgerValue = ledger;
@@ -470,16 +490,22 @@ export class InputContextRuntime {
   guardMutation(
     effect: NormalizedEffect, toolInput: Readonly<Record<string, unknown>> = {},
   ): { readonly allow: boolean; readonly reason: string | null } {
-    if (this.currentMode !== "AUTO_GUARDED" || !mutationTools.has(effect.toolName.toLowerCase())
+    const guardedMutation = mutationTools.has(effect.toolName.toLowerCase())
+      || ["ALLOWLISTED_LOCAL_FORMATTER", "ALLOWLISTED_LOCAL_FORMATTER_BATCH"].includes(effect.classificationReason);
+    if (this.currentMode !== "AUTO_GUARDED" || !guardedMutation
       || effect.effectClass !== "LOCAL_REVERSIBLE_WRITE") return { allow: true, reason: null };
-    if (!existsSync(effect.normalizedTarget)) return { allow: true, reason: null };
+    const targets = effect.normalizedTargets?.length ? effect.normalizedTargets : [effect.normalizedTarget];
+    const existingTargets = targets.filter((target) => existsSync(target));
+    if (existingTargets.length === 0) return { allow: true, reason: null };
     if (["edit", "edit_file"].includes(effect.toolName.toLowerCase())
       && exactEditPreimageProvesCurrentSource(effect.normalizedTarget, toolInput)) {
       return { allow: true, reason: null };
     }
-    const receiptId = this.catalog.receiptForPath(effect.normalizedTarget);
-    if (!receiptId) return { allow: false, reason: "PCH FRESH_READ_REQUIRED: existing mutation target lacks a current exact-source receipt." };
-    const decision = this.mutationGuard.prepare([receiptId]);
+    const receiptIds = existingTargets.map((target) => this.catalog.receiptForPath(target));
+    if (receiptIds.some((receiptId) => receiptId === null)) {
+      return { allow: false, reason: "PCH FRESH_READ_REQUIRED: existing mutation target lacks a current exact-source receipt." };
+    }
+    const decision = this.mutationGuard.prepare(receiptIds as string[]);
     return decision.allow ? { allow: true, reason: null }
       : { allow: false, reason: `PCH SOURCE_VERSION_CHANGED: ${decision.checks.map((check) => `${check.receiptId}:${check.reasonCode}`).join(",")}. Fresh-read before retry.` };
   }
@@ -509,9 +535,12 @@ export class InputContextRuntime {
   lastError(): string | null { return this.lastErrorValue; }
   lastLedger(): ProviderTurnLedgerRecord | null { return this.lastLedgerValue; }
   shutdown(): void {
-    if (this.turns.hasPending()) this.settleProviderTurn({
-      usage: null, responseStatus: null, outcome: "OUTCOME_UNKNOWN", assistantTextBytes: 0, toolArgumentBytes: 0,
-    });
+    for (const attemptId of this.turns.pendingAttemptIds()) {
+      this.settleProviderTurn({
+        attemptId, usage: null, responseStatus: null, outcome: "OUTCOME_UNKNOWN",
+        assistantTextBytes: 0, toolArgumentBytes: 0,
+      });
+    }
     this.projector.reset();
   }
 
@@ -520,13 +549,11 @@ export class InputContextRuntime {
   private demand(
     seed: InputContextSeed,
     runtimeFingerprintSha256: string,
-    contextWindowTokens: number | null,
-    currentInputTokens: number | null,
+    contextPressure: ContextDemandRecord["context_pressure"],
   ): ContextDemandRecord {
     const profile = this.recoveryRequested ? "RECOVERY" as const
       : this.captured.size > 0 ? "TARGETED_EVIDENCE" as const : "RETAINED_DELTA" as const;
     this.recoveryRequested = false;
-    const ratio = contextWindowTokens && currentInputTokens !== null ? currentInputTokens / contextWindowTokens : null;
     const material = {
       subject: seed.subject, profile, next: seed.nextActionSha256, obligations: seed.obligations,
       source: seed.sourceClosureRootSha256, acceptance: seed.acceptanceClosureRootSha256,
@@ -541,7 +568,7 @@ export class InputContextRuntime {
       obligations: seed.obligations,
       source_closure_root_sha256: seed.sourceClosureRootSha256,
       acceptance_closure_root_sha256: seed.acceptanceClosureRootSha256,
-      context_pressure: ratio === null ? "UNKNOWN" as const : ratio >= 0.9 ? "HIGH" as const : ratio >= 0.7 ? "MEDIUM" as const : "LOW" as const,
+      context_pressure: contextPressure,
       runtime_fingerprint_sha256: runtimeFingerprintSha256,
     });
   }

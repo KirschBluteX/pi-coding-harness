@@ -12,6 +12,7 @@ export interface ToolCaptureDescriptor {
 
 const readTools = new Set(["read", "read_file", "readfile"]);
 const searchTools = new Set(["grep", "rg", "search", "find"]);
+const mutationTools = new Set(["write", "write_file", "edit", "edit_file"]);
 
 function stringField(input: Readonly<Record<string, unknown>>, names: readonly string[]): string | null {
   for (const name of names) if (typeof input[name] === "string" && input[name].length > 0) return input[name];
@@ -36,6 +37,17 @@ export function describeToolCapture(
       adapterVersion: "pi-builtin-read-v1",
       path,
       reusableCurrentSource: !isError && !truncated && path !== null,
+    };
+  }
+  if (mutationTools.has(normalized)) {
+    const path = stringField(input, ["path", "file_path", "filePath"]);
+    return {
+      captureKind: "FULL_FILE",
+      queryCompleteness: "NOT_APPLICABLE",
+      representationFidelity: isError || path === null ? "OPAQUE" : "EXACT_RAW",
+      adapterVersion: "pch-managed-mutation-readback-v1",
+      path,
+      reusableCurrentSource: !isError && path !== null,
     };
   }
   if (searchTools.has(normalized)) {

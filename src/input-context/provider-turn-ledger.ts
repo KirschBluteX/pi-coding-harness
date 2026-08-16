@@ -5,7 +5,7 @@ import { inputContextHashDomains, sealInputContextRecord } from "./canonical.js"
 import type {
   ContextLayoutManifestRecord, ContributionOwner, InputSurface, OutputSurface,
   ProviderTurnAttemptRecord, ProviderTurnContributionRecord, ProviderTurnLedgerRecord,
-  ProviderTurnRequestRecord, TokenEvidence,
+  ProviderTurnGoalBindingRecord, ProviderTurnRequestRecord, TokenEvidence,
 } from "./domain.js";
 import { providerTurnContributionSha256 } from "./repository.js";
 
@@ -16,7 +16,11 @@ interface PendingProviderTurn {
 }
 
 export interface ProviderTurnAuthority {
-  beginProviderTurn(request: ProviderTurnRequestRecord, started: ProviderTurnAttemptRecord): unknown;
+  beginProviderTurn(
+    request: ProviderTurnRequestRecord,
+    started: ProviderTurnAttemptRecord,
+    binding?: ProviderTurnGoalBindingRecord,
+  ): unknown;
   readLatestProviderTurnRequest(promptGenerationId: string): ProviderTurnRequestRecord | null;
   readPendingProviderTurns(limit?: number): readonly PendingProviderTurn[];
   completeProviderTurn(ledger: ProviderTurnLedgerRecord, terminal: ProviderTurnAttemptRecord): unknown;
@@ -64,7 +68,7 @@ function finiteToken(value: number | null): number | null {
 }
 
 export class ProviderTurnLedgerCoordinator {
-  private pending: PendingAttempt | null = null;
+  private readonly pending = new Map<string, PendingAttempt>();
 
   constructor(
     private readonly authority: ProviderTurnAuthority,
@@ -82,8 +86,12 @@ export class ProviderTurnLedgerCoordinator {
     readonly contextEnvelopeSha256: string | null;
     readonly layout: ContextLayoutManifestRecord | null;
     readonly contributions: readonly ContributionSeed[];
+    readonly goalBinding?: {
+      readonly goalId: string;
+      readonly runId: string;
+      readonly sessionId: string;
+    };
   }): ProviderTurnAttemptRecord {
-    if (this.pending) this.settle({ usage: null, responseStatus: null, outcome: "OUTCOME_UNKNOWN", outputSeeds: [] });
     const previous = this.authority.readLatestProviderTurnRequest(input.promptGenerationId);
     const requestSequence = previous === null ? 0 : previous.request_sequence + 1;
     const logicalRequestHmac = hmacSha256Hex(this.hmacKey, canonicalJson({
@@ -128,21 +136,40 @@ export class ProviderTurnLedgerCoordinator {
       outcome: "STARTED" as const,
       usage_contribution_sha256: null,
     });
-    this.authority.beginProviderTurn(promptRequest, attempt);
-    this.pending = {
+    const binding = input.goalBinding === undefined ? undefined : sealInputContextRecord(
+      inputContextHashDomains.providerTurnGoalBinding,
+      "record_sha256",
+      {
+        schema_version: 1 as const,
+        prompt_request_id: promptRequest.prompt_request_id,
+        prompt_request_sha256: promptRequest.record_sha256,
+        goal_id: input.goalBinding.goalId,
+        run_id: input.goalBinding.runId,
+        session_id: input.goalBinding.sessionId,
+        created_at_ms: promptRequest.created_at_ms,
+      },
+    );
+    this.authority.beginProviderTurn(promptRequest, attempt, binding);
+    this.pending.set(attempt.attempt_id, {
       promptRequest, attempt, contextEnvelopeSha256: input.contextEnvelopeSha256,
       layout: input.layout, inputSeeds: input.contributions,
-    };
+    });
     return attempt;
   }
 
   settle(input: {
+    readonly attemptId?: string;
     readonly usage: ProviderUsage | null;
     readonly responseStatus: number | null;
     readonly outcome: "RESPONDED" | "FAILED" | "OUTCOME_UNKNOWN";
     readonly outputSeeds: readonly ContributionSeed[];
   }): ProviderTurnLedgerRecord | null {
-    const pending = this.pending;
+    const attemptId = input.attemptId ?? this.implicitPendingAttemptId();
+    if (attemptId === null) return null;
+    const pending = this.pending.get(attemptId);
+    if (!pending && input.attemptId !== undefined) {
+      throw new TypeError(`Provider-turn attempt ${attemptId} is not pending`);
+    }
     if (!pending) return null;
     const usage = input.usage;
     const reasoning = finiteToken(usage?.reasoning ?? null);
@@ -213,11 +240,15 @@ export class ProviderTurnLedgerCoordinator {
       usage_contribution_sha256: usageSha256,
     });
     this.authority.completeProviderTurn(ledger, terminal);
-    this.pending = null;
+    this.pending.delete(attemptId);
     return ledger;
   }
 
-  hasPending(): boolean { return this.pending !== null; }
+  hasPending(attemptId?: string): boolean {
+    return attemptId === undefined ? this.pending.size > 0 : this.pending.has(attemptId);
+  }
+
+  pendingAttemptIds(): readonly string[] { return [...this.pending.keys()]; }
 
   recoverPending(limit = 64): number {
     const pending = this.authority.readPendingProviderTurns(limit);
@@ -298,5 +329,13 @@ export class ProviderTurnLedgerCoordinator {
       additional_provider_requests: 0 as const,
       created_at_ms: Math.max(entry.started.started_at_ms, this.nowMs()),
     });
+  }
+
+  private implicitPendingAttemptId(): string | null {
+    if (this.pending.size === 0) return null;
+    if (this.pending.size > 1) {
+      throw new TypeError("Provider-turn settle requires attemptId when multiple attempts are pending");
+    }
+    return this.pending.keys().next().value as string;
   }
 }

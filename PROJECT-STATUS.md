@@ -4,26 +4,26 @@
 
 - Product: Pi Coding Harness
 - Version: 1.2.1
-- Authority schema: 19
+- Authority schema: 35
 - State: PASS
-- Current phase: P11
-- Current stage: RELEASE_VERIFIED
-- State generation: 47
-- Updated: 2026-07-29T00:07:15.4915267+08:00
+- Current phase: P12
+- Current stage: CORE_ONLY_RELEASE_VERIFIED
+- State generation: 100
+- Updated: 2026-08-16T05:12:05.8706730-07:00
 
 ## Goal
 
-Release-verify the repaired real Pi user path on Node 24.18.0: one-transaction blocking preflight dispatch, authorization and canonical-workspace fencing across takeover, durable reconciliation, clarification recovery, strict Host protocol, and all lifecycle/arbitrary-cwd gates without weakening FULL durability.
+Qualify the core-only Pi Coding Harness runtime, its continuous authority schema, lifecycle, installed-package behavior and self-contained public source closure.
 
 ## Evidence
 
-- Completed receipts: 42
-- Authoritative artifacts: 17
+- Completed receipts: 84
+- Authoritative artifacts: 71
 - Verification: PASS
 
 ## Latest correction
 
-PCH-COR-RECOVERY-FIRST-CLARIFICATION: Bridge recovery no longer starts a model/provider turn while an OPEN clarification is unresolved. Interactive users resolve the durable choices locally before one productive continuation turn; headless users receive the exact slash-command choices, and clarification submission failure fully deactivates the half-entered Bridge.
+PCH-COR-CORE-ONLY-RELEASE-CLOSURE: The optional presentation product, its authority lane, launcher, derived notices and dedicated tests were removed as one closed dependency slice. Later migrations were renumbered so the supported authority schema remains continuous through 35.
 
 ## Do not repeat
 
@@ -85,17 +85,50 @@ PCH-COR-RECOVERY-FIRST-CLARIFICATION: Bridge recovery no longer starts a model/p
 - Do not restore worker_wait or tool_start to the closed Host protocol; worker_poll and atomic tool_preflight are the supported seams.
 - Do not treat process TEMP placement as deployment-volume performance evidence; fingerprint and benchmark the actual declared/default data-root volume.
 - Do not unconditionally send the entry objective after Host recovery when open clarifications remain; project and resolve the durable choices locally first.
+- Do not finish an expensive PRD or STRESS run after an actionable PCH defect is attributable; stop safely, repair one candidate, validate it and bind the rerun to a new runtime source epoch.
+- Do not allocate the single Codex STRESS run until a hash-bound PCH STRESS report passes hidden acceptance, isolation, Single topology and recovery/Compaction review.
+- Do not force the legacy geekspace/openai-completions Cache Adapter onto codex-local/openai-responses or interpret zero cache usage as a miss, free request or optimization win.
+- Do not label a Single run and a Multi run as directly paired without recording topology, active worker count, role allocation, isolation, serialized integration and the exact concurrency schedule evidence.
+- Do not execute or inspect the comparison-eligible Codex Multi result as a substitute for stabilizing PCH Multi through its own correctness and recovery gates.
+- Do not retry the codex-local relay through Pi with the OpenAI JS SDK default User-Agent; two clean PRD epochs and a single-variable probe deterministically returned HTTP 403 auth_failed.
+- Do not resume or score pch-diagnostic-local-prd01-005; preserve its one pending request as forensic unknown evidence and start epoch 006 from a clean seed.
+- Do not classify a request interrupted before provider settlement as HIT or MISS; restart reconciliation must record UNOBSERVABLE.
+- Do not benchmark local Authority performance on a volume different from the declared deployment data-root volume.
+- Do not externally terminate a Provider request because compact pi.jsonl size or its last retained event appears unchanged; wait for the raw-event stall gate or a controller result.
+- Do not score or resume pch-diagnostic-local-prd01-006; it was invalidated by observer intervention and its one pending request remains UNOBSERVABLE.
+- Do not relabel provider-reported zero cached tokens as MISS or COLD_START for Pi 0.82.1; only positive cacheRead proves a HIT and zero remains UNOBSERVABLE.
+- Do not trigger Pi Compaction from an RPC prompt response; wait for the authoritative agent_settled event.
+- Do not bypass or immediately take over an unexpired execution lease during restart testing; wait for expiry and preserve fencing.
+- Do not reject a statically safe local supplemental validation merely because it is absent from the frozen oracle; execute it as non-attesting evidence, and reserve obligation closure for the frozen oracle.
+- Do not classify shell composition with a raw metacharacter regex that treats quoted search patterns as executable operators.
+- Do not carry an authorization-preflight blocker into a later successful EXECUTE_WORK state or wait for SQLite CHECK constraints to enforce the baseline manifest budget.
+- Do not score, resume or reuse pch-diagnostic-local-stress-003; its raw records remain RUNNING because fail-fast repair stopped the processes before controller finalization, and every later attempt must use a new run ID and runtime source epoch.
+- Do not score, resume or reuse pch-diagnostic-local-stress-004; its raw records remain RUNNING because fail-fast repair stopped the processes before controller finalization, and every later attempt must use a new run ID and runtime source epoch.
+- Do not score, resume or reuse pch-diagnostic-local-stress-005; its raw records remain RUNNING because fail-fast repair stopped the processes before controller finalization, and every later attempt must use a new run ID and runtime source epoch.
+- Do not model the Codex delegation-enabled comparison run with PCH Multi roles or topology gates; use Codex native subagent delegation as the sole changed variable.
+- Do not rescore, resume, overwrite or reuse pch-diagnostic-local-stress-006 or its sealed evaluation shadow; it is a completed 29/35 quality-failure epoch and every repaired attempt must use a new run ID and runtime source epoch.
+- Do not score, resume, overwrite or reuse pch-diagnostic-local-stress-007; its raw RUNNING records are immutable observer-invalidated evidence and every later attempt must use a new run ID and runtime source epoch.
+- Do not force the Agent to split one safe same-scope gofmt batch into per-file Provider turns; preserve per-file authority and reconciliation beneath one bounded tool call.
+- Do not tune natural-language keyword lists to repair acceptance authority; replace them with source-bound typed proposals and local validation.
+- Do not repeat a full review of unchanged files; bind findings to source hashes and recheck only changed closure members.
+- Do not defer review and stress testing until phase exit; gate every vertical slice before broadening implementation.
+- Do not accept Completion or Delivery stamps that are merely positive; direct repository mutations must bind exactly to the current Goal event head plus one.
+- Do not duplicate integration/topology lineage SQL across Evidence, Completion and Delivery; use the shared Host-derived execution-lineage Module.
+- Do not restore submit_build or expose resolve_contract_review through model-visible coding_flow; Contract and Route proposals must remain separated by the exact USER review and Host freeze gate.
+- Do not use a semantic content hash as a globally unique entity identity when multiple authoritative requests may legitimately produce the same closure.
+- Do not run release or full authority tests with an unverified shell Node; probe process.version and process.versions.sqlite, then use the pinned WAL-safe runtime.
+- Do not reconstruct an immutable Decision closure from later resolutions or DueEventReceipts, and do not treat a historically valid but current-frontier-stale closure or Goal Fit review as current authority.
+- Do not connect Host worker_start to Execution V2 until durable terminal graph state, per-node failure/requeue recovery, restart-safe PatchSet content and fresh Host oracle are represented and fault-tested.
+- Do not derive recoverable Goals only from schema-35 binding heads; pre-binding active Task Flow authority must remain discoverable without fabricating binding receipts.
 
 ## Open risks
 
-- Geekspace normalized zero Cache usage remains unobservable, so request miss rate cannot be derived from current Pi 0.82.1 usage objects.
-- Provider/API/base-URL combinations without a verified integration intentionally fall back to C0.
-- Pi versions beyond the tested peer range require a fresh compatibility probe.
-- PRD-01 did not naturally trigger compaction; only deterministic compaction and recovery tests currently pass.
-- The post-PRD-01 overhead repairs have deterministic evidence but no new provider-backed measurement of token, output, RouteRevision or latency reduction.
-- The provider exposed no monetary cost in Pi usage objects; token and latency evidence cannot be converted to an audited currency cost.
 - The tested Pi Coding Agent 0.82.1 peer/dev package shrinkwrap contains brace-expansion 5.0.7 (high DoS advisory); bundled PCH runtime dependencies audit clean, project overrides cannot replace the dependency-owned shrinkwrap, and no newer tested Pi release is available.
 - WAL remains auto-checkpoint-disabled and can grow during a long Host lifetime; synchronous same-thread PASSIVE checkpoint is rejected until measured or moved behind a proven off-main-thread maintenance Module.
+- Natural Compaction at the production 272000-token context window remains unobserved; manual native Compaction and its restart frontier are provider-backed qualified.
+- The localhost provider endpoint depends on the Codex Desktop relay lifecycle and may become an external availability blocker.
+- The terminal-preservation, MUST-outcome and bounded formatter-batch corrections are locally verified but remain without a clean provider-backed Terraform STRESS receipt because that benchmark is user-deferred.
+- An unrestricted release claim still requires the user-deferred PCH Single Terraform STRESS, PCH Multi provider rerun and four-run comparison; the current receipt covers the complete non-benchmark release surface only.
 
 ## Blockers
 
@@ -103,4 +136,4 @@ PCH-COR-RECOVERY-FIRST-CLARIFICATION: Bridge recovery no longer starts a model/p
 
 ## Next action
 
-Optional only: prototype and measure an off-main-thread WalMaintenance Module under steady-state, concurrent, shutdown, and crash workloads before considering any WAL checkpoint policy change.
+Commit the verified core-only source closure and push main to the public repository.

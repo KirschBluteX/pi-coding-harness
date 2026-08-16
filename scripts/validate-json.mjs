@@ -3,8 +3,8 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSy
 import { basename, dirname, relative, resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 
-const EXCLUDED_SEGMENTS = new Set(["node_modules", "dist", "reports", ".git", ".tmp"]);
-const EXTERNAL_JSON = new Set(["package.json", "package-lock.json", "tsconfig.json", "tsconfig.runtime.json"]);
+let excludedSegments = new Set(["node_modules", "dist", "reports", ".git", ".tmp"]);
+let externalJson = new Set(["package.json", "package-lock.json", "tsconfig.json", "tsconfig.runtime.json"]);
 const HASHLESS_STATE_PROJECTIONS = new Set(["manifests/PROJECT-STATE.json", "PROJECT-STATUS.md"]);
 
 function parseArgs(argv) {
@@ -26,7 +26,7 @@ function walk(directory) {
   if (!existsSync(directory)) return [];
   const files = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && EXCLUDED_SEGMENTS.has(entry.name)) continue;
+    if (entry.isDirectory() && excludedSegments.has(entry.name)) continue;
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) files.push(...walk(path));
     else if (entry.isFile()) files.push(path);
@@ -100,7 +100,7 @@ function validateMigration(root, migration, failures) {
   for (const [key, value] of Object.entries(expected)) {
     if (summary[key] !== value) addFailure(failures, "MIGRATION-MANIFEST", `${key} is ${summary[key]}, expected ${value}`);
   }
-  const active = walk(root).filter((path) => !EXCLUDED_SEGMENTS.has(relative(root, path).split(/[\\/]/u)[0]));
+  const active = walk(root).filter((path) => !excludedSegments.has(relative(root, path).split(/[\\/]/u)[0]));
   for (const path of active) {
     const name = relative(root, path).replaceAll("\\", "/");
     if (!destinations.has(name)) addFailure(failures, "MIGRATION-MANIFEST", `release file has no disposition: ${name}`);
@@ -132,6 +132,29 @@ function validateAcceptance(acceptance, failures) {
   if (ids.size !== (acceptance.criteria?.length ?? 0)) addFailure(failures, "ACCEPTANCE-CONTRACT", "criterion IDs are not unique");
   for (const id of acceptance.hard_constraints ?? []) {
     if (!ids.has(id)) addFailure(failures, "ACCEPTANCE-CONTRACT", `unknown hard constraint ${id}`);
+  }
+}
+
+function validateQueuedScopeExtensions(value, failures) {
+  const extensionIds = new Set();
+  const workItemIds = new Set();
+  const sourceIds = new Set();
+  const candidateIds = new Set();
+  for (const extension of value.extensions ?? []) {
+    if (extensionIds.has(extension.extension_id)) addFailure(failures, "QUEUED-SCOPE-EXTENSIONS", `duplicate extension id ${extension.extension_id}`);
+    extensionIds.add(extension.extension_id);
+    for (const item of extension.work_items ?? []) {
+      if (workItemIds.has(item.id)) addFailure(failures, "QUEUED-SCOPE-EXTENSIONS", `duplicate work item id ${item.id}`);
+      workItemIds.add(item.id);
+      for (const source of item.evidence_sources ?? []) {
+        if (sourceIds.has(source.source_id)) addFailure(failures, "QUEUED-SCOPE-EXTENSIONS", `duplicate evidence source id ${source.source_id}`);
+        sourceIds.add(source.source_id);
+      }
+      for (const candidate of item.candidate_experiments ?? []) {
+        if (candidateIds.has(candidate.candidate_id)) addFailure(failures, "QUEUED-SCOPE-EXTENSIONS", `duplicate candidate id ${candidate.candidate_id}`);
+        candidateIds.add(candidate.candidate_id);
+      }
+    }
   }
 }
 
@@ -183,6 +206,19 @@ function validateInstance(ajv, schemaId, path, root, failures) {
 function run() {
   const args = parseArgs(process.argv.slice(2));
   const root = resolve(args.root);
+  const packageContract = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+  const releaseExcludedDirectories = packageContract.codingHarness?.releaseExcludedDirectories;
+  const externalJsonContracts = packageContract.codingHarness?.externalJsonContracts;
+  if (!Array.isArray(releaseExcludedDirectories) || releaseExcludedDirectories.length === 0
+    || releaseExcludedDirectories.some((entry) => typeof entry !== "string" || entry.length === 0 || /[\\/]/u.test(entry))) {
+    throw new TypeError("package.json releaseExcludedDirectories is invalid");
+  }
+  if (!Array.isArray(externalJsonContracts) || externalJsonContracts.length === 0
+    || externalJsonContracts.some((entry) => typeof entry !== "string" || entry.length === 0 || entry.includes("\\"))) {
+    throw new TypeError("package.json externalJsonContracts is invalid");
+  }
+  excludedSegments = new Set(releaseExcludedDirectories);
+  externalJson = new Set(externalJsonContracts);
   const failures = [];
   const parsed = walk(root).filter((path) => path.endsWith(".json")).sort();
   for (const path of parsed) readJson(path, failures, relative(root, path));
@@ -205,6 +241,7 @@ function run() {
       ["manifests/PROJECT-STATE.json", "project-state"],
       ["manifests/ACCEPTANCE-CONTRACT.json", "acceptance"],
       ["manifests/CACHE-PROVIDER-EVIDENCE.json", "cache-provider-evidence"],
+      ["manifests/QUEUED-SCOPE-EXTENSIONS.json", "queued-scope-extensions"],
       ["manifests/MIGRATION-MANIFEST.json", "migration-manifest"],
       ["manifests/SOURCE-HASHES.json", "source-hashes"],
     ];
@@ -230,12 +267,13 @@ function run() {
     }
     for (const path of parsed) {
       const name = relative(root, path).replaceAll("\\", "/");
-      if (name.startsWith("schemas/") || mapped.has(name) || EXTERNAL_JSON.has(name)) continue;
+      if (name.startsWith("schemas/") || mapped.has(name) || externalJson.has(name)) continue;
       addFailure(failures, name, "JSON file is neither schema-validated nor declared as an external tool contract");
     }
     if (values.get("manifests/MIGRATION-MANIFEST.json")) validateMigration(root, values.get("manifests/MIGRATION-MANIFEST.json"), failures);
     if (values.get("manifests/SOURCE-HASHES.json")) validateSourceHashes(root, values.get("manifests/SOURCE-HASHES.json"), failures);
     if (values.get("manifests/ACCEPTANCE-CONTRACT.json")) validateAcceptance(values.get("manifests/ACCEPTANCE-CONTRACT.json"), failures);
+    if (values.get("manifests/QUEUED-SCOPE-EXTENSIONS.json")) validateQueuedScopeExtensions(values.get("manifests/QUEUED-SCOPE-EXTENSIONS.json"), failures);
   }
 
   const report = {

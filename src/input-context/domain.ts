@@ -335,6 +335,17 @@ export interface ProviderTurnLedgerRecord {
   readonly record_sha256: string;
 }
 
+export interface ProviderTurnGoalBindingRecord {
+  readonly schema_version: 1;
+  readonly prompt_request_id: string;
+  readonly prompt_request_sha256: string;
+  readonly goal_id: string;
+  readonly run_id: string;
+  readonly session_id: string;
+  readonly created_at_ms: number;
+  readonly record_sha256: string;
+}
+
 export interface ProviderTurnAttemptRecord {
   readonly schema_version: 1;
   readonly attempt_id: string;
@@ -758,6 +769,23 @@ export function assertProviderTurnLedger(value: unknown): asserts value is Provi
     if (totals.attributed_output_tokens! + totals.unattributed_output_tokens! !== totals.provider_generated_output_tokens!) throw new TypeError("ProviderTurnLedger output attribution does not close");
   }
   assertInputContextRecordSha256(inputContextHashDomains.providerTurnLedger, item, "record_sha256");
+}
+
+export function assertProviderTurnGoalBinding(value: unknown): asserts value is ProviderTurnGoalBindingRecord {
+  const item = record(value, "ProviderTurnGoalBinding");
+  exactKeys(item, [
+    "schema_version", "prompt_request_id", "prompt_request_sha256", "goal_id", "run_id", "session_id",
+    "created_at_ms", "record_sha256",
+  ], "ProviderTurnGoalBinding");
+  schemaVersion(item.schema_version, "ProviderTurnGoalBinding");
+  id(item.prompt_request_id, "ProviderTurnGoalBinding.prompt_request_id");
+  sha(item.prompt_request_sha256, "ProviderTurnGoalBinding.prompt_request_sha256");
+  id(item.goal_id, "ProviderTurnGoalBinding.goal_id");
+  id(item.run_id, "ProviderTurnGoalBinding.run_id");
+  boundedString(item.session_id, "ProviderTurnGoalBinding.session_id", 256);
+  integer(item.created_at_ms, "ProviderTurnGoalBinding.created_at_ms");
+  sha(item.record_sha256, "ProviderTurnGoalBinding.record_sha256");
+  assertInputContextRecordSha256(inputContextHashDomains.providerTurnGoalBinding, item, "record_sha256");
 }
 
 export function assertProviderTurnAttempt(value: unknown): asserts value is ProviderTurnAttemptRecord {

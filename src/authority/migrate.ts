@@ -5,7 +5,7 @@ import { sha256Hex } from "../foundation/crypto.js";
 import { createId } from "../foundation/ids.js";
 import { AuthorityIntegrityError, MigrationHashMismatchError } from "../foundation/errors.js";
 
-export const SUPPORTED_MIGRATION_VERSION = 19;
+export const SUPPORTED_MIGRATION_VERSION = 35;
 
 export interface MigrationResult {
   readonly version: number;

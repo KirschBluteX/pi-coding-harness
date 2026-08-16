@@ -1,12 +1,12 @@
 import {
-  existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync,
-  statSync, writeFileSync,
+  existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync,
 } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import type { ExtensionCommandContext, ExtensionContext, InputEventResult } from "@earendil-works/pi-coding-agent";
-import { canonicalJson, canonicalJsonSha256, omitProperty } from "../authority/canonical-json.js";
+import { canonicalJson, canonicalJsonSha256, omitProperty, type CanonicalJson } from "../authority/canonical-json.js";
 import type { LeaseToken } from "../authority/lease.js";
 import type { MutationMeta } from "../authority/transactions.js";
+import type { HostTaskFlowUserInputMeta } from "../authority/transactions.js";
 import type { TaskFlowDetail, TaskFlowStatusView } from "./task-flow-view.js";
 import type { ToolInvocation } from "../effects/normalize.js";
 import {
@@ -28,18 +28,29 @@ import type { PromptGenerationRecord } from "../context/prompt-generation.js";
 import type { ActiveGoalBinding } from "./active-goal.js";
 import { classifyTaskFlowInput } from "../task-flow/admission.js";
 import {
-  makeExecutionSubjectRef, sealTaskFlowRecord, type DeliverableManifestRecord,
+  makeExecutionSubjectRef, sealTaskFlowRecord,
   type ExecutionAuthorizationRecord, type ExecutionSubjectRef, type GoalContractRecord, type RouteSkeletonRecord,
-  type TaskDecisionEntryRecord, type WorkCellRecord, type WorkspaceBaselineRecord,
+  type TaskDecisionEntryRecord, type TaskObligationRecord, type WorkCellRecord, type WorkspaceBaselineRecord,
 } from "../task-flow/domain.js";
 import {
-  finalizeGoalContract, finalizeRoute, type GoalContractProposal, type RouteProposal,
+  finalizeRoute, splitGoalContractAuthorityProposalV2, splitRouteAuthorityProposalV2,
+  type GoalContractAuthorityProposalV2, type RouteAuthorityProposalV2, type RouteProposal,
 } from "../task-flow/finalize.js";
 import {
-  applyRouteRevisionPatch, routeExecutionSemanticsSha256, type RouteRevisionPatch,
+  applyRouteRevisionPatch, routeExecutionSemanticsSha256, splitRouteRevisionAuthorityPatchV2,
+  type RouteRevisionAuthorityPatchV2,
 } from "../task-flow/route-revision.js";
 import { TaskFlowKernel } from "../task-flow/kernel.js";
-import type { TaskFlowCurrentView } from "../task-flow/repository.js";
+import type { ActiveTaskFlowGoal, TaskFlowCurrentView } from "../task-flow/repository.js";
+import type { ResolveGoalContractReviewCommand } from "../task-flow/commands.js";
+import {
+  deriveGoalTitle,
+  type SessionGoalBindingMarkerV1,
+  type SessionGoalBindingV1,
+  type SessionGoalCandidateV1,
+} from "../task-flow/session-binding.js";
+import type { DecisionActionV2, GoalFitAssessmentProposalV2 } from "../intake-v2/domain.js";
+import { decisionActionPayloadSha256V2, decisionFrontierSha256V2 } from "../intake-v2/finalize.js";
 import type { RouteHealthInput } from "../task-flow/health.js";
 import {
   TaskFlowOperationLifecycle,
@@ -48,7 +59,6 @@ import {
   type TaskFlowOperationAdmission,
 } from "../task-flow/operation-lifecycle.js";
 import { createClarificationBatch, type ClarificationDecision } from "../planning/clarification.js";
-import { inferAcceptanceFacetMinimum } from "../planning/intake-classifier.js";
 import {
   makeExecutionSubjectRefV2, packetContentSha256, sealHarnessRecord,
   type IntegrationReceiptRecord, type PatchEntry, type PatchSetRecord,
@@ -70,33 +80,36 @@ import {
   targetPerformanceContract, targetPerformancePhase, targetPerformancePrompt,
 } from "../performance/task-flow-policy.js";
 import { createCurrentControlFrame, type CurrentControlFrame } from "../control/control-frame.js";
+import {
+  activeGoalInputClosureSha256V2,
+  type ActiveGoalChangeKindV2,
+  type ActiveGoalInputClosureV2,
+  type ActiveGoalUserTurnV2,
+} from "../plan-v2/active-goal-input.js";
+import type {
+  ChangeRequestClassificationV2, ChangeRequestMaterialityV2,
+} from "../plan-v2/change-request.js";
+import { planSubjectKeyV2, type PlanSubjectRefV2 } from "../plan-v2/graph.js";
+import { WorkspaceBaselineCapture } from "../task-flow/workspace-baseline.js";
 
 const secretPattern = /(?:-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b|authorization\s*["']?\s*[:=]\s*["']?(?:bearer\s+)?\S{8,}|(?:api[_-]?key|password|private[_-]?key|client[_-]?secret)["']?\s*[:=]\s*["']?\S{8,})/iu;
-const ignoredBaselineDirectories = new Set([".git", ".coding-harness", "node_modules", "dist", "build", ".cache"]);
-const maximumBaselineFiles = 4_096;
-const maximumBaselineBytes = 64 * 1024 * 1024;
-const maximumDirectBaselineFiles = 128;
-const maximumDirectBaselineBytes = 8 * 1024 * 1024;
 const maximumDependencyEvidenceBytes = 24 * 1024;
 const maximumDependencyEvidenceItemBytes = 8 * 1024;
 const maximumAuthorityProposalBytes = 256 * 1024;
 const maximumWorkerNarrativeBytes = 256 * 1024;
 const maximumWorkerPatchBytes = 64 * 1024 * 1024;
-const goalContractProposalGuide = "GoalContract proposal shape (submit only these proposal fields, not frozen IDs/schema): {\"user_outcomes\":[\"...\"],\"scope\":[\"relative/path\"],\"non_goals\":[],\"constraints\":[],\"assumption_refs\":[],\"decision_refs\":[],\"obligations\":[{\"key\":\"stable-key\",\"priority\":\"MUST\",\"statement\":\"...\",\"oracle\":{\"commands\":[\"<exact local command>\"]},\"dependencies\":[]}],\"acceptance_policy\":{},\"authorization_ceiling\":\"LOCAL_REVERSIBLE\"}.";
-const routeProposalGuide = "Route proposal shape (submit only these fields; obligation_keys reference GoalContract keys): {\"lane\":\"DIRECT_CELL|ADAPTIVE_ROUTE\",\"outcomes\":[\"...\"],\"work_cells\":[{\"key\":\"change\",\"outcome\":\"...\",\"obligation_keys\":[\"stable-key\"],\"dependencies\":[],\"read_roots\":[\"relative/path\"],\"write_roots\":[\"relative/path\"],\"effect_classes\":[\"LOCAL_REVERSIBLE\"],\"oracle\":{\"commands\":[\"<same exact local command>\"]},\"risk\":\"LOW\",\"reversible\":true}],\"near_horizon\":[\"change\"],\"assumptions\":[{\"key\":\"...\",\"statement\":\"...\",\"status\":\"SUPPORTED|OPEN|INVALIDATED\",\"evidence_refs\":[]}],\"risks\":[{\"key\":\"...\",\"statement\":\"...\",\"likelihood\":\"LOW|MEDIUM|HIGH\",\"impact\":\"LOW|MEDIUM|HIGH|CRITICAL\",\"mitigation\":\"...\",\"evidence_refs\":[]}],\"alternatives\":[{\"key\":\"...\",\"summary\":\"...\",\"disposition\":\"SELECTED|RESERVE|REJECTED\",\"reason\":\"...\",\"evidence_refs\":[]}],\"deferred_outcomes\":[{\"key\":\"...\",\"outcome\":\"...\",\"obligation_keys\":[\"stable-key\"],\"dependencies\":[],\"expansion_trigger\":\"WORK_CELL_CLOSED|EVIDENCE_CHANGED|DECISION_RESOLVED\",\"commitment\":\"REVERSIBLE|EXPENSIVE_TO_REVERSE|USER_AUTHORITY_REQUIRED\",\"evidence_refs\":[]}]}. Optional arrays may be omitted when empty; do not invent fields such as evidence, failure_recovery, scope, performance_cost or waiting_cost.";
-const routeRevisionPatchGuide = "RouteRevision patch shape: {\"work_cells\":[{\"key\":\"repaired-current-work\",\"outcome\":\"...\",\"obligation_keys\":[\"stable-key\"],\"dependencies\":[],\"read_roots\":[\"relative/path\"],\"write_roots\":[\"relative/path\"],\"effect_classes\":[\"LOCAL_REVERSIBLE\"],\"oracle\":{\"commands\":[\"<exact local command>\"]},\"risk\":\"LOW\",\"reversible\":true}],\"assumptions\":[{\"key\":\"replacement-assumption\",\"statement\":\"...\",\"status\":\"SUPPORTED\",\"evidence_refs\":[]}]}. work_cells replaces the old active horizon; omitted outcomes/risks/alternatives/deferred_outcomes are preserved. near_horizon defaults to the submitted WorkCell keys. Host expands this patch and reruns every full RouteSkeleton check.";
-
-interface BaselineHashEntry {
-  readonly stamp: string;
-  readonly sha256: string;
-}
+const maximumReadbackBytes = 64 * 1024 * 1024;
+const maximumOutcomeWitnessBytes = 2 * 1024 * 1024;
+const goalFitAssessmentGuide = `goal_fit_assessment is required in this same proposal turn: {"proposal_origin":"CURRENT_AGENT_TYPED_PROPOSAL","outcome_fidelity":{"status":"PASS|ASK_USER|REFRAME|REJECT","reason_codes":["TYPED_REASON"],"coverage":"ALL_CURRENT"},"obligation_coverage":{...},"unnecessary_design":{...},"current_decisions":{...},"invalidations":{"status":"NOT_APPLICABLE","reason_codes":["NO_ACTIVE_INVALIDATIONS"],"coverage":"NOT_APPLICABLE"},"gate_specific_evidence":{...}}. Submit only typed findings over each complete current facet; do not submit subject IDs, receipt hashes, Plan hashes, authority roots or a verdict. The Host lowers ALL_CURRENT to exact subjects/evidence, binds the gate instance and derives the verdict locally; this does not create a separate critic/provider request.`;
+const goalContractProposalGuide = `GoalContract proposal shape (submit only these proposal fields, not frozen IDs/schema): {"user_outcomes":["..."],"acceptance_facets":[{"key":"stable-facet","kind":"OUTCOME|INVARIANT|QUALITY|CONSTRAINT|NON_GOAL","subject":{"kind":"USER_OUTCOME|CONSTRAINT|NON_GOAL","index":0},"source_quotes":[{"quote":"<exact UTF-8 excerpt from the task>","occurrence":1}],"obligation_keys":["stable-key"]}],"scope":["relative/path"],"non_goals":[],"constraints":[],"assumption_refs":[],"decision_refs":[],"obligations":[{"key":"stable-key","priority":"MUST","statement":"...","oracle":{"commands":["<exact local command>"]},"dependencies":[]}],"acceptance_policy":{},"authorization_ceiling":"LOCAL_REVERSIBLE","goal_fit_assessment":{...}}. Every contract subject has at least one typed facet; one subject may have separate outcome, quality and preservation facets. Every facet explicitly maps to frozen obligations, and every MUST has a source-bound SATISFIES facet. The Host derives exact byte spans and the authority root. ${goalFitAssessmentGuide}`;
+const routeProposalGuide = `Route proposal shape (submit only these fields; obligation_keys reference GoalContract keys): {"lane":"DIRECT_CELL|ADAPTIVE_ROUTE","outcomes":["..."],"work_cells":[{"key":"change","outcome":"...","obligation_keys":["stable-key"],"dependencies":[],"read_roots":["relative/path"],"write_roots":["relative/path"],"effect_classes":["LOCAL_REVERSIBLE"],"oracle":{"commands":["<same exact local command>"]},"risk":"LOW","reversible":true}],"near_horizon":["change"],"assumptions":[],"risks":[],"alternatives":[],"deferred_outcomes":[],"goal_fit_assessment":{...}}. Optional arrays may be omitted when empty; do not invent fields such as evidence, failure_recovery, scope, performance_cost or waiting_cost. ${goalFitAssessmentGuide}`;
+const routeRevisionPatchGuide = `RouteRevision patch shape: {"work_cells":[{"key":"repaired-current-work","outcome":"...","obligation_keys":["stable-key"],"dependencies":[],"read_roots":["relative/path"],"write_roots":["relative/path"],"effect_classes":["LOCAL_REVERSIBLE"],"oracle":{"commands":["<exact local command>"]},"risk":"LOW","reversible":true}],"assumptions":[],"goal_fit_assessment":{...}}. work_cells replaces the old active horizon; omitted outcomes/risks/alternatives/deferred_outcomes are preserved. near_horizon defaults to the submitted WorkCell keys. Host expands this patch and reruns every full RouteSkeleton check. ${goalFitAssessmentGuide}`;
 
 interface ActiveTaskFlowState {
   readonly goalId: string;
   readonly objective: string;
   readonly objectiveSha256: string;
   readonly sourceIntakeSha256: string;
-  readonly acceptanceFacetMinimum: number;
   version: number;
   lease: LeaseToken;
   view: TaskFlowCurrentView;
@@ -105,6 +118,54 @@ interface ActiveTaskFlowState {
 }
 
 export type { TaskFlowAttestationInput, TaskFlowOperationAdmission };
+
+export interface OutcomeEvidenceWitnessProposal {
+  readonly path: string;
+  readonly locator: string;
+}
+
+export interface OutcomeEvidenceProposal {
+  readonly obligation_key: string;
+  readonly operation_id: string;
+  readonly witnesses: readonly OutcomeEvidenceWitnessProposal[];
+}
+
+export interface OutcomeEvidenceReviewInput {
+  readonly outcome_evidence?: readonly OutcomeEvidenceProposal[];
+}
+
+export interface ContractReviewRequirementProjection {
+  readonly key: string;
+  readonly kind: string;
+  readonly priority: string;
+  readonly statement: string;
+}
+
+export interface ContractReviewProjection {
+  readonly decisionRequirementRevisionId: string;
+  readonly requirementRevisionSha256: string;
+  readonly decisionFrontierSha256: string;
+  readonly contractDiff: Readonly<Record<string, {
+    readonly before: CanonicalJson;
+    readonly after: CanonicalJson;
+  }>>;
+  readonly requirementDiff: {
+    readonly fromRevisionId: string | null;
+    readonly toRevisionId: string;
+    readonly added: readonly ContractReviewRequirementProjection[];
+    readonly changed: readonly {
+      readonly before: ContractReviewRequirementProjection;
+      readonly after: ContractReviewRequirementProjection;
+    }[];
+    readonly removed: readonly ContractReviewRequirementProjection[];
+  };
+}
+
+export interface PlanContinuationBinding {
+  readonly routeSha256: string;
+  readonly planRevisionSha256: string;
+  readonly stageGateSha256: string;
+}
 
 export interface ClarificationSelection extends ClarificationDecision {
   readonly selectedOptionId: string | null;
@@ -164,6 +225,11 @@ function contained(root: string, candidate: string): boolean {
   return delta === "" || (!delta.startsWith("..") && !isAbsolute(delta));
 }
 
+function isValidationWitnessPath(value: string): boolean {
+  const path = value.replaceAll("\\", "/");
+  return /(?:^|\/)(?:test|tests|spec|specs|__tests__)(?:\/|$)|(?:^|[._-])(?:test|spec)\.[^/]+$/iu.test(path);
+}
+
 function normalizedRelativeRoot(workspace: string, value: string): { readonly relative: string; readonly absolute: string } {
   const text = value.normalize("NFC").trim().replaceAll("\\", "/");
   if (!text || isAbsolute(text)) throw new TypeError(`Task Flow scope must be workspace-relative: ${value}`);
@@ -194,6 +260,7 @@ function statusMode(view: TaskFlowCurrentView): "PLAN" | "BUILD" {
 }
 
 function routeHealth(view: TaskFlowCurrentView): string {
+  if (["SUCCEEDED", "FAILED", "CANCELED"].includes(view.status)) return "H0_CONTINUE";
   return view.latestHealth?.level ?? (view.status === "RECONCILING" ? "H5_RECONCILE_OR_STOP" : "H0_CONTINUE");
 }
 
@@ -211,18 +278,30 @@ function assertSafeAuthorityPayload(value: unknown, label: string, maximumBytes 
   if (secretPattern.test(serialized)) throw new TypeError(`${label} contains secret-like material and cannot be persisted`);
 }
 
+export type TaskFlowSessionRecovery =
+  | { readonly kind: "NONE" }
+  | { readonly kind: "LEGACY_LATEST" }
+  | { readonly kind: "GOAL_ID"; readonly goalId: string }
+  | { readonly kind: "BOUND_MARKER"; readonly marker: SessionGoalBindingMarkerV1 };
+
+export interface TaskFlowSessionInitializeOptions {
+  readonly recovery?: TaskFlowSessionRecovery;
+  readonly runtimeInstanceId?: string;
+}
+
 export class TaskFlowSession {
   private readonly now: () => number;
   private readonly services: CodingHarnessServices;
   private active: ActiveTaskFlowState | null = null;
   private cwd: string | null = null;
   private sessionId: string | null = null;
+  private runtimeInstanceId: string | null = null;
   private workspaceId: string | null = null;
   private kernel: TaskFlowKernel | null = null;
   private operationLifecycle: TaskFlowOperationLifecycle | null = null;
   private pendingCompactionAttemptId: string | null = null;
   private compactionRecoveryRequired = false;
-  private readonly baselineHashCache = new Map<string, BaselineHashEntry>();
+  private readonly workspaceBaselineCapture = new WorkspaceBaselineCapture();
 
   constructor(private readonly options: CodingHarnessServiceOptions) {
     this.now = options.now ?? Date.now;
@@ -234,57 +313,194 @@ export class TaskFlowSession {
     });
   }
 
-  initialize(ctx: Pick<ExtensionContext, "cwd" | "sessionManager">): void {
+  initialize(
+    ctx: Pick<ExtensionContext, "cwd" | "sessionManager">,
+    options: TaskFlowSessionInitializeOptions = {},
+  ): void {
     if (this.kernel) return;
     this.services.initialize(ctx);
     const resources = this.requiredResources();
     this.cwd = resolve(ctx.cwd);
     this.sessionId = ctx.sessionManager.getSessionId();
+    this.runtimeInstanceId = options.runtimeInstanceId ?? this.sessionId;
+    if (!this.runtimeInstanceId.trim() || this.runtimeInstanceId.length > 256) {
+      throw new TypeError("Task Flow runtime instance ID is invalid");
+    }
     const workspaceHmac = hmacSha256Hex(resources.workspaceSecret, this.cwd.replaceAll("\\", "/").toLowerCase().normalize("NFC"));
     this.workspaceId = idFromSha256("WS", workspaceHmac);
     this.kernel = new TaskFlowKernel(resources.authority, { now: this.now, monotonicNow: this.now });
     this.operationLifecycle = this.createOperationLifecycle(resources);
-    this.reconcileTerminalManagedRun(resources);
-    const existing = resources.authority.readActiveTaskFlowGoal(this.workspaceId, this.sessionId)
-      ?? resources.authority.readActiveTaskFlowGoal(this.workspaceId);
-    if (existing) {
-      const lease = resources.authority.acquireLease(existing.goalId, this.sessionId, this.options.config.execution.lease_ttl_ms);
-      const recovered = this.kernel.recover(existing.goalId);
-      this.active = {
-        goalId: existing.goalId, objective: existing.objective, objectiveSha256: existing.objectiveSha256,
-        sourceIntakeSha256: recovered.view.contract?.source_intake_sha256 ?? sha256Hex(existing.objective),
-        acceptanceFacetMinimum: existing.acceptanceFacetMinimum,
-        version: existing.version, lease, view: recovered.view, blocker: recovered.requiresReconciliation ? "Operation outcome requires reconciliation." : null,
-        contractRevisionRequested: recovered.view.contract !== null
-          && recovered.view.status === "CONTRACTING"
-          && recovered.view.nextActionCode === "SUBMIT_CONTRACT",
-      };
-      const harness = resources.authority.readHarnessView(existing.goalId);
-      const openCompaction = harness ? resources.authority.readOpenHarnessCompaction(harness.runId) : null;
-      if (openCompaction) {
-        this.pendingCompactionAttemptId = openCompaction.attempt.attempt_id;
-        this.compactionRecoveryRequired = true;
-        this.active.blocker = "Compaction recovery required; use /coding resume or coding_flow control=resume before continuing.";
-      }
-      this.recoverOpenPatchTransactions();
-      this.syncMemoryContext();
+    const recovery = options.recovery ?? { kind: "LEGACY_LATEST" };
+    if (recovery.kind === "NONE") return;
+    if (recovery.kind === "LEGACY_LATEST") this.reconcileWorkspaceTerminalManagedRun(resources);
+    let existing: ActiveTaskFlowGoal | null;
+    if (recovery.kind === "BOUND_MARKER") {
+      resources.authority.validateSessionGoalBindingMarker(
+        recovery.marker,
+        this.workspaceId,
+        this.sessionId,
+      );
+      existing = resources.authority.readActiveTaskFlowGoalById(this.workspaceId, recovery.marker.goal_id);
+      if (!existing) throw new AuthorityIntegrityError(`Bound Goal ${recovery.marker.goal_id} is not recoverable`);
+    } else if (recovery.kind === "GOAL_ID") {
+      existing = resources.authority.readActiveTaskFlowGoalById(this.workspaceId, recovery.goalId);
+      if (!existing) throw new AuthorityIntegrityError(`Goal ${recovery.goalId} is not recoverable in this workspace`);
+    } else {
+      existing = resources.authority.readActiveTaskFlowGoal(this.workspaceId, this.sessionId)
+        ?? resources.authority.readActiveTaskFlowGoal(this.workspaceId);
     }
+    if (existing) this.recoverExisting(resources, existing);
+  }
+
+  private recoverExisting(resources: CodingHarnessResources, existing: ActiveTaskFlowGoal): void {
+    const lease = resources.authority.acquireLease(
+      existing.goalId,
+      this.requiredSessionId(),
+      this.options.config.execution.lease_ttl_ms,
+      this.requiredRuntimeInstanceId(),
+    );
+    this.reconcileTerminalManagedRun(resources, existing.goalId, lease);
+    const recovered = this.requiredKernel().recover(existing.goalId);
+    this.active = {
+      goalId: existing.goalId, objective: existing.objective, objectiveSha256: existing.objectiveSha256,
+      sourceIntakeSha256: recovered.view.contract?.source_intake_sha256 ?? sha256Hex(existing.objective),
+      version: existing.version, lease, view: recovered.view,
+      blocker: recovered.requiresReconciliation ? "Operation outcome requires reconciliation." : null,
+      contractRevisionRequested: recovered.view.contract !== null
+        && recovered.view.status === "CONTRACTING"
+        && recovered.view.nextActionCode === "SUBMIT_CONTRACT",
+    };
+    const harness = resources.authority.readHarnessView(existing.goalId);
+    const openCompaction = harness ? resources.authority.readOpenHarnessCompaction(harness.runId) : null;
+    if (openCompaction) {
+      this.pendingCompactionAttemptId = openCompaction.attempt.attempt_id;
+      this.compactionRecoveryRequired = true;
+      this.active.blocker = "Compaction recovery required; use /coding resume or coding_flow control=resume before continuing.";
+    }
+    const pendingActiveGoalInput = resources.authority.hasPendingActiveGoalUserTurn(existing.goalId);
+    if (!pendingActiveGoalInput) this.recoverOpenPatchTransactions();
+    if (!openCompaction && !pendingActiveGoalInput) {
+      this.reconcilePendingAuthorityTransitions();
+      if (this.requiredActive().view.nextActionCode === "AUTHORIZE_WORK") this.authorizeNextWork();
+    }
+    if (pendingActiveGoalInput) {
+      this.active.blocker = "Active Goal user turn requires typed classification before mutation can resume.";
+    }
+    this.syncMemoryContext();
   }
 
   resources(): CodingHarnessResources | null { return this.services.resources(); }
 
+  sessionGoalBinding(): SessionGoalBindingV1 | null {
+    return this.active ? this.requiredResources().authority.readSessionGoalBinding(this.active.goalId) : null;
+  }
+
+  currentSessionGoalBinding(): SessionGoalBindingV1 | null {
+    return this.requiredResources().authority.readSessionGoalBindingForSession(
+      this.requiredWorkspaceId(),
+      this.requiredSessionId(),
+    );
+  }
+
+  recoverableSessionGoals(): readonly SessionGoalCandidateV1[] {
+    return this.requiredResources().authority.readRecoverableSessionGoals(this.requiredWorkspaceId());
+  }
+
+  bindCurrentGoal(input: { readonly allowTransfer?: boolean; readonly goalTitle?: string } = {}): SessionGoalBindingV1 {
+    const state = this.requiredActive();
+    const authority = this.requiredResources().authority;
+    const current = authority.readSessionGoalBinding(state.goalId);
+    const sessionId = this.requiredSessionId();
+    if (current?.state === "BOUND" && current.sessionId === sessionId) return current;
+    if (current?.state === "BOUND" && current.sessionId !== sessionId && input.allowTransfer !== true) {
+      throw new AuthorityIntegrityError(`Goal ${state.goalId} requires explicit control transfer`);
+    }
+    return authority.transitionSessionGoalBinding({
+      goalId: state.goalId,
+      workspaceId: this.requiredWorkspaceId(),
+      sessionId,
+      state: "BOUND",
+      goalTitle: input.goalTitle ?? current?.goalTitle ?? deriveGoalTitle(state.objective),
+      reasonCode: current && current.sessionId !== sessionId ? "TRANSFER" : "EXPLICIT_ENTRY",
+      expectedReceiptSha256: current?.bindingReceiptSha256 ?? null,
+    });
+  }
+
+  renameCurrentGoal(goalTitle: string): SessionGoalBindingV1 {
+    const state = this.requiredActive();
+    const authority = this.requiredResources().authority;
+    const current = authority.readSessionGoalBinding(state.goalId);
+    if (!current || current.state !== "BOUND" || current.sessionId !== this.requiredSessionId()) {
+      throw new AuthorityIntegrityError("Only the controlling session can rename the active Goal");
+    }
+    return authority.transitionSessionGoalBinding({
+      goalId: state.goalId,
+      workspaceId: this.requiredWorkspaceId(),
+      sessionId: this.requiredSessionId(),
+      state: "BOUND",
+      goalTitle,
+      reasonCode: "TITLE_EDIT",
+      expectedReceiptSha256: current.bindingReceiptSha256,
+    });
+  }
+
+  unbindCurrentGoal(): SessionGoalBindingV1 | null {
+    const state = this.active;
+    if (!state) return null;
+    const authority = this.requiredResources().authority;
+    const current = authority.readSessionGoalBinding(state.goalId);
+    if (!current) return null;
+    if (current.state !== "BOUND" || current.sessionId !== this.requiredSessionId()) {
+      throw new AuthorityIntegrityError("Only the controlling session can exit the active Goal binding");
+    }
+    return authority.transitionSessionGoalBinding({
+      goalId: state.goalId,
+      workspaceId: this.requiredWorkspaceId(),
+      sessionId: this.requiredSessionId(),
+      state: "UNBOUND",
+      goalTitle: current.goalTitle,
+      reasonCode: "EXIT",
+      expectedReceiptSha256: current.bindingReceiptSha256,
+    });
+  }
+
+  acceptExternalAuthorityVersion(goalId: string, goalVersion: number): void {
+    const state = this.requiredActive();
+    if (state.goalId !== goalId || !Number.isSafeInteger(goalVersion) || goalVersion < state.version
+      || this.requiredResources().authority.readSnapshot(goalId).goalVersion !== goalVersion) {
+      throw new AuthorityIntegrityError("External authority version does not match the active Goal frontier");
+    }
+    state.version = goalVersion;
+  }
+
   createHarnessRun(input: {
     readonly topology: ExecutionTopology;
+    readonly requestedTopology?: ExecutionTopology;
+    readonly reasonCode?: "USER_SELECTED" | "MULTI_BENEFIT_EVIDENCE_REQUIRED";
     readonly createdByHostHmac: string;
     readonly configSha256: string;
     readonly decisionSha256: string;
   }): HarnessCurrentView {
     const state = this.requiredActive();
     const resources = this.requiredResources();
+    const requestedTopology = input.requestedTopology ?? input.topology;
+    const reasonCode = input.reasonCode ?? "USER_SELECTED";
+    if (requestedTopology === "SINGLE" && input.topology === "MULTI") {
+      throw new TypeError("Effective MULTI topology requires prior user permission");
+    }
+    if (requestedTopology !== input.topology
+      && (requestedTopology !== "MULTI" || input.topology !== "SINGLE" || reasonCode !== "MULTI_BENEFIT_EVIDENCE_REQUIRED")) {
+      throw new TypeError("Requested and effective Harness topology require a valid admission reason");
+    }
+    if (requestedTopology === input.topology && reasonCode !== "USER_SELECTED") {
+      throw new TypeError("Unchanged Harness topology requires USER_SELECTED reason");
+    }
     const existing = resources.authority.readHarnessView(state.goalId);
     if (existing) {
-      if (existing.effectiveTopology !== input.topology) throw new TypeError("Recovered Harness topology differs from the requested topology");
-      this.recoverHarnessWorkers(existing);
+      if (existing.requestedTopology !== requestedTopology || existing.effectiveTopology !== input.topology) {
+        throw new TypeError("Recovered Harness topology differs from the requested or effective topology");
+      }
+      if (!resources.authority.hasPendingActiveGoalUserTurn(state.goalId)) this.recoverHarnessWorkers(existing);
       return resources.authority.readHarnessView(state.goalId)!;
     }
     this.ensureLease();
@@ -294,8 +510,8 @@ export class TaskFlowSession {
       initial_config_sha256: input.configSha256, created_at_ms: this.now(),
     }, "record_sha256");
     const topology = sealHarnessRecord<TopologyRevisionRecord, "record_sha256">("PCH-TOPOLOGY-REVISION-V1", {
-      schema_version: 1, run_id: run.run_id, revision: 1, requested_topology: input.topology,
-      effective_topology: input.topology, reason_code: "USER_SELECTED", decision_sha256: input.decisionSha256,
+      schema_version: 1, run_id: run.run_id, revision: 1, requested_topology: requestedTopology,
+      effective_topology: input.topology, reason_code: reasonCode, decision_sha256: input.decisionSha256,
       config_sha256: input.configSha256, created_at_ms: this.now(),
     }, "record_sha256");
     const result = resources.authority.transactHarness({ type: "CREATE_MANAGED_RUN", goalId: state.goalId, run, topology },
@@ -665,6 +881,10 @@ export class TaskFlowSession {
         this.mutation(`coding-harness:worker:fenced:${transition.transition_sha256}`));
       state.version = fenced.goalVersion;
     }
+    if (resources.authority.hasPendingActiveGoalUserTurn(state.goalId)) {
+      this.refresh();
+      return;
+    }
     if (!state.view.route) { this.refresh(); return; }
     const health = this.requiredKernel().assess(state.goalId, state.view.route.route_id, execution.shard.work_cell_id, {
       ...this.healthyAssessment(), failureSignatureSha256: failure, failureOccurrence: execution.worker.attempt,
@@ -698,6 +918,27 @@ export class TaskFlowSession {
         type: "RECOVER_WORKER_RUN", goalId: state.goalId, transition,
       }, this.mutation(`coding-harness:worker:recover:${transition.transition_sha256}`));
       state.version = recovered.goalVersion;
+    }
+    this.refresh();
+  }
+
+  private fenceHarnessWorkers(harness: HarnessCurrentView): void {
+    if (harness.unresolvedWorkerRunIds.length === 0) return;
+    const state = this.requiredActive(); const resources = this.requiredResources();
+    this.ensureLease();
+    for (const workerRunId of harness.unresolvedWorkerRunIds) {
+      const worker = resources.authority.readHarnessWorkerRecovery(state.goalId, workerRunId);
+      if (!worker) continue;
+      const failure = canonicalJsonSha256({
+        domain: "PCH-ORPHANED-WORKER-V1", reason: "ACTIVE_GOAL_INPUT", runId: worker.runId, shardId: worker.shardId,
+      });
+      const transition = this.workerTransition(
+        worker.workerRunId, worker.ordinal + 1, "FENCED", null, emptyWorkerUsage(), failure, worker.transitionSha256,
+      );
+      const fenced = resources.authority.transactHarness({
+        type: "TRANSITION_WORKER_RUN", goalId: state.goalId, transition,
+      }, this.mutation(`coding-harness:worker:active-goal-fence:${transition.transition_sha256}`));
+      state.version = fenced.goalVersion;
     }
     this.refresh();
   }
@@ -763,7 +1004,7 @@ export class TaskFlowSession {
       goalId: state.goalId, objective: state.objective, mode: statusMode(state.view), phase: state.view.status,
       stage: null, workCell: state.view.workCellId, routeHealth: routeHealth(state.view),
       nextAction: this.compactionRecoveryRequired ? "RECONCILE_COMPACTION" : state.view.nextActionCode,
-      blocker: state.blocker,
+      blocker: state.blocker, unresolvedOperationIds: [...state.view.unresolvedOperationIds].sort(),
     };
   }
 
@@ -772,13 +1013,89 @@ export class TaskFlowSession {
     return state ? { goalId: state.goalId, objective: state.objective, intent: state.view.intent } : null;
   }
 
-  planReview(): { readonly summary: string; readonly artifactPath: string; readonly routeSha256: string } | null {
+  planReview(): ({ readonly summary: string; readonly artifactPath: string } & PlanContinuationBinding) | null {
     const route = this.active?.view.route;
     if (!route || !this.planContinuationPending()) return null;
+    const resources = this.requiredResources();
+    const goalId = this.requiredActive().goalId;
+    const plan = resources.authority.readTaskFlowPlanV2(goalId);
+    const stageGate = resources.authority.readTaskFlowCurrentPlanStageGateV2(goalId);
+    if (!plan || !stageGate || plan.revision.route_sha256 !== route.record_sha256
+      || stageGate.plan_revision_id !== plan.revision.plan_revision_id
+      || stageGate.plan_revision_sha256 !== plan.revision.record_sha256) {
+      throw new AuthorityIntegrityError("Plan continuation lacks its current Plan and StageGate closure");
+    }
     return {
       summary: this.renderGoalGraph(),
       artifactPath: resolve(this.requiredCwd(), ".coding-harness", "task-flow", `route-skeleton.${route.route_id}.md`),
       routeSha256: route.record_sha256,
+      planRevisionSha256: plan.revision.record_sha256,
+      stageGateSha256: stageGate.record_sha256,
+    };
+  }
+
+  contractReview(): ContractReviewProjection | null {
+    const state = this.active;
+    if (!state || state.view.status !== "WAITING_USER" || state.view.nextActionCode !== "REVIEW_CONTRACT") return null;
+    const contract = state.view.contract;
+    const intake = this.requiredResources().authority.readTaskFlowIntakeV2(state.goalId);
+    const draftReview = intake?.decisions.find((decision) => decision.kind === "DRAFT_REVIEW");
+    if (!contract || !intake || !draftReview) {
+      throw new AuthorityIntegrityError("Contract review projection lacks its current authority closure");
+    }
+    const priorContract = contract.parent_contract_id
+      ? this.requiredResources().authority.readTaskFlowContract(contract.parent_contract_id)
+      : null;
+    const contractFields = (value: GoalContractRecord | null): Readonly<Record<string, CanonicalJson>> => value ? {
+      objective: value.objective,
+      user_outcomes: value.user_outcomes,
+      scope: value.scope,
+      non_goals: value.non_goals,
+      constraints: value.constraints,
+      assumptions: value.assumption_refs,
+      decisions: value.decision_refs,
+      obligations: value.obligations.map((obligation) => ({
+        key: obligation.semantic_key,
+        priority: obligation.priority,
+        statement: obligation.statement,
+        oracle: obligation.oracle as { readonly [key: string]: CanonicalJson },
+        dependencies: obligation.dependencies,
+      })),
+      acceptance_policy: value.acceptance_policy as { readonly [key: string]: CanonicalJson },
+      authorization_ceiling: value.authorization_ceiling,
+    } : {};
+    const beforeFields = contractFields(priorContract);
+    const afterFields = contractFields(contract);
+    const contractDiff: Record<string, { readonly before: CanonicalJson; readonly after: CanonicalJson }> = {};
+    for (const key of [...new Set([...Object.keys(beforeFields), ...Object.keys(afterFields)])].sort()) {
+      const before = beforeFields[key] ?? null;
+      const after = afterFields[key] ?? null;
+      if (canonicalJsonSha256(before) !== canonicalJsonSha256(after)) contractDiff[key] = { before, after };
+    }
+    const projectRequirement = (item: typeof intake.requirement.items[number]): ContractReviewRequirementProjection => ({
+      key: item.semantic_key, kind: item.kind, priority: item.priority, statement: item.statement,
+    });
+    const previous = intake.requirement.revision.parent_requirement_revision_id
+      ? this.requiredResources().authority.readTaskFlowRequirementV2(intake.requirement.revision.parent_requirement_revision_id)
+      : null;
+    const beforeByKey = new Map((previous?.items ?? []).map((item) => [item.semantic_key, projectRequirement(item)]));
+    const afterByKey = new Map(intake.requirement.items.map((item) => [item.semantic_key, projectRequirement(item)]));
+    const added = [...afterByKey].filter(([key]) => !beforeByKey.has(key)).map(([, item]) => item);
+    const removed = [...beforeByKey].filter(([key]) => !afterByKey.has(key)).map(([, item]) => item);
+    const changed = [...afterByKey].flatMap(([key, after]) => {
+      const before = beforeByKey.get(key);
+      return before && canonicalJsonSha256(before) !== canonicalJsonSha256(after) ? [{ before, after }] : [];
+    });
+    return {
+      decisionRequirementRevisionId: draftReview.decision_requirement_revision_id,
+      requirementRevisionSha256: intake.requirement.revision.record_sha256,
+      decisionFrontierSha256: decisionFrontierSha256V2(intake.decisions),
+      contractDiff,
+      requirementDiff: {
+        fromRevisionId: previous?.revision.requirement_revision_id ?? null,
+        toRevisionId: intake.requirement.revision.requirement_revision_id,
+        added, changed, removed,
+      },
     };
   }
 
@@ -819,9 +1136,8 @@ export class TaskFlowSession {
   }
 
   startFromInput(text: string, ctx: Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">): InputEventResult | null {
-    if (this.active && !["SUCCEEDED", "FAILED", "CANCELED"].includes(this.active.view.status)
-      && !/^\s*(?:plan|build)\s*:/iu.test(text)) {
-      this.services.observeTaskFlowMemoryInput(text, false);
+    if (this.active && !["SUCCEEDED", "FAILED", "CANCELED"].includes(this.active.view.status)) {
+      this.captureActiveGoalInput(text);
       return null;
     }
     const classified = classifyTaskFlowInput(text, this.options.config);
@@ -835,12 +1151,12 @@ export class TaskFlowSession {
       throw new TypeError("An active PCH Goal already exists in this workspace; finish or cancel it first");
     }
     if (!classified.intent || !classified.lane) throw new AuthorityIntegrityError("Managed admission lacks intent or lane");
+    this.reconcileWorkspaceTerminalManagedRun(this.requiredResources());
     const goalId = createId("GOAL");
     const sourceIntakeSha256 = sha256Hex(classified.taskText);
-    const acceptanceFacetMinimum = inferAcceptanceFacetMinimum(classified.taskText);
     const activationSha256 = canonicalJsonSha256({
       contract: "PCH-TASK-FLOW-KERNEL-V1", goalId, sourceIntakeSha256,
-      intent: classified.intent, lane: classified.lane, acceptanceFacetMinimum,
+      intent: classified.intent, lane: classified.lane,
     });
     const admitted = this.requiredKernel().admit(text, this.options.config, {
       goalId, workspaceId: this.requiredWorkspaceId(),
@@ -848,11 +1164,16 @@ export class TaskFlowSession {
       filesystemKind: "LOCAL", originSessionId: this.requiredSessionId(), sourceIntakeSha256, activationSha256,
     });
     if (!admitted.authority) throw new AuthorityIntegrityError("Managed Task Flow admission did not commit authority");
-    const lease = this.requiredResources().authority.acquireLease(goalId, this.requiredSessionId(), this.options.config.execution.lease_ttl_ms);
+    const lease = this.requiredResources().authority.acquireLease(
+      goalId,
+      this.requiredSessionId(),
+      this.options.config.execution.lease_ttl_ms,
+      this.requiredRuntimeInstanceId(),
+    );
     const view = this.requiredKernel().recover(goalId).view;
     this.active = {
       goalId, objective: classified.objective, objectiveSha256: sha256Hex(classified.objective),
-      sourceIntakeSha256, acceptanceFacetMinimum,
+      sourceIntakeSha256,
       version: admitted.authority.goalVersion, lease, view, blocker: null,
       contractRevisionRequested: false,
     };
@@ -861,72 +1182,200 @@ export class TaskFlowSession {
     return { action: "transform", text: classified.taskText };
   }
 
-  submitContract(proposal: GoalContractProposal): string {
+  captureActiveGoalInput(text: string): ActiveGoalUserTurnV2 {
+    const state = this.requiredActive();
+    if (["SUCCEEDED", "FAILED", "CANCELED"].includes(state.view.status)) {
+      throw new TypeError("Terminal Task Flow Goal cannot capture an Active Goal user turn");
+    }
+    if (secretPattern.test(text)) throw new TypeError("PCH rejected secret-like Active Goal input before persistence");
+    const bytes = Buffer.from(text, "utf8");
+    if (bytes.length < 1 || bytes.length > 131_072) throw new TypeError("Active Goal input must contain 1..131072 bytes");
+    this.ensureLease();
+    this.refresh();
+    const closure = this.activeGoalInputClosure();
+    const contentSha256 = sha256Hex(bytes);
+    const turnId = idFromSha256("TURN", sha256Hex(
+      `${state.goalId}\0${this.requiredSessionId()}\0${state.version}\0${contentSha256}`,
+    ));
+    const result = this.requiredKernel().captureActiveGoalUserTurn({
+      type: "CAPTURE_ACTIVE_GOAL_USER_TURN",
+      goalId: state.goalId,
+      sourceText: text,
+      expectedInputClosureSha256: activeGoalInputClosureSha256V2(closure),
+    }, {
+      ...this.mutation(`task-flow:active-goal-input:${turnId}`),
+      sessionId: this.requiredSessionId(),
+      turnId,
+      lease: state.lease,
+    });
+    state.version = result.goalVersion;
+    this.refresh();
+    state.blocker = "Active Goal user turn requires typed classification before mutation can resume.";
+    const captured = this.requiredResources().authority.readPendingActiveGoalUserTurns(state.goalId)
+      .find((candidate) => candidate.turn_id === turnId);
+    if (!captured) throw new AuthorityIntegrityError("Captured Active Goal user turn is missing from authority");
+    return captured;
+  }
+
+  classifyActiveGoalInput(input: {
+    readonly user_turn_id: string;
+    readonly expected_user_turn_sha256: string;
+    readonly classification: ChangeRequestClassificationV2;
+    readonly materiality: ChangeRequestMaterialityV2;
+    readonly change_kind: ActiveGoalChangeKindV2 | null;
+    readonly changed_subjects: readonly Pick<PlanSubjectRefV2, "kind" | "id">[];
+  }): string {
+    assertSafeAuthorityPayload(input, "Active Goal input classification", 64 * 1024);
+    const state = this.requiredActive();
+    this.ensureLease();
+    const authority = this.requiredResources().authority;
+    const pending = authority.readPendingActiveGoalUserTurns(state.goalId)
+      .find((candidate) => candidate.user_turn_id === input.user_turn_id);
+    if (!pending || pending.record_sha256 !== input.expected_user_turn_sha256) {
+      throw new AuthorityIntegrityError("Active Goal input classification does not match a pending exact turn");
+    }
+    const plan = authority.readTaskFlowPlanV2(state.goalId);
+    if ((plan?.revision.plan_revision_id ?? null) !== pending.plan_revision_id
+      || (plan?.revision.record_sha256 ?? null) !== pending.plan_revision_sha256) {
+      throw new AuthorityIntegrityError("Active Goal input classification Plan closure is stale");
+    }
+    const subjects = new Map((plan?.subjects ?? []).map((subject) => [planSubjectKeyV2(subject), subject]));
+    const changedSubjects = input.changed_subjects.map((subject) => {
+      const current = subjects.get(`${subject.kind}\u0000${subject.id}`);
+      if (!current) throw new TypeError(`Unknown captured Plan subject: ${subject.kind}/${subject.id}`);
+      return current;
+    });
+    const result = this.requiredKernel().classifyActiveGoalUserTurn({
+      type: "CLASSIFY_ACTIVE_GOAL_USER_TURN",
+      goalId: state.goalId,
+      userTurnId: input.user_turn_id,
+      expectedUserTurnSha256: input.expected_user_turn_sha256,
+      classification: input.classification,
+      materiality: input.materiality,
+      changeKind: input.change_kind,
+      changedSubjects,
+    }, this.mutation(`task-flow:active-goal-input-classification:${input.user_turn_id}`));
+    state.version = result.goalVersion;
+    this.refresh();
+    const material = ["CORRECT_CURRENT", "CHANGE_REQUEST", "INTERRUPT_NOW"].includes(input.classification);
+    if (material) state.contractRevisionRequested = true;
+    const requiresContractRevision = state.contractRevisionRequested;
+    const pendingRemains = authority.hasPendingActiveGoalUserTurn(state.goalId);
+    if (!pendingRemains) {
+      state.blocker = null;
+      this.recoverOpenPatchTransactions();
+      const harness = authority.readHarnessView(state.goalId);
+      if (harness) {
+        if (requiresContractRevision) this.fenceHarnessWorkers(harness);
+        else this.recoverHarnessWorkers(harness);
+      }
+    }
+    if (pendingRemains) state.blocker = "Active Goal user turn requires typed classification before mutation can resume.";
+    else if (requiresContractRevision) {
+      state.blocker ??= material
+        ? `Active Goal ${input.classification} requires a revised GoalContract.`
+        : "Active Goal change requires a revised GoalContract.";
+    }
+    return `Active Goal input classification ${input.classification.toLowerCase()} recorded at authority version ${state.version}.`;
+  }
+
+  submitContract(proposal: GoalContractAuthorityProposalV2): string {
     const state = this.requiredActive();
     assertSafeAuthorityPayload(proposal, "GoalContract proposal");
     this.ensureLease();
     const current = state.view.contract;
-    if (current && !state.contractRevisionRequested) throw new TypeError("Current GoalContract is frozen; request a contract revision first");
-    const contract = finalizeGoalContract({
-      goalId: state.goalId, objective: state.objective, intent: state.view.intent, lane: state.view.lane,
-      sourceIntakeSha256: state.sourceIntakeSha256, version: (current?.version ?? 0) + 1,
-      parentContractId: current?.contract_id ?? null,
-      acceptanceFacetMinimum: state.acceptanceFacetMinimum, proposal, createdAtMs: this.now(),
-    });
+    if (current && !state.contractRevisionRequested) throw new TypeError("Current GoalContract draft already exists; resolve its review first");
+    const submission = splitGoalContractAuthorityProposalV2(proposal);
+    const proposalSha256 = canonicalJsonSha256(proposal);
     const result = this.requiredKernel().submitContract(
-      state.goalId, contract,
-      this.mutation(`task-flow:contract:${contract.record_sha256}`),
+      state.goalId, submission.contract, submission.acceptanceFacets, submission.goalFitAssessment,
+      this.mutation(`task-flow:contract:${proposalSha256}`),
     );
     state.version = result.goalVersion;
     state.contractRevisionRequested = false;
     state.blocker = null;
     this.refresh();
+    const contract = this.requiredActive().view.contract;
+    if (!contract) throw new AuthorityIntegrityError("Host-frozen GoalContract is missing after commit");
     this.publish("goal-contract", contract.contract_id, contract);
-    const acceptanceLedger = this.requiredResources().authority.readTaskFlowAcceptanceLedger(contract.contract_id);
-    if (!acceptanceLedger) throw new AuthorityIntegrityError("Frozen GoalContract is missing its AcceptanceLedger");
-    this.publish("acceptance-ledger", acceptanceLedger.ledger_id, acceptanceLedger);
-    return `GoalContract ${contract.contract_id} v${contract.version} frozen; next=${state.view.nextActionCode}.`;
+    const acceptance = this.requiredResources().authority.readTaskFlowAcceptanceV2(contract.contract_id);
+    if (!acceptance) throw new AuthorityIntegrityError("Frozen GoalContract is missing its Acceptance V2 authority root");
+    this.publish("acceptance-v2", acceptance.authority.authority_root_id, acceptance);
+    return `GoalContract ${contract.contract_id} v${contract.version} drafted for USER review; next=${state.view.nextActionCode}.`;
   }
 
-  submitBuild(contractProposal: GoalContractProposal, routeProposal: RouteProposal): string {
+  resolveContractReview(input: {
+    readonly expectedDecisionRequirementRevisionId: string;
+    readonly expectedRequirementRevisionSha256: string;
+    readonly expectedDecisionFrontierSha256: string;
+    readonly action: DecisionActionV2;
+    readonly selectedValue: CanonicalJson;
+    readonly editedRequirementRevisionId?: string;
+    readonly deferredTriggerSha256?: string;
+    readonly turnId: string;
+  }): string {
     const state = this.requiredActive();
-    if (state.view.intent !== "BUILD" || state.view.contract || state.view.route) {
-      throw new TypeError("Combined BUILD submission is available only at a fresh BUILD contract boundary");
+    const intake = this.requiredResources().authority.readTaskFlowIntakeV2(state.goalId);
+    const decision = intake?.decisions.find((entry) => entry.decision_requirement_revision_id === input.expectedDecisionRequirementRevisionId);
+    const actionPayloadSha256 = decision ? decisionActionPayloadSha256V2({
+      decision,
+      action: input.action,
+      selected_value: input.selectedValue,
+      edited_requirement_revision_id: input.action === "EDIT" ? input.editedRequirementRevisionId ?? null : null,
+      deferred_trigger_sha256: input.action === "DEFER" ? input.deferredTriggerSha256 ?? null : null,
+    }) : null;
+    const exactRetry = intake?.authority_inputs.find((receipt) => receipt.turn_id === input.turnId
+      && receipt.session_id === this.requiredSessionId());
+    if (exactRetry) {
+      if (exactRetry.decision_requirement_revision_id !== input.expectedDecisionRequirementRevisionId
+        || exactRetry.requirement_revision_sha256 !== input.expectedRequirementRevisionSha256
+        || exactRetry.decision_frontier_sha256 !== input.expectedDecisionFrontierSha256
+        || exactRetry.action !== input.action || exactRetry.action_payload_sha256 !== actionPayloadSha256) {
+        throw new AuthorityIntegrityError("Contract review retry does not match the captured USER input");
+      }
+      return `Contract review ${input.action.toLowerCase()} was already recorded; next=${state.view.nextActionCode}.`;
     }
-    assertSafeAuthorityPayload(contractProposal, "GoalContract proposal");
-    assertSafeAuthorityPayload(routeProposal, "Route proposal");
+    if (state.view.status !== "WAITING_USER" || state.view.nextActionCode !== "REVIEW_CONTRACT") {
+      throw new TypeError(`Contract review is not pending while next=${state.view.nextActionCode}`);
+    }
     this.ensureLease();
-    const contract = finalizeGoalContract({
-      goalId: state.goalId, objective: state.objective, intent: state.view.intent, lane: state.view.lane,
-      sourceIntakeSha256: state.sourceIntakeSha256, version: 1, parentContractId: null,
-      acceptanceFacetMinimum: state.acceptanceFacetMinimum,
-      proposal: contractProposal, createdAtMs: this.now(),
-    });
-    const route = this.finalizeRouteProposal(contract, routeProposal);
-    const contractResult = this.requiredKernel().submitContract(
-      state.goalId, contract,
-      this.mutation(`task-flow:contract:${contract.record_sha256}`),
-    );
-    state.version = contractResult.goalVersion;
-    this.publish("goal-contract", contract.contract_id, contract);
-    const acceptanceLedger = this.requiredResources().authority.readTaskFlowAcceptanceLedger(contract.contract_id);
-    if (!acceptanceLedger) throw new AuthorityIntegrityError("Frozen BUILD contract is missing its AcceptanceLedger");
-    this.publish("acceptance-ledger", acceptanceLedger.ledger_id, acceptanceLedger);
-    const routeResult = this.requiredKernel().submitRoute(
-      state.goalId, route, contract, this.mutation(`task-flow:route:${route.record_sha256}`),
-    );
-    state.version = routeResult.goalVersion;
-    state.contractRevisionRequested = false;
-    state.blocker = null;
+    const command: ResolveGoalContractReviewCommand = input.action === "EDIT"
+      ? {
+        type: "RESOLVE_GOAL_CONTRACT_REVIEW", goalId: state.goalId,
+        expectedDecisionRequirementRevisionId: input.expectedDecisionRequirementRevisionId,
+        expectedRequirementRevisionSha256: input.expectedRequirementRevisionSha256,
+        expectedDecisionFrontierSha256: input.expectedDecisionFrontierSha256,
+        action: "EDIT", editedRequirementRevisionId: input.editedRequirementRevisionId ?? "", selectedValue: input.selectedValue,
+      }
+      : input.action === "DEFER"
+        ? {
+          type: "RESOLVE_GOAL_CONTRACT_REVIEW", goalId: state.goalId,
+          expectedDecisionRequirementRevisionId: input.expectedDecisionRequirementRevisionId,
+          expectedRequirementRevisionSha256: input.expectedRequirementRevisionSha256,
+          expectedDecisionFrontierSha256: input.expectedDecisionFrontierSha256,
+          action: "DEFER", deferredTriggerSha256: input.deferredTriggerSha256 ?? "", selectedValue: input.selectedValue,
+        }
+        : {
+          type: "RESOLVE_GOAL_CONTRACT_REVIEW", goalId: state.goalId,
+          expectedDecisionRequirementRevisionId: input.expectedDecisionRequirementRevisionId,
+          expectedRequirementRevisionSha256: input.expectedRequirementRevisionSha256,
+          expectedDecisionFrontierSha256: input.expectedDecisionFrontierSha256,
+          action: input.action, selectedValue: input.selectedValue,
+        };
+    const mutation: HostTaskFlowUserInputMeta = {
+      ...this.mutation(`task-flow:contract-review:${input.turnId}`),
+      sessionId: this.requiredSessionId(),
+      turnId: input.turnId,
+      lease: state.lease,
+    };
+    const result = this.requiredKernel().resolveContractReview(command, mutation);
+    state.version = result.goalVersion;
     this.refresh();
-    this.publish("route", route.route_id, route);
-    const authorized = this.authorizeNextWork();
-    return authorized
-      ? `BUILD contract and route frozen in one submission; WorkCell ${state.view.workCellId} authorized.`
-      : `BUILD contract and route frozen, but authorization preflight reframed the route; next=${state.view.nextActionCode}.`;
+    if (input.action === "APPROVE") this.reconcilePendingAuthorityTransitions();
+    return `Contract review ${input.action.toLowerCase()} recorded; next=${state.view.nextActionCode}.`;
   }
 
-  submitRoute(proposal: RouteProposal): string {
+  submitRoute(proposal: RouteAuthorityProposalV2): string {
     const state = this.requiredActive();
     if (state.view.status !== "PLANNING" || state.view.nextActionCode !== "SUBMIT_ROUTE") {
       throw new TypeError(`Route submission is not authorized while next=${state.view.nextActionCode}; reframe the current route first`);
@@ -935,40 +1384,50 @@ export class TaskFlowSession {
     this.ensureLease();
     const contract = state.view.contract;
     if (!contract) throw new TypeError("Route submission requires a frozen GoalContract");
-    const route = this.finalizeRouteProposal(contract, proposal);
-    return this.persistFinalizedRoute(route, contract);
+    const submission = splitRouteAuthorityProposalV2(proposal);
+    const route = this.finalizeRouteProposal(contract, submission.route);
+    return this.persistFinalizedRoute(route, contract, submission.goalFitAssessment);
   }
 
-  private persistFinalizedRoute(route: RouteSkeletonRecord, contract: GoalContractRecord): string {
+  private persistFinalizedRoute(
+    route: RouteSkeletonRecord, contract: GoalContractRecord, goalFitAssessment: GoalFitAssessmentProposalV2,
+  ): string {
     const state = this.requiredActive();
-    const result = this.requiredKernel().submitRoute(state.goalId, route, contract, this.mutation(`task-flow:route:${route.record_sha256}`));
+    const result = this.requiredKernel().submitRoute(
+      state.goalId, route, contract, goalFitAssessment, this.mutation(`task-flow:route:${route.record_sha256}`),
+    );
     state.version = result.goalVersion;
     this.refresh();
     this.publish("route", route.route_id, route);
-    if (state.view.intent === "BUILD") this.authorizeNextWork();
+    this.reconcilePendingAuthorityTransitions();
+    const authorized = state.view.intent === "BUILD" ? this.authorizeNextWork() : null;
     const qualification = route.qualification
       ? ` admission=${route.qualification.admission_lane_hint} requested=${route.qualification.requested_lane} selected=${route.qualification.selected_lane}`
       : "";
-    return `RouteSkeleton ${route.route_id} r${route.revision} frozen; lane=${route.lane}${qualification} deferred=${route.deferred_outcomes?.length ?? 0} next=${state.view.nextActionCode}.`;
+    const summary = `RouteSkeleton ${route.route_id} r${route.revision} frozen; lane=${route.lane}${qualification} deferred=${route.deferred_outcomes?.length ?? 0} next=${state.view.nextActionCode}.`;
+    return authorized === false && state.blocker
+      ? `${summary} authorization preflight reframed: ${state.blocker}`
+      : summary;
   }
 
-  submitRouteRevision(patch: RouteRevisionPatch): string {
+  submitRouteRevision(proposal: RouteRevisionAuthorityPatchV2): string {
     const state = this.requiredActive();
     if (state.view.status !== "PLANNING" || state.view.nextActionCode !== "SUBMIT_ROUTE" || !state.view.route) {
       throw new TypeError(`RouteRevision patch is not authorized while next=${state.view.nextActionCode}`);
     }
     const contract = state.view.contract;
     if (!contract) throw new TypeError("RouteRevision patch requires a frozen GoalContract");
-    assertSafeAuthorityPayload(patch, "RouteRevision patch");
+    assertSafeAuthorityPayload(proposal, "RouteRevision patch");
     this.ensureLease();
+    const submission = splitRouteRevisionAuthorityPatchV2(proposal);
     const route = this.finalizeRouteProposal(
-      contract, applyRouteRevisionPatch({ contract, priorRoute: state.view.route, patch }),
+      contract, applyRouteRevisionPatch({ contract, priorRoute: state.view.route, patch: submission.patch }),
     );
     if (routeExecutionSemanticsSha256(contract, route)
       === routeExecutionSemanticsSha256(contract, state.view.route)) {
       throw new TypeError("RouteRevision patch does not change the effective Route execution semantics");
     }
-    return this.persistFinalizedRoute(route, contract);
+    return this.persistFinalizedRoute(route, contract, submission.goalFitAssessment);
   }
 
   planContinuationPending(): boolean {
@@ -981,6 +1440,8 @@ export class TaskFlowSession {
     const route = state.view.route;
     if (!contract || !route || !this.planContinuationPending()) throw new TypeError("No frozen PLAN continuation is open");
     if (!ctx.hasUI) return "Plan is frozen. An interactive Pi UI is required to choose BUILD, keep, or revise; no default was applied.";
+    const binding = this.planReview();
+    if (!binding) throw new AuthorityIntegrityError("Plan continuation binding is unavailable");
     const options = [
       "[Recommended] Enter BUILD - implement the frozen contract and route now",
       "Keep plan only - finish without modifying target project files",
@@ -989,14 +1450,23 @@ export class TaskFlowSession {
     const selected = await ctx.ui.select("Plan passed local finalization. What should PCH do next?", options);
     if (!selected) return "Plan continuation canceled; the frozen contract and route remain unchanged.";
     const choice = selected === options[0] ? "BUILD" : selected === options[1] ? "KEEP" : "REVISE";
-    return this.resolvePlanContinuation(choice);
+    return this.resolvePlanContinuation(choice, binding);
   }
 
-  resolvePlanContinuation(choice: "BUILD" | "KEEP" | "REVISE"): string {
+  resolvePlanContinuation(
+    choice: "BUILD" | "KEEP" | "REVISE",
+    expected: PlanContinuationBinding,
+  ): string {
     const state = this.requiredActive();
     const contract = state.view.contract;
     const route = state.view.route;
     if (!contract || !route || !this.planContinuationPending()) throw new TypeError("No frozen PLAN continuation is open");
+    const current = this.planReview();
+    if (!current || current.routeSha256 !== expected.routeSha256
+      || current.planRevisionSha256 !== expected.planRevisionSha256
+      || current.stageGateSha256 !== expected.stageGateSha256) {
+      throw new TypeError("Plan continuation binding is stale; review the current frozen Plan before choosing");
+    }
     const bindingSha256 = sha256Hex(`${contract.record_sha256}:${route.record_sha256}`);
     const decisionId = idFromSha256("DECISION", sha256Hex(`${state.goalId}\0PLAN_CONTINUATION\0${bindingSha256}\0${choice}`));
     const decision = sealTaskFlowRecord<TaskDecisionEntryRecord, "record_sha256">("PCH-TASK-DECISION-V1", {
@@ -1034,7 +1504,10 @@ export class TaskFlowSession {
     this.operationLifecycle?.finish(toolCallId, isError, text);
   }
 
-  reconcileOperations(operationId?: string, authorizeNext = true): string {
+  reconcileOperations(
+    operationId?: string,
+    authorizeNext = true,
+  ): string {
     this.requiredActive();
     return this.requiredOperationLifecycle().reconcile(operationId, authorizeNext);
   }
@@ -1044,7 +1517,118 @@ export class TaskFlowSession {
     return this.requiredOperationLifecycle().attest(input);
   }
 
-  completeWork(): string {
+  private requiredOutcomeEvidenceObligations(cell: WorkCellRecord): readonly TaskObligationRecord[] {
+    const contract = this.requiredActive().view.contract;
+    if (!contract) return [];
+    const outcomeBoundIds = new Set(contract.obligations.filter((entry) => entry.priority === "MUST")
+      .slice(0, contract.user_outcomes.length).map((entry) => entry.obligation_id));
+    const eligible = contract.obligations.filter((entry) => entry.priority === "MUST"
+      && outcomeBoundIds.has(entry.obligation_id) && cell.obligation_ids.includes(entry.obligation_id));
+    const byOracle = new Map<string, TaskObligationRecord[]>();
+    for (const obligation of eligible) {
+      const key = canonicalJsonSha256(obligation.oracle);
+      const group = byOracle.get(key) ?? [];
+      group.push(obligation);
+      byOracle.set(key, group);
+    }
+    return [...byOracle.values()].filter((group) => group.length > 1).flat();
+  }
+
+  private validateOutcomeEvidenceReview(
+    input: OutcomeEvidenceReviewInput | undefined,
+    cell: WorkCellRecord,
+    required: readonly TaskObligationRecord[],
+  ): string | null {
+    const supplied = input?.outcome_evidence ?? [];
+    if (required.length === 0) {
+      if (supplied.length > 0) throw new TypeError("outcome_evidence is not required for this WorkCell");
+      return null;
+    }
+    if (!input || typeof input !== "object" || Array.isArray(input)
+      || Object.keys(input as unknown as Record<string, unknown>).some((key) => key !== "outcome_evidence")
+      || !Array.isArray(input.outcome_evidence)) {
+      throw new TypeError("outcome_evidence must be supplied for every shared-oracle MUST before completion");
+    }
+    if (supplied.length !== required.length || supplied.length > 12) {
+      throw new TypeError("outcome_evidence must cover every required shared-oracle MUST exactly once");
+    }
+    const requiredByKey = new Map(required.map((entry) => [entry.semantic_key, entry]));
+    const seenKeys = new Set<string>();
+    const witnessOwners = new Map<string, string>();
+    const sealedReview: {
+      readonly obligation_key: string;
+      readonly operation_id: string;
+      readonly witnesses: readonly { readonly path: string; readonly content_sha256: string; readonly locator_sha256: string }[];
+    }[] = [];
+    for (const raw of supplied as readonly unknown[]) {
+      if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+        throw new TypeError("Each outcome_evidence entry must be an object");
+      }
+      const row = raw as Record<string, unknown>;
+      if (Object.keys(row).some((key) => !["obligation_key", "operation_id", "witnesses"].includes(key))
+        || typeof row.obligation_key !== "string" || typeof row.operation_id !== "string"
+        || !Array.isArray(row.witnesses)) {
+        throw new TypeError("outcome_evidence entries require obligation_key, operation_id and witnesses only");
+      }
+      const obligationKey = row.obligation_key.normalize("NFC").trim();
+      const operationId = row.operation_id.normalize("NFC").trim();
+      if (!requiredByKey.has(obligationKey) || seenKeys.has(obligationKey)) {
+        throw new TypeError("outcome_evidence contains an unknown or duplicate obligation_key");
+      }
+      seenKeys.add(obligationKey);
+      const snapshot = this.requiredResources().authority.readTaskFlowOperation(this.requiredActive().goalId, operationId);
+      if (!snapshot || snapshot.state !== "COMMITTED" || snapshot.postcondition !== "PASS"
+        || snapshot.attempt.operation_kind !== "VALIDATION" || snapshot.attempt.work_cell_id !== cell.work_cell_id) {
+        throw new TypeError("outcome_evidence operation_id must reference a current committed PASS validation Operation");
+      }
+      if (row.witnesses.length === 0 || row.witnesses.length > 16) {
+        throw new TypeError("Each outcome_evidence entry requires 1..16 test witnesses");
+      }
+      const sealedWitnesses: { readonly path: string; readonly content_sha256: string; readonly locator_sha256: string }[] = [];
+      for (const rawWitness of row.witnesses as readonly unknown[]) {
+        if (typeof rawWitness !== "object" || rawWitness === null || Array.isArray(rawWitness)) {
+          throw new TypeError("Each outcome_evidence witness must be an object");
+        }
+        const witness = rawWitness as Record<string, unknown>;
+        if (Object.keys(witness).some((key) => !["path", "locator"].includes(key))
+          || typeof witness.path !== "string" || typeof witness.locator !== "string") {
+          throw new TypeError("Outcome evidence witnesses require path and locator only");
+        }
+        const normalized = normalizedRelativeRoot(this.requiredCwd(), witness.path);
+        const locator = witness.locator.normalize("NFC").trim();
+        if (!isValidationWitnessPath(normalized.relative) || locator.length < 8 || locator.length > 512
+          || /[\r\n]/u.test(locator)) {
+          throw new TypeError("Outcome evidence witness must name a bounded locator in a test or spec file");
+        }
+        if (!this.targetWithinRoots(normalized.absolute, [...cell.read_roots, ...cell.write_roots])
+          || !existsSync(normalized.absolute)) {
+          throw new TypeError("Outcome evidence witness is outside the frozen WorkCell scope");
+        }
+        const stat = lstatSync(normalized.absolute);
+        if (stat.isSymbolicLink() || !stat.isFile() || stat.size > maximumOutcomeWitnessBytes
+          || !contained(this.requiredCwd(), realpathSync(normalized.absolute))) {
+          throw new TypeError("Outcome evidence witness is not a bounded safe regular file");
+        }
+        const content = readFileSync(normalized.absolute, "utf8");
+        if (content.split(locator).length !== 2) {
+          throw new TypeError("Outcome evidence locator must occur exactly once in its current test file");
+        }
+        const witnessKey = `${normalized.relative}\0${locator}`;
+        const priorOwner = witnessOwners.get(witnessKey);
+        if (priorOwner && priorOwner !== obligationKey) {
+          throw new TypeError("Distinct shared-oracle obligations cannot reuse the same test witness");
+        }
+        witnessOwners.set(witnessKey, obligationKey);
+        sealedWitnesses.push({
+          path: normalized.relative, content_sha256: sha256Hex(content), locator_sha256: sha256Hex(locator),
+        });
+      }
+      sealedReview.push({ obligation_key: obligationKey, operation_id: operationId, witnesses: sealedWitnesses });
+    }
+    return canonicalJsonSha256({ domain: "PCH-OUTCOME-EVIDENCE-REVIEW-V1", work_cell_id: cell.work_cell_id, entries: sealedReview });
+  }
+
+  completeWork(input?: OutcomeEvidenceReviewInput): string {
     const state = this.requiredActive();
     const cellId = state.view.workCellId;
     if (!cellId) {
@@ -1056,8 +1640,18 @@ export class TaskFlowSession {
     const singleShard = harnessBefore?.effectiveTopology === "SINGLE"
       ? harnessBefore.shards.find((shard) => shard.workCellId === cellId && shard.status === "RUNNING") ?? null
       : null;
-    const summary = canonicalJsonSha256({ cellId, view: state.view.nextActionCode, completedAtMs: this.now() });
-    const result = this.requiredKernel().completeWork(state.goalId, cellId, summary, this.mutation(`task-flow:complete:${cellId}:${summary}`));
+    const cell = this.currentCell();
+    if (!cell) throw new AuthorityIntegrityError("Current WorkCell disappeared before completion");
+    const isTerminal = state.view.route?.work_cells.at(-1)?.work_cell_id === cell.work_cell_id;
+    const evidenceReviewSha256 = this.validateOutcomeEvidenceReview(
+      input, cell, isTerminal ? this.requiredOutcomeEvidenceObligations(cell) : [],
+    );
+    const summary = canonicalJsonSha256({
+      cellId, view: state.view.nextActionCode, evidenceReviewSha256, completedAtMs: this.now(),
+    });
+    const result = this.requiredKernel().completeWorkV2(
+      state.goalId, cellId, this.mutation(`task-flow:complete-v2:${cellId}:${summary}`),
+    );
     state.version = result.goalVersion;
     this.refresh();
     if (singleShard && harnessBefore) {
@@ -1077,21 +1671,41 @@ export class TaskFlowSession {
       : `WorkCell ${cellId} closed; next=${state.view.workCellId ?? state.view.nextActionCode}.`;
   }
 
+  settleReadyWork(): string | null {
+    if (!this.operationLifecycle?.hasReadyCompletion()) return null;
+    const cell = this.currentCell();
+    if (cell && this.requiredOutcomeEvidenceObligations(cell).length > 0) return null;
+    return this.completeWork();
+  }
+
   workflowPrompt(): string | null {
     const state = this.active;
     if (!state) return null;
     const prefix = `[PCH-TASK-FLOW-V1]\nGoal=${state.goalId} Intent=${state.view.intent} Lane=${state.view.lane} State=${state.view.status}`;
+    const pendingInputs = this.requiredResources().authority.readPendingActiveGoalUserTurns(state.goalId);
+    if (pendingInputs.length > 0) {
+      const pending = pendingInputs[0]!;
+      const plan = this.requiredResources().authority.readTaskFlowPlanV2(state.goalId);
+      const subjects = plan?.revision.plan_revision_id === pending.plan_revision_id
+        ? plan.subjects.map((subject) => ({ kind: subject.kind, id: subject.id })) : [];
+      return [
+        prefix,
+        `Next=CLASSIFY_ACTIVE_GOAL_INPUT PendingCount=${pendingInputs.length}`,
+        `CapturedTurn=${canonicalJson({ user_turn_id: pending.user_turn_id, expected_user_turn_sha256: pending.record_sha256 })}`,
+        `CapturedPlanSubjects=${canonicalJson(subjects)}`,
+        "Mutation is fenced. Semantically classify the current user turn as exactly one of CORRECT_CURRENT, QUEUE_NEXT, CHANGE_REQUEST, NEW_GOAL, INTERRUPT_NOW, or DISCUSSION_ONLY, then call coding_flow action=classify_active_input once.",
+        "For CORRECT_CURRENT, CHANGE_REQUEST, or INTERRUPT_NOW, provide change_kind and every directly affected captured Plan subject. For the other classifications, use change_kind=null and changed_subjects=[]. Do not classify by keyword matching and do not perform the requested mutation before Host acceptance.",
+      ].join("\n");
+    }
     if (this.compactionRecoveryRequired) {
       return `${prefix}\nNext=RECONCILE_COMPACTION. Do not mutate. Call coding_flow action=control control=resume once to rebuild the current authority projection.`;
     }
+    if (state.view.nextActionCode === "REVIEW_CONTRACT") return null;
     if (state.view.nextActionCode === "SUBMIT_CONTRACT") return [
       prefix, `Objective=${state.objective}`,
-      state.view.intent === "BUILD"
-        ? "Create the smallest complete GoalContract and 1..3 current/near WorkCells in this turn, review them locally, then call coding_flow action=submit_build once."
-        : "Create the smallest complete GoalContract for this task in the current normal turn, then call coding_flow action=submit_contract once.",
+      "Create the smallest complete GoalContract for this task in the current normal turn, then call coding_flow action=submit_contract once.",
       goalContractProposalGuide,
-      `AcceptanceFacetMinimum=${state.acceptanceFacetMinimum}; represent each explicit facet as a distinct user_outcome and MUST obligation.`,
-      state.view.intent === "BUILD" ? routeProposalGuide : null,
+      "Do not infer facet counts from wording. Preserve every material source-bound outcome, constraint, non-goal, quality target and invariant as an explicit typed facet; do not merge independent facets.",
       "Do not add acceptance_policy.performance_contract unless this prompt contains an explicit TargetPerformance= line; ordinary correctness and non-regression belong in obligations and local oracles.",
       targetPerformancePrompt(null, state.objective),
       "Every MUST needs a decidable local oracle. Allowed forms: npm test; npm run test|lint|build|verify|check|typecheck|bench:*; npx --no-install or direct node_modules/.bin for eslint/tsc/vitest/jest/mocha/karma/prettier/esbuild/microbundle. npm exec, watch/serve modes and shell composition are forbidden. oracle.commands only separates individually allowed commands. Ask only material user choices with coding_clarify; do not add a critic or planner request.",
@@ -1113,8 +1727,40 @@ export class TaskFlowSession {
     if (state.view.nextActionCode === "PLAN_CONTINUATION") return `${prefix}\nThe plan is frozen. Do not modify target files; use the Pi choice shown by Coding Harness or /coding continue.`;
     if (state.view.nextActionCode === "EXECUTE_WORK") {
       const cell = this.currentCell();
+      const outcomeEvidenceKeys = cell ? this.requiredOutcomeEvidenceObligations(cell).map((entry) => entry.semantic_key) : [];
+      const outcomeEvidenceLine = outcomeEvidenceKeys.length > 0
+        ? `OutcomeEvidenceRequired=${canonicalJson(outcomeEvidenceKeys)}; coding_flow complete must include outcome_evidence=[{obligation_key,operation_id,witnesses:[{path,locator}]}] with a distinct current test locator for each key.`
+        : null;
       const harness = this.requiredResources().authority.readHarnessView(state.goalId);
+      if (harness?.requestedTopology === "MULTI" && harness.effectiveTopology === "SINGLE"
+        && harness.topologyReasonCode === "MULTI_BENEFIT_EVIDENCE_REQUIRED") {
+        return [
+          prefix, "Next=PENDING_MULTI_PROPOSAL",
+          `WorkCell=${cell?.work_cell_id ?? "missing"} Outcome=${cell?.outcome ?? "missing"}`,
+          `ReadScope=${cell?.read_roots.join(",") ?? ""} WriteScope=${cell?.write_roots.join(",") ?? ""}`,
+          "Submit the smallest useful dependency DAG once with coding_delegate action=define. This proposal does not authorize Workers or canonical mutation; the Host will first apply the Multi Benefit Gate.",
+          "Use only nodes with measurable marginal value. Parallel patch proposals require mutually exclusive write scopes and exact input refs from the frozen WorkCell baseline.",
+        ].join("\n");
+      }
       if (harness?.effectiveTopology === "MULTI") {
+        const execution = this.requiredResources().authority.readExecutionV2(harness.runId, 8);
+        if (execution && execution.graph.work_cell_id === cell?.work_cell_id) {
+          if (execution.status === "CLOSED") return [
+            prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} ExecutionV2=CLOSED`,
+            `Oracle=${canonicalJson(cell?.oracle ?? {})}`,
+            outcomeEvidenceLine,
+            "The Host accepted and integrated the Dynamic Multi graph. Run each frozen Oracle command verbatim in the canonical workspace, review preservation outcomes, then call coding_flow action=complete once.",
+          ].filter((line): line is string => line !== null).join("\n");
+          if (execution.status === "FAILED" || execution.status === "STOPPED") return [
+            prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} ExecutionV2=${execution.status}`,
+            "Do not retry or mutate around the terminal graph. Follow RouteHealth to repair the affected route or reconcile the stopped authority frontier.",
+          ].join("\n");
+          if (execution.readyNodeIds.length > 0) return [
+            prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} ReadyNodes=${execution.readyNodeIds.length}`,
+            "Run the authority-ready Dynamic Multi nodes with coding_delegate action=run_ready. Do not redefine the accepted graph or duplicate Worker work.",
+          ].join("\n");
+          return `${prefix}\nDynamic Multi Execution V2 is in progress. Do not redefine it, duplicate Worker work, or mutate canonical project files.`;
+        }
         const shards = harness.shards.filter((shard) => shard.workCellId === cell?.work_cell_id);
         if (shards.length === 0) return [
           prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} Outcome=${cell?.outcome ?? "missing"}`,
@@ -1128,8 +1774,9 @@ export class TaskFlowSession {
         ].join("\n");
         if (shards.every((shard) => shard.status === "SUCCEEDED")) return [
           prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} Shards=SUCCEEDED`, `Oracle=${canonicalJson(cell?.oracle ?? {})}`,
-          "Oracle commands are exact allowlisted strings: run each verbatim once in the canonical workspace without added flags, wrappers, chaining or cwd changes. PCH locally attests and closes after the final fresh PASS; then stop all tool calls and return at most one short result line. Worker narrative is untrusted and never substitutes for this oracle.",
-        ].join("\n");
+          outcomeEvidenceLine,
+          "Oracle commands are exact allowlisted strings: run each verbatim once in the canonical workspace without added flags, wrappers, chaining or cwd changes. After the final fresh PASS, review every explicit preservation outcome, make any still-needed correction, rerun stale Oracle evidence, then call coding_flow action=complete once. Worker narrative is untrusted and never substitutes for this oracle.",
+        ].filter((line): line is string => line !== null).join("\n");
         if (shards.some((shard) => ["REJECTED", "FAILED"].includes(shard.status))) return [
           prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} Shards=REJECTED_OR_FAILED`,
           "Do not retry or mutate around a rejected shard. Follow RouteHealth: submit a repaired RouteSkeleton when H3, reconcile when H5, or run only a legitimately requeued READY shard.",
@@ -1138,15 +1785,20 @@ export class TaskFlowSession {
       }
       const performance = state.view.contract ? targetPerformanceContract(state.view.contract) : null;
       const performancePhase = cell ? targetPerformancePhase(cell) : null;
+      const mustOutcomes = state.view.contract?.obligations
+        .filter((obligation) => obligation.priority === "MUST" && cell?.obligation_ids.includes(obligation.obligation_id))
+        .map((obligation) => ({ key: obligation.semantic_key, statement: obligation.statement })) ?? [];
       return [
         prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} Outcome=${cell?.outcome ?? "missing"}`,
         performance && performancePhase
           ? `TargetPerformance=${performance.mode} Phase=${performancePhase}; obey the frozen workload commands and budget before advancing.`
           : null,
         `ReadScope=${cell?.read_roots.join(",") ?? ""} WriteScope=${cell?.write_roots.join(",") ?? ""}`,
+        `MustOutcomes=${canonicalJson(mustOutcomes)}`,
         `Oracle=${canonicalJson(cell?.oracle ?? {})}`,
-        "Reuse current evidence; read only when the needed fact is absent or stale. Serialize writes and validation. Merge all edits to the same file in one turn into one edit call after the fresh read; after a successful edit, reread before any later edit to that path because its source version changed. PCH prepares and readbacks each mutation automatically.",
-        "After the final write, run every Oracle command exactly as shown, once, with no added flags, wrappers, chaining or cwd changes. PCH locally attests and closes after the final fresh PASS; then stop all tool calls and return at most one short result line.",
+        outcomeEvidenceLine,
+        "Reuse current evidence; read only when the needed fact is absent or stale. Before the final Oracle, inspect direct callers of every changed shared entry point and map each MustOutcome to local evidence that actually exercises it. A test-family name is not proof of preservation: if a preservation outcome has only indirect or missing coverage, add a focused regression or run the smallest safe supplemental validation before the final Oracle. Serialize writes and validation. Merge all edits to the same file in one turn into one edit call after the fresh read. PCH reuses a successful managed mutation readback as current exact-source evidence; reread only when PCH reports missing or stale source, or after an unobserved external change. A single gofmt call may batch up to eight authorized Go files; keep formatter and validation commands separate. PCH prepares and readbacks each mutation automatically.",
+        "After the final write, run every Oracle command exactly as shown, once, with no added flags, wrappers, chaining or cwd changes. After the final fresh PASS, review every explicit preservation outcome and ensure its local evidence actually exercises the changed entry point. Make any still-needed correction, rerun stale Oracle evidence, then call coding_flow action=complete once and return at most one short result line.",
       ].filter((line): line is string => line !== null).join("\n");
     }
     if (state.view.status === "RECONCILING") return `${prefix}\nStop mutation. Reconcile the unresolved Operation outcome before any retry.`;
@@ -1435,14 +2087,19 @@ export class TaskFlowSession {
     return "Unsupported Goal detail.";
   }
 
-  mutate(action: "pause" | "resume" | "cancel" | "replan", reason?: string): string {
+  mutate(
+    action: "pause" | "resume" | "cancel" | "replan",
+    reason?: string,
+  ): string {
     const state = this.requiredActive();
     if (["SUCCEEDED", "FAILED", "CANCELED"].includes(state.view.status)) {
       throw new TypeError(`Terminal Task Flow Goal ${state.goalId} cannot accept ${action}`);
     }
     const compactionRecovery = action === "resume" ? this.reconcileCompaction() : null;
     if (compactionRecovery && state.view.nextActionCode !== "RESUME") return compactionRecovery;
-    if (action === "resume" && state.view.status === "RECONCILING") return this.reconcileOperations();
+    if (action === "resume" && state.view.status === "RECONCILING") {
+      return this.reconcileOperations(undefined, true);
+    }
     if (action !== "replan") {
       const control = action === "pause" ? "PAUSE" : action === "resume" ? "RESUME" : "CANCEL";
       const decision = this.controlDecision(control, reason);
@@ -1513,7 +2170,9 @@ export class TaskFlowSession {
     return this.resolveClarificationSelections(selections);
   }
 
-  resolveClarificationSelections(decisions: readonly ClarificationSelection[]): string {
+  resolveClarificationSelections(
+    decisions: readonly ClarificationSelection[],
+  ): string {
     const state = this.requiredActive();
     if (decisions.length < 1 || decisions.length > 5) throw new TypeError("Clarification batch requires 1..5 decisions");
     assertSafeAuthorityPayload(decisions, "Clarification batch", 64 * 1024);
@@ -1547,12 +2206,19 @@ export class TaskFlowSession {
   }
 
   shutdown(): void {
+    const active = this.active;
+    const resources = this.services.resources();
+    if (active && resources) {
+      try { resources.authority.releaseLease(active.lease); }
+      catch { /* A stale or closed authority already prevents further writes. */ }
+    }
     this.operationLifecycle = null;
-    this.baselineHashCache.clear();
+    this.workspaceBaselineCapture.clear();
     this.services.setTaskFlowMemoryContext(null);
     this.services.shutdown();
     this.active = null;
     this.kernel = null;
+    this.runtimeInstanceId = null;
   }
 
   private authorizeNextWork(): boolean {
@@ -1562,6 +2228,8 @@ export class TaskFlowSession {
     if (state.view.nextActionCode !== "AUTHORIZE_WORK") return false;
     const contract = state.view.contract;
     const route = state.view.route;
+    const executionStageGate = this.requiredResources().authority.readTaskFlowCurrentPlanStageGateV2(state.goalId);
+    if (!executionStageGate) throw new AuthorityIntegrityError("Authorization lacks the current Plan execution StageGate");
     const cell = this.requiredResources().authority.readNextTaskFlowWorkCell(state.goalId);
     if (!contract || !route || !cell) throw new AuthorityIntegrityError("No eligible WorkCell for authorization");
     if (cell.effect_classes.some((effect) => effect === "IRREVERSIBLE_REQUIRES_USER" || effect === "EXTERNAL_IDEMPOTENT")) {
@@ -1597,7 +2265,7 @@ export class TaskFlowSession {
       work_cell_id: cell.work_cell_id, baseline_id: baseline.baseline_id,
       lease_generation: state.lease.generation, fencing_token: state.lease.fencingToken,
       effect_ceiling: contract.authorization_ceiling,
-      decision_closure_sha256: canonicalJsonSha256({ decisions: contract.decision_refs, route: route.record_sha256 }),
+      decision_closure_sha256: executionStageGate.decision_closure_sha256,
       allowed_scope_sha256: canonicalJsonSha256({ read: cell.read_roots, write: cell.write_roots, effects: cell.effect_classes }),
       expires_at_ms: this.now() + Math.max(3_600_000, this.options.config.execution.lease_ttl_ms * 120),
       created_at_ms: this.now(),
@@ -1605,6 +2273,7 @@ export class TaskFlowSession {
     const result = this.requiredKernel().authorize(state.goalId, authorization, this.mutation(`task-flow:authorize:${authorization.record_sha256}`));
     state.version = result.goalVersion;
     this.refresh();
+    state.blocker = null;
     return true;
   }
 
@@ -1614,89 +2283,42 @@ export class TaskFlowSession {
     const route = state.view.route;
     const baseline = this.requiredResources().authority.readLatestTaskFlowBaseline(state.goalId);
     if (!contract || !route || !baseline) throw new AuthorityIntegrityError("Goal closure lacks contract, route, or final baseline");
-    const evidenceRoot = this.requiredResources().authority.readTaskFlowEvidenceRoot(state.goalId, baseline.record_sha256);
-    const deliverable = sealTaskFlowRecord<DeliverableManifestRecord, "record_sha256">("PCH-DELIVERABLE-MANIFEST-V1", {
-      schema_version: 1,
-      deliverable_id: idFromSha256("DELIVERABLE", sha256Hex(`${state.goalId}\0${contract.record_sha256}\0${route.record_sha256}\0${baseline.record_sha256}\0${evidenceRoot}`)),
-      goal_id: state.goalId, contract_id: contract.contract_id, route_id: route.route_id,
-      final_baseline_id: baseline.baseline_id,
-      obligation_closure_sha256: canonicalJsonSha256(contract.obligations.map((entry) => entry.record_sha256)),
-      evidence_root_sha256: evidenceRoot, artifacts: [], result: "SUCCEEDED", created_at_ms: this.now(),
-    }, "record_sha256");
-    const result = this.requiredKernel().closeGoal(state.goalId, deliverable, this.mutation(`task-flow:deliverable:${deliverable.record_sha256}`));
+    const closureKey = canonicalJsonSha256({
+      goalId: state.goalId, contract: contract.record_sha256, route: route.record_sha256, baseline: baseline.record_sha256,
+    });
+    const result = this.requiredKernel().closeGoalV2(
+      state.goalId, this.mutation(`task-flow:deliverable-v2:${closureKey}`),
+    );
     state.version = result.goalVersion;
     this.refresh();
     const harness = this.requiredResources().authority.readHarnessView(state.goalId);
     if (harness?.status === "ACTIVE" && harness.shards.every((shard) => ["SUCCEEDED", "SUPERSEDED"].includes(shard.status))) {
       const closed = this.requiredResources().authority.transactHarness({
         type: "CONTROL_MANAGED_RUN", goalId: state.goalId, runId: harness.runId,
-        action: "SUCCEED", reasonSha256: deliverable.record_sha256,
-      }, this.mutation(`coding-harness:run:succeed:${deliverable.record_sha256}`));
+        action: "SUCCEED", reasonSha256: result.eventSha256,
+      }, this.mutation(`coding-harness:run:succeed:${result.eventSha256}`));
       state.version = closed.goalVersion;
     }
   }
 
-  private captureBaseline(cell: WorkCellRecord): WorkspaceBaselineRecord {
-    const normalizedRoots = [...new Set([...cell.read_roots, ...cell.write_roots])]
-      .map((root) => normalizedRelativeRoot(this.requiredCwd(), root))
-      .sort((left, right) => left.absolute.length - right.absolute.length || left.relative.localeCompare(right.relative));
-    const roots = normalizedRoots.filter((root, index) => !normalizedRoots.slice(0, index).some((parent) => contained(parent.absolute, root.absolute)));
-    const manifest: Array<Readonly<Record<string, unknown>>> = [];
-    let fileCount = 0;
-    let byteCount = 0;
-    const direct = this.requiredActive().view.route?.lane === "DIRECT_CELL";
-    const fileLimit = direct ? maximumDirectBaselineFiles : maximumBaselineFiles;
-    const byteLimit = direct ? maximumDirectBaselineBytes : maximumBaselineBytes;
-    const visit = (absolute: string, relativePath: string): void => {
-      if (fileCount >= fileLimit || byteCount > byteLimit) {
-        throw new TypeError("WorkCell baseline exceeds the bounded snapshot budget; narrow its read/write roots");
-      }
-      if (!existsSync(absolute)) {
-        manifest.push({ path_hmac: hmacSha256Hex(this.requiredResources().workspaceSecret, relativePath), kind: "ABSENT" });
-        return;
-      }
-      const entry = lstatSync(absolute);
-      if (entry.isSymbolicLink() || !contained(this.requiredCwd(), realpathSync(absolute))) throw new TypeError(`Unsafe baseline link at ${relativePath}`);
-      if (entry.isDirectory()) {
-        manifest.push({ path_hmac: hmacSha256Hex(this.requiredResources().workspaceSecret, relativePath), kind: "DIRECTORY" });
-        for (const child of readdirSync(absolute, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
-          if (ignoredBaselineDirectories.has(child.name)) continue;
-          visit(resolve(absolute, child.name), relativePath === "." ? child.name : `${relativePath}/${child.name}`);
-        }
-        return;
-      }
-      if (!entry.isFile()) throw new TypeError(`Unsupported baseline entry at ${relativePath}`);
-      fileCount += 1;
-      byteCount += entry.size;
-      if (fileCount > fileLimit || byteCount > byteLimit) throw new TypeError("WorkCell baseline exceeds the bounded snapshot budget; narrow its read/write roots");
-      manifest.push({
-        path_hmac: hmacSha256Hex(this.requiredResources().workspaceSecret, relativePath), kind: "FILE",
-        bytes: entry.size, sha256: this.baselineFileHash(absolute, entry),
-      });
-    };
-    for (const root of roots) {
-      visit(root.absolute, root.relative);
-    }
-    const environmentSha256 = canonicalJsonSha256({ node: process.version, platform: process.platform, arch: process.arch });
-    const contentRootSha256 = canonicalJsonSha256(manifest);
-    const baselineId = createId("BASELINE");
-    return sealTaskFlowRecord<WorkspaceBaselineRecord, "record_sha256">("PCH-WORKSPACE-BASELINE-V1", {
-      schema_version: 1, baseline_id: baselineId, workspace_id: this.requiredWorkspaceId(), goal_id: this.requiredActive().goalId,
-      filesystem_identity_hmac: hmacSha256Hex(this.requiredResources().workspaceSecret, this.requiredCwd().replaceAll("\\", "/").toLowerCase()),
-      content_root_sha256: contentRootSha256, environment_sha256: environmentSha256,
-      oracle_set_sha256: canonicalJsonSha256(cell.oracle), scope_manifest: manifest, created_at_ms: this.now(),
-    }, "record_sha256");
+  captureCurrentWorkspaceBaseline(): WorkspaceBaselineRecord {
+    const cell = this.currentCell();
+    if (!cell) throw new TypeError("Current WorkCell is unavailable for workspace baseline capture");
+    return this.captureBaseline(cell);
   }
 
-  private baselineFileHash(path: string, entry: NonNullable<ReturnType<typeof lstatSync>>): string {
-    const stamp = `${entry.dev}:${entry.ino}:${entry.size}:${entry.mtimeMs}:${entry.ctimeMs}`;
-    const cached = this.baselineHashCache.get(path);
-    if (cached?.stamp === stamp) return cached.sha256;
-    const value = sha256Hex(readFileSync(path));
-    this.baselineHashCache.delete(path);
-    this.baselineHashCache.set(path, { stamp, sha256: value });
-    while (this.baselineHashCache.size > maximumBaselineFiles) this.baselineHashCache.delete(this.baselineHashCache.keys().next().value!);
-    return value;
+  private captureBaseline(cell: WorkCellRecord): WorkspaceBaselineRecord {
+    const state = this.requiredActive();
+    const resources = this.requiredResources();
+    return this.workspaceBaselineCapture.capture({
+      workspace: this.requiredCwd(),
+      workspaceId: this.requiredWorkspaceId(),
+      goalId: state.goalId,
+      workspaceSecret: resources.workspaceSecret,
+      cell,
+      direct: state.view.route?.lane === "DIRECT_CELL",
+      nowMs: this.now(),
+    });
   }
   private workerTransition(
     workerRunId: string, ordinal: number, state: WorkerRunTransitionRecord["state"], outputSha256: string | null,
@@ -1894,7 +2516,7 @@ export class TaskFlowSession {
     const entry = lstatSync(path);
     if (entry.isSymbolicLink() || !entry.isFile() || !contained(this.requiredCwd(), realpathSync(path))) throw new TypeError("Readback target is not a safe regular file");
     const size = statSync(path).size;
-    if (size > maximumBaselineBytes) throw new TypeError("Readback target exceeds bounded hash budget");
+    if (size > maximumReadbackBytes) throw new TypeError("Readback target exceeds bounded hash budget");
     return sha256Hex(readFileSync(path));
   }
 
@@ -1902,6 +2524,23 @@ export class TaskFlowSession {
     const state = this.active;
     const id = state?.view.workCellId;
     return id ? state.view.route?.work_cells.find((cell) => cell.work_cell_id === id) ?? null : null;
+  }
+
+  private activeGoalInputClosure(): ActiveGoalInputClosureV2 {
+    const state = this.requiredActive();
+    const authority = this.requiredResources().authority;
+    const plan = authority.readTaskFlowPlanV2(state.goalId);
+    const stageGate = authority.readTaskFlowCurrentPlanStageGateV2(state.goalId);
+    return {
+      goal_id: state.goalId,
+      goal_version: state.version,
+      contract_sha256: state.view.contract?.record_sha256 ?? null,
+      route_sha256: state.view.route?.record_sha256 ?? null,
+      plan_revision_id: plan?.revision.plan_revision_id ?? null,
+      plan_revision_sha256: plan?.revision.record_sha256 ?? null,
+      stage_gate_sha256: stageGate?.record_sha256 ?? null,
+      execution_authorization_sha256: state.view.authorization?.record_sha256 ?? null,
+    };
   }
 
   private createOperationLifecycle(resources: CodingHarnessResources): TaskFlowOperationLifecycle {
@@ -1959,14 +2598,31 @@ export class TaskFlowSession {
     publishImmutable(resolve(root, `${kind}.${id}.md`), markdown);
   }
 
-  private reconcileTerminalManagedRun(resources: CodingHarnessResources): void {
+  private reconcileWorkspaceTerminalManagedRun(resources: CodingHarnessResources): void {
+    const activeRun = resources.authority.readActiveHarnessRunForWorkspace(this.requiredWorkspaceId());
+    if (!activeRun || activeRun.taskFlowTerminalStatus === null) return;
+    const lease = resources.authority.acquireLease(
+      activeRun.goalId,
+      this.requiredSessionId(),
+      this.options.config.execution.lease_ttl_ms,
+      this.requiredRuntimeInstanceId(),
+    );
+    try {
+      this.reconcileTerminalManagedRun(resources, activeRun.goalId, lease);
+    } finally {
+      resources.authority.releaseLease(lease);
+    }
+  }
+
+  private reconcileTerminalManagedRun(
+    resources: CodingHarnessResources,
+    goalId: string,
+    lease: LeaseToken,
+  ): void {
     const activeRun = resources.authority.readActiveHarnessRunForWorkspace(this.requiredWorkspaceId());
     const terminal = activeRun?.taskFlowTerminalStatus;
-    if (!activeRun || terminal === null) return;
+    if (!activeRun || activeRun.goalId !== goalId || terminal === null) return;
     const action = terminal === "SUCCEEDED" ? "SUCCEED" : terminal === "FAILED" ? "FAIL" : "CANCEL";
-    const lease = resources.authority.acquireLease(
-      activeRun.goalId, this.requiredSessionId(), this.options.config.execution.lease_ttl_ms,
-    );
     resources.authority.transactHarness({
       type: "CONTROL_MANAGED_RUN", goalId: activeRun.goalId, runId: activeRun.runId,
       action, reasonSha256: canonicalJsonSha256({ terminal, repair: "TERMINAL_TASK_FLOW_MANAGED_RUN" }),
@@ -1979,9 +2635,24 @@ export class TaskFlowSession {
 
   private refresh(recover = false): void {
     const state = this.requiredActive();
+    const authority = this.requiredResources().authority;
     state.view = recover ? this.requiredKernel().recover(state.goalId).view
-      : this.requiredResources().authority.readTaskFlowView(state.goalId) ?? state.view;
-    state.version = this.requiredResources().authority.readTaskFlowGoalVersion(state.goalId);
+      : authority.readTaskFlowView(state.goalId) ?? state.view;
+    state.version = authority.readTaskFlowGoalVersion(state.goalId);
+    if (["SUCCEEDED", "FAILED", "CANCELED"].includes(state.view.status)) {
+      const binding = authority.readSessionGoalBinding(state.goalId);
+      if (binding?.state === "BOUND" && binding.sessionId === this.requiredSessionId()) {
+        authority.transitionSessionGoalBinding({
+          goalId: state.goalId,
+          workspaceId: this.requiredWorkspaceId(),
+          sessionId: this.requiredSessionId(),
+          state: "TERMINAL",
+          goalTitle: binding.goalTitle,
+          reasonCode: "GOAL_TERMINAL",
+          expectedReceiptSha256: binding.bindingReceiptSha256,
+        });
+      }
+    }
     this.syncMemoryContext();
   }
 
@@ -2001,9 +2672,57 @@ export class TaskFlowSession {
     const now = this.now();
     const ttlMs = this.options.config.execution.lease_ttl_ms;
     if (state.lease.expiresAtMs <= now) {
-      state.lease = authority.acquireLease(state.goalId, this.requiredSessionId(), ttlMs);
+      state.lease = authority.acquireLease(
+        state.goalId,
+        this.requiredSessionId(),
+        ttlMs,
+        this.requiredRuntimeInstanceId(),
+      );
     } else if (state.lease.expiresAtMs - now <= Math.floor(ttlMs / 2)) {
       state.lease = authority.renewLease(state.lease, ttlMs, Math.max(1, state.version));
+    }
+  }
+
+  private reconcilePendingAuthorityTransitions(): void {
+    const state = this.requiredActive();
+    for (let step = 0; step < 2; step += 1) {
+      if (state.view.nextActionCode === "FINALIZE_INTAKE") {
+        const contractSha256 = state.view.contract?.record_sha256;
+        if (!contractSha256) throw new AuthorityIntegrityError("Pending Intake finalization lacks its GoalContract");
+        const result = this.requiredKernel().finalizeContractIntake(
+          state.goalId,
+          this.mutation(`task-flow:finalize-intake:${contractSha256}`),
+        );
+        state.version = result.goalVersion;
+        this.refresh();
+        continue;
+      }
+      if (state.view.nextActionCode === "FINALIZE_PLAN") {
+        const routeSha256 = state.view.route?.record_sha256;
+        if (!routeSha256) throw new AuthorityIntegrityError("Pending Plan finalization lacks its Route");
+        const result = this.requiredKernel().finalizePlan(
+          state.goalId,
+          this.mutation(`task-flow:finalize-plan:${routeSha256}`),
+        );
+        state.version = result.goalVersion;
+        this.refresh();
+        continue;
+      }
+      if (state.view.nextActionCode === "COMMIT_PLAN_GATE") {
+        const routeSha256 = state.view.route?.record_sha256;
+        if (!routeSha256) throw new AuthorityIntegrityError("Pending Plan gate commit lacks its Route");
+        const result = this.requiredKernel().commitPlanGate(
+          state.goalId,
+          this.mutation(`task-flow:commit-plan-gate:${routeSha256}`),
+        );
+        state.version = result.goalVersion;
+        this.refresh();
+        continue;
+      }
+      return;
+    }
+    if (["FINALIZE_INTAKE", "FINALIZE_PLAN", "COMMIT_PLAN_GATE"].includes(state.view.nextActionCode)) {
+      throw new AuthorityIntegrityError("Host authority transition exceeded its bounded reconciliation steps");
     }
   }
 
@@ -2013,7 +2732,12 @@ export class TaskFlowSession {
     }
     this.ensureLease();
     const state = this.requiredActive();
-    return { expectedVersion: state.version, idempotencyKey, actor: "RUNTIME", lease: state.lease };
+    return {
+      expectedVersion: state.version,
+      idempotencyKey,
+      actor: "RUNTIME",
+      lease: state.lease,
+    };
   }
 
   private requiredResources(): CodingHarnessResources {
@@ -2030,5 +2754,9 @@ export class TaskFlowSession {
   private requiredActive(): ActiveTaskFlowState { if (!this.active) throw new TypeError("No active Task Flow Goal"); return this.active; }
   private requiredCwd(): string { if (!this.cwd) throw new TypeError("Task Flow workspace is unavailable"); return this.cwd; }
   private requiredSessionId(): string { if (!this.sessionId) throw new TypeError("Task Flow session ID is unavailable"); return this.sessionId; }
+  private requiredRuntimeInstanceId(): string {
+    if (!this.runtimeInstanceId) throw new TypeError("Task Flow runtime instance ID is unavailable");
+    return this.runtimeInstanceId;
+  }
   private requiredWorkspaceId(): string { if (!this.workspaceId) throw new TypeError("Task Flow workspace ID is unavailable"); return this.workspaceId; }
 }

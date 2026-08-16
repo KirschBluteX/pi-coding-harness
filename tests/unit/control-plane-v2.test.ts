@@ -78,7 +78,19 @@ describe("OraclePolicy", () => {
     writeFileSync(resolve(cwd, "go.mod"), "module example.test/project\n\ngo 1.22\n");
     const command = "go test ./internal/terraform -run=^TestContext2Plan_import -count=1 -timeout=30m";
     expect(evaluateOraclePolicy({ command, cwd, declared_commands: [command], timeout_ms: 900_000 })).toMatchObject({
-      allow: true, reason_code: "ORACLE_POLICY_PASS",
+      allow: true, reason_code: "ORACLE_POLICY_PASS", evidence_role: "FROZEN_ORACLE",
+    });
+    const supplemental = "go test ./internal/terraform -run=^TestContext2Validate_importBlock -count=1 -timeout=30m";
+    expect(evaluateOraclePolicy({
+      command: supplemental,
+      cwd,
+      declared_commands: [command],
+      allow_supplemental_validation: true,
+      timeout_ms: 900_000,
+    })).toMatchObject({
+      allow: true,
+      reason_code: "SUPPLEMENTAL_VALIDATION_POLICY_PASS",
+      evidence_role: "SUPPLEMENTAL_VALIDATION",
     });
     const remote = "go test github.com/hashicorp/terraform/internal/terraform -count=1";
     expect(evaluateOraclePolicy({ command: remote, cwd, declared_commands: [remote] })).toMatchObject({

@@ -7,6 +7,9 @@ import type { CodingHarnessConfig } from "../../src/config/types.js";
 import { workerRoles } from "../../src/harness/domain.js";
 import { sha256Hex } from "../../src/foundation/crypto.js";
 import { TaskFlowSession } from "../../src/runtime/task-flow-session.js";
+import { withAcceptanceV2 } from "../helpers/acceptance-v2.js";
+import { passingGoalFitAssessment } from "../helpers/goal-fit.js";
+import { approvePendingTaskFlowContract } from "../helpers/task-flow-session.js";
 
 const roots: string[] = [];
 const sessions: TaskFlowSession[] = [];
@@ -40,12 +43,13 @@ function patchSession(label: string): { readonly session: TaskFlowSession; reado
     topology: "MULTI", createdByHostHmac: sha256Hex("host"),
     configSha256: sha256Hex("config"), decisionSha256: sha256Hex("decision"),
   });
-  session.submitContract({
+  session.submitContract(withAcceptanceV2({
     user_outcomes: ["The source patch is applied"], scope: ["src"],
     obligations: [{ key: "patched", priority: "MUST", statement: "Apply and verify the source patch", oracle: { command: "npm test" } }],
     authorization_ceiling: "LOCAL_REVERSIBLE",
-  });
-  session.submitRoute({ outcomes: ["Apply the source patch"], work_cells: [{
+  }));
+  approvePendingTaskFlowContract(session);
+  session.submitRoute({ goal_fit_assessment: passingGoalFitAssessment(), outcomes: ["Apply the source patch"], work_cells: [{
     key: "patch", outcome: "Apply files under src", obligation_keys: ["patched"], read_roots: ["src"], write_roots: ["src"],
     effect_classes: ["LOCAL_REVERSIBLE"], oracle: { command: "npm test" }, risk: "LOW", reversible: true,
   }], near_horizon: ["patch"] });
@@ -143,12 +147,14 @@ describe("Coding Harness worker lifecycle", () => {
     session.initialize(ctx);
     session.startFromInput("build: update the bounded example", ctx);
     session.createHarnessRun({ topology: "MULTI", createdByHostHmac: sha256Hex("host"), configSha256: sha256Hex("config"), decisionSha256: sha256Hex("decision") });
-    session.submitContract({
+    session.submitContract(withAcceptanceV2({
       user_outcomes: ["The example is updated"], scope: ["src/example.ts"],
       obligations: [{ key: "updated", priority: "MUST", statement: "The file is updated and verified", oracle: { command: "npm test" } }],
       authorization_ceiling: "LOCAL_REVERSIBLE",
-    });
+    }));
+    approvePendingTaskFlowContract(session);
     session.submitRoute({
+      goal_fit_assessment: passingGoalFitAssessment(),
       outcomes: ["Update the file"], work_cells: [{
         key: "update", outcome: "Update src/example.ts", obligation_keys: ["updated"], read_roots: ["src/example.ts"],
         write_roots: ["src/example.ts"], effect_classes: ["LOCAL_REVERSIBLE"], oracle: { command: "npm test" }, risk: "LOW", reversible: true,

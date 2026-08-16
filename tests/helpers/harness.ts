@@ -10,15 +10,17 @@ import {
 import type { LeaseToken } from "../../src/authority/lease.js";
 import { createTestAuthority, type TestAuthority } from "./authority.js";
 import {
-  taskAdmissionMetadata, taskAuthorization, taskBaseline, taskContract, taskFlowMemoryMigrations, taskRoute,
+  finalizeTaskFlowPlan, reviewAndFinalizeTaskFlowContract, taskAcceptanceFacets, taskAdmissionMetadata,
+  taskAuthorization, taskBaseline, taskContractProposal, taskFlowMemoryMigrations, taskRoute,
 } from "./task-flow.js";
-import { sealTaskFlowRecord, type WorkspaceBaselineRecord } from "../../src/task-flow/domain.js";
+import { sealTaskFlowRecord, type GoalContractRecord, type WorkspaceBaselineRecord } from "../../src/task-flow/domain.js";
+import { passingGoalFitAssessment } from "./goal-fit.js";
 
 export interface HarnessFixture {
   readonly authority: TestAuthority;
   readonly goalId: string;
   readonly lease: LeaseToken;
-  readonly contract: ReturnType<typeof taskContract>;
+  readonly contract: GoalContractRecord;
   readonly route: ReturnType<typeof taskRoute>;
   readonly baseline: ReturnType<typeof taskBaseline>;
   readonly authorization: ReturnType<typeof taskAuthorization>;
@@ -38,7 +40,12 @@ export function harnessMutation(fixture: Pick<HarnessFixture, "lease">, version:
 export function createHarnessFixture(
   topology: ExecutionTopology,
   suffix = "001",
-  options: { readonly baseDirectory?: string } = {},
+  options: {
+    readonly baseDirectory?: string;
+    readonly readRoots?: readonly string[];
+    readonly writeRoots?: readonly string[];
+    readonly authorizationTtlMs?: number;
+  } = {},
 ): HarnessFixture {
   const authority = createTestAuthority({
     ...(options.baseDirectory === undefined ? {} : { baseDirectory: options.baseDirectory }),
@@ -53,23 +60,42 @@ export function createHarnessFixture(
     workspace: { workspaceId: `WS-HARNESS-${suffix}`, workspaceHmac: sha256Hex(`workspace:${suffix}`), filesystemKind: "LOCAL_TEST", localLockingVerified: true },
     originSessionId: `SESSION-HARNESS-${suffix}`, objective: "Produce a verified bounded code change",
     intent: "BUILD", lane: "DIRECT_CELL", sourceIntakeSha256: sha256Hex(`intake:${suffix}`), activationSha256: sha256Hex(`activation:${suffix}`),
+    sourceText: `intake:${suffix}`,
     ...taskAdmissionMetadata("DIRECT_CELL"),
   }, { expectedVersion: 0, idempotencyKey: `admit:${suffix}`, actor: "RUNTIME" });
   const lease = authority.store.acquireLease(goalId, `SESSION-HARNESS-${suffix}`, 120_000);
-  const contract = taskContract(goalId, authority.clock.now());
-  const contractResult = authority.store.transactTaskFlow({ type: "SUBMIT_GOAL_CONTRACT", goalId, contract },
+  const contractResult = authority.store.transactTaskFlow({
+    type: "SUBMIT_GOAL_CONTRACT", goalId, proposal: taskContractProposal(), acceptanceFacets: taskAcceptanceFacets(),
+    goalFitAssessment: passingGoalFitAssessment(),
+  },
     { expectedVersion: admitted.goalVersion, idempotencyKey: `contract:${suffix}`, actor: "RUNTIME", lease });
-  const route = taskRoute(contract, authority.clock.now());
-  const routeResult = authority.store.transactTaskFlow({ type: "SUBMIT_ROUTE_SKELETON", goalId, route, contract },
-    { expectedVersion: contractResult.goalVersion, idempotencyKey: `route:${suffix}`, actor: "RUNTIME", lease });
+  let version = reviewAndFinalizeTaskFlowContract(
+    authority, goalId, lease, contractResult.goalVersion, `harness:${suffix}`,
+  );
+  const contract = authority.store.readTaskFlowView(goalId)?.contract;
+  if (!contract) throw new Error("Harness fixture contract was not frozen");
+  const route = taskRoute(contract, authority.clock.now(), {
+    ...(options.readRoots === undefined ? {} : { readRoots: options.readRoots }),
+    ...(options.writeRoots === undefined ? {} : { writeRoots: options.writeRoots }),
+  });
+  authority.store.transactTaskFlow({
+    type: "SUBMIT_ROUTE_SKELETON", goalId, route, contract, goalFitAssessment: passingGoalFitAssessment(),
+  },
+    { expectedVersion: version, idempotencyKey: `route:${suffix}`, actor: "RUNTIME", lease });
+  version += 1;
+  const plan = finalizeTaskFlowPlan(authority, goalId, lease, version, `harness:${suffix}`);
+  version = plan.nextVersion;
   const originalBaseline = taskBaseline(goalId, authority.clock.now());
   const baselineValue = omitProperty(originalBaseline, "record_sha256");
   const finalBaseline = sealTaskFlowRecord<WorkspaceBaselineRecord, "record_sha256">("PCH-WORKSPACE-BASELINE-V1", {
     ...baselineValue, workspace_id: `WS-HARNESS-${suffix}`,
   }, "record_sha256");
   const baselineResult = authority.store.transactTaskFlow({ type: "RECORD_WORKSPACE_BASELINE", goalId, baseline: finalBaseline },
-    { expectedVersion: routeResult.goalVersion, idempotencyKey: `baseline:${suffix}`, actor: "RUNTIME", lease });
-  const authorization = taskAuthorization(goalId, contract, finalBaseline, lease.generation, lease.fencingToken, authority.clock.now());
+    { expectedVersion: version, idempotencyKey: `baseline:${suffix}`, actor: "RUNTIME", lease });
+  const authorization = taskAuthorization(
+    goalId, contract, finalBaseline, lease.generation, lease.fencingToken, authority.clock.now(),
+    plan.decisionClosureSha256, options.authorizationTtlMs,
+  );
   const authorizationResult = authority.store.transactTaskFlow({ type: "AUTHORIZE_WORK_CELL", goalId, authorization },
     { expectedVersion: baselineResult.goalVersion, idempotencyKey: `authorization:${suffix}`, actor: "RUNTIME", lease });
   const run = sealHarnessRecord<ManagedRunRecord, "record_sha256">("PCH-MANAGED-RUN-V1", {
@@ -88,13 +114,20 @@ export function createHarnessFixture(
 
 export function workShard(
   fixture: HarnessFixture,
-  input: { readonly id: string; readonly ordinal: number; readonly role: "SUPERVISOR" | WorkerRole; readonly dependencies?: readonly string[]; readonly writeRoots?: readonly string[] },
+  input: {
+    readonly id: string;
+    readonly ordinal: number;
+    readonly role: "SUPERVISOR" | WorkerRole;
+    readonly dependencies?: readonly string[];
+    readonly readRoots?: readonly string[];
+    readonly writeRoots?: readonly string[];
+  },
 ): WorkShardRecord {
   return sealHarnessRecord<WorkShardRecord, "spec_sha256">("PCH-WORK-SHARD-V1", {
     schema_version: 1, shard_id: input.id, run_id: fixture.run.run_id, goal_id: fixture.goalId,
     work_cell_id: fixture.route.work_cells[0]!.work_cell_id, logical_key: input.id.toLowerCase(), ordinal: input.ordinal,
     role: input.role, outcome: `${input.role} completes its bounded outcome`, dependencies: input.dependencies ?? [],
-    read_roots: ["src"], write_roots: input.writeRoots ?? [], oracle: { command: "npm test" }, packet_budget: { max_attempts: 2 },
+    read_roots: input.readRoots ?? ["src"], write_roots: input.writeRoots ?? [], oracle: { command: "npm test" }, packet_budget: { max_attempts: 2 },
   }, "spec_sha256");
 }
 

@@ -30,7 +30,32 @@
   "codingHarness": {
     "blueprintVersion": "1.2.1",
     "productImplementation": "pi-coding-harness-v1",
-    "authoritySchema": 19
+    "authoritySchema": 35,
+    "releaseExcludedDirectories": [
+      "node_modules",
+      "dist",
+      ".tmp",
+      "tmp",
+      "reports",
+      ".git",
+      "coverage",
+      ".cache",
+      ".playwright-cli",
+      ".audit-temp",
+      "output",
+      ".coding-harness",
+      "artifacts",
+      "telemetry"
+    ],
+    "releaseExcludedFiles": [
+      "*.tsbuildinfo"
+    ],
+    "externalJsonContracts": [
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "tsconfig.runtime.json"
+    ]
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "0.82.1",

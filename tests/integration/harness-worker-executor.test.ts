@@ -10,6 +10,9 @@ import {
 import { resolveWorkerRuntimeMap } from "../../src/harness/worker/runtime-policy.js";
 import { sha256Hex } from "../../src/foundation/crypto.js";
 import { TaskFlowSession } from "../../src/runtime/task-flow-session.js";
+import { withAcceptanceV2 } from "../helpers/acceptance-v2.js";
+import { passingGoalFitAssessment } from "../helpers/goal-fit.js";
+import { approvePendingTaskFlowContract } from "../helpers/task-flow-session.js";
 
 const roots: string[] = [];
 const sessions: TaskFlowSession[] = [];
@@ -40,12 +43,13 @@ function managedSession(label: string): {
   const ctx = rawContext as unknown as Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">;
   session.initialize(ctx); session.startFromInput("build: update example", ctx);
   session.createHarnessRun({ topology: "MULTI", createdByHostHmac: sha256Hex("host"), configSha256: sha256Hex("config"), decisionSha256: sha256Hex("decision") });
-  session.submitContract({
+  session.submitContract(withAcceptanceV2({
     user_outcomes: ["Example updated"], scope: ["src/example.ts"],
     obligations: [{ key: "updated", priority: "MUST", statement: "Update and verify the example", oracle: { command: "npm test" } }],
     authorization_ceiling: "LOCAL_REVERSIBLE",
-  });
-  session.submitRoute({ outcomes: ["Update example"], work_cells: [{
+  }));
+  approvePendingTaskFlowContract(session);
+  session.submitRoute({ goal_fit_assessment: passingGoalFitAssessment(), outcomes: ["Update example"], work_cells: [{
     key: "update", outcome: "Update example", obligation_keys: ["updated"], read_roots: ["src/example.ts"], write_roots: ["src/example.ts"],
     effect_classes: ["LOCAL_REVERSIBLE"], oracle: { command: "npm test" }, risk: "LOW", reversible: true,
   }], near_horizon: ["update"] });
@@ -192,6 +196,97 @@ describe("isolated Multi worker executor", () => {
     expect(() => resumed.submitHarnessWorkerResult({
       execution, output: "late", usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, cost: null, turns: 0, wallTimeMs: 0 }, patches: [],
     })).toThrow();
+  });
+
+  it("does not requeue an orphaned Worker until pending active-Goal input is classified", () => {
+    const fixture = managedSession("HOST-RESTART-PENDING-INPUT");
+    const execution = fixture.session.startNextHarnessWorker({
+      modelFingerprintHmacByRole, ownerHmac: sha256Hex("old-host"),
+    });
+    expect(fixture.session.startFromInput("Explain the current Worker evidence.", fixture.ctx)).toBeNull();
+    const pending = fixture.session.resources()!.authority
+      .readPendingActiveGoalUserTurns(fixture.session.current()!.goalId)[0]!;
+    fixture.session.shutdown();
+
+    const resumed = new TaskFlowSession({
+      config: fixture.config, packageRoot: resolve("."), migrationPath: resolve("schemas", "sql", "001_core.sql"),
+      dataRoot: fixture.dataRoot, now: () => Date.parse("2026-07-27T07:00:01Z"),
+    });
+    sessions.push(resumed);
+    resumed.initialize(fixture.ctx);
+    expect(resumed.createHarnessRun({
+      topology: "MULTI", createdByHostHmac: sha256Hex("host"),
+      configSha256: sha256Hex("config"), decisionSha256: sha256Hex("decision"),
+    })).toMatchObject({
+      unresolvedWorkerRunIds: [execution.worker.worker_run_id],
+      shards: [{ status: "RUNNING", attemptCount: 1 }],
+    });
+
+    resumed.classifyActiveGoalInput({
+      user_turn_id: pending.user_turn_id,
+      expected_user_turn_sha256: pending.record_sha256,
+      classification: "DISCUSSION_ONLY",
+      materiality: "LOW",
+      change_kind: null,
+      changed_subjects: [],
+    });
+    expect(resumed.harnessView()).toMatchObject({
+      unresolvedWorkerRunIds: [],
+      shards: [{ status: "READY", attemptCount: 1 }],
+    });
+  });
+
+  it("fences rather than requeues an orphaned Worker after a material active-Goal change", () => {
+    const fixture = managedSession("HOST-RESTART-MATERIAL-INPUT");
+    const execution = fixture.session.startNextHarnessWorker({
+      modelFingerprintHmacByRole, ownerHmac: sha256Hex("old-host"),
+    });
+    expect(fixture.session.startFromInput("Also update the adjacent parser.", fixture.ctx)).toBeNull();
+    expect(fixture.session.startFromInput("What evidence currently covers the main source?", fixture.ctx)).toBeNull();
+    const authority = fixture.session.resources()!.authority;
+    const goalId = fixture.session.current()!.goalId;
+    const [materialTurn, discussionTurn] = authority.readPendingActiveGoalUserTurns(goalId);
+    if (!materialTurn || !discussionTurn) throw new TypeError("Expected two pending active-Goal turns");
+    const workCell = authority.readTaskFlowPlanV2(goalId)!.subjects.find((subject) => subject.kind === "WORK_CELL")!;
+    fixture.session.shutdown();
+
+    const resumed = new TaskFlowSession({
+      config: fixture.config, packageRoot: resolve("."), migrationPath: resolve("schemas", "sql", "001_core.sql"),
+      dataRoot: fixture.dataRoot, now: () => Date.parse("2026-07-27T07:00:01Z"),
+    });
+    sessions.push(resumed);
+    resumed.initialize(fixture.ctx);
+    expect(resumed.createHarnessRun({
+      topology: "MULTI", createdByHostHmac: sha256Hex("host"),
+      configSha256: sha256Hex("config"), decisionSha256: sha256Hex("decision"),
+    })).toMatchObject({ unresolvedWorkerRunIds: [execution.worker.worker_run_id] });
+
+    resumed.classifyActiveGoalInput({
+      user_turn_id: materialTurn.user_turn_id,
+      expected_user_turn_sha256: materialTurn.record_sha256,
+      classification: "CHANGE_REQUEST",
+      materiality: "HIGH",
+      change_kind: "SCOPE",
+      changed_subjects: [{ kind: workCell.kind, id: workCell.id }],
+    });
+    expect(resumed.current()).toMatchObject({ blocker: expect.stringMatching(/typed classification/i) });
+    expect(resumed.harnessView()).toMatchObject({
+      unresolvedWorkerRunIds: [execution.worker.worker_run_id],
+      shards: [{ status: "RUNNING", attemptCount: 1 }],
+    });
+    resumed.classifyActiveGoalInput({
+      user_turn_id: discussionTurn.user_turn_id,
+      expected_user_turn_sha256: discussionTurn.record_sha256,
+      classification: "DISCUSSION_ONLY",
+      materiality: "LOW",
+      change_kind: null,
+      changed_subjects: [],
+    });
+    expect(resumed.current()).toMatchObject({ phase: "CONTRACTING", nextAction: "SUBMIT_CONTRACT" });
+    expect(resumed.harnessView()).toMatchObject({
+      unresolvedWorkerRunIds: [],
+      shards: [{ status: "FAILED", attemptCount: 1 }],
+    });
   });
 
   it("rejects compaction while authority still owns a RUNNING worker", () => {

@@ -1,0 +1,226 @@
+{
+  "$schema": "../schemas/queued-scope-extensions.schema.json",
+  "schema_version": 1,
+  "goal": "Pi Coding Harness architecture stabilization and provider-backed qualification",
+  "extensions": [
+    {
+      "extension_id": "PCH-QSE-20260729-001",
+      "kind": "ADDITIVE_CHANGE_REQUEST",
+      "source": "user-request-2026-07-29",
+      "status": "PROVIDER_KEYED_ATTEMPT_VERIFIED_PLAN_READY",
+      "priority": "P0",
+      "depends_on": [
+        "PCH-CHECKPOINT-EFFECT-RECOVERY-001",
+        "PCH-AUTHORITY-V2-DESIGN-REVIEW"
+      ],
+      "conflicts": [
+        "Do not form final findings from a changing source snapshot.",
+        "Do not modify source while a read-only review owns the same file set.",
+        "Do not repeat unchanged prior authority and heuristic scans."
+      ],
+      "source_closure": {
+        "checkpoint_id": "PCH-CHECKPOINT-GENERATION-077-SEMANTIC-CLOSURE-REUSE",
+        "files": [
+          {
+            "path": "docs/PI-CODING-HARNESS-BLUEPRINT.md",
+            "sha256": "6DC08D93822B059CDDC8FC5140016B56406594E20BB3963CA037DFD47B7A11BF"
+          },
+          {
+            "path": "manifests/SOURCE-HASHES.json",
+            "sha256": "735107EDCB0AF08A25F256E9BDF7FCB44F9A5D25990F41786DFB737194243552"
+          },
+          {
+            "path": "reports/active-goal-change-intake-v2-validation.json",
+            "sha256": "EA7046B8D970F1001E4FC8F0D49EE8F6FD6A7CBD29042A106789559A6590B2E1"
+          },
+          {
+            "path": "reports/semantic-closure-reuse-validation.json",
+            "sha256": "A1F328F1AD25A2A7AD12B4630667EB5C7F286F5EDE20BDC968F46DD72ECB2FF1"
+          }
+        ],
+        "verification_receipt": {
+          "id": "PCH-VERIFY-GENERATION-077-SOURCE-CLOSURE",
+          "result": "PASS",
+          "tests_passed": 79,
+          "tests_skipped": 0,
+          "commands": [
+            "show-resume-context: 429/429 source hashes matched with zero mismatches",
+            "semantic-closure affected aggregate: 79/79 PASS",
+            "TypeScript compile, changed-file ESLint, SQL 001-024 integrity and state updater: PASS"
+          ]
+        }
+      },
+      "work_items": [
+        {
+          "id": "PCH-QSE-20260729-001-INTAKE",
+          "priority": "P0",
+          "scope": "Intake, source spans, progressive clarification, PRD completeness and Goal Fit Review",
+          "depends_on": [],
+          "expected_artifacts": ["journey findings", "target state machine", "minimum failing tests"],
+          "acceptance": "Every material requirement is source-bound or Decision-bound and survives change, restart and compaction."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-PLAN",
+          "priority": "P1",
+          "scope": "Plan, deferred decisions, stage gates, pressure review and dynamic replanning",
+          "depends_on": ["PCH-QSE-20260729-001-INTAKE"],
+          "expected_artifacts": ["Plan transition design", "invalidation rules", "Goal Fit Review gates"],
+          "acceptance": "Material changes invalidate only affected work while independent work and evidence remain reusable."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-TOPOLOGY",
+          "priority": "P0",
+          "scope": "Strong Single baseline, Multi Benefit Gate, dynamic DAG, TaskPacket, scheduling and communication",
+          "depends_on": ["PCH-QSE-20260729-001-PLAN"],
+          "expected_artifacts": ["Single/Multi decision table", "dynamic Agent DAG", "TaskPacket protocol"],
+          "acceptance": "Multi is admitted only when measured net benefit exceeds coordination and integration cost without safety regression."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-CONCURRENCY",
+          "priority": "P0",
+          "scope": "Concurrent writes, conflict classes, serial integration, authority, recovery and taint propagation",
+          "depends_on": ["PCH-QSE-20260729-001-TOPOLOGY", "PCH-AUTHORITY-V2-DESIGN-REVIEW"],
+          "expected_artifacts": ["threat model", "recovery matrix", "fresh-oracle integration policy"],
+          "acceptance": "No Worker text or consensus can authorize mutation, integration or PASS."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-PROVIDER",
+          "priority": "P1",
+          "scope": "ProviderCallPlan, model/profile inheritance, caching, marginal information gain, latency and cost",
+          "depends_on": [],
+          "expected_artifacts": ["Provider Invocation Protocol", "budget and stop policy", "cache qualification plan"],
+          "acceptance": "Every added provider call has a unique evidence-changing purpose, bounded closure and local verification path."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-FRONTIER-MODEL-RESEARCH",
+          "priority": "P1",
+          "scope": "Primary-source review of frontier open-model reports for model-independent runtime, orchestration, context, verification and cost mechanisms",
+          "depends_on": [],
+          "expected_artifacts": ["hash-bound evidence matrix", "transfer and rejection boundaries", "local falsification and ablation plan"],
+          "evidence_sources": [
+            {
+              "source_id": "KIMI-K3-2607.24653V1",
+              "title": "Kimi K3: Open Frontier Intelligence | latest_version_checked_at=2026-07-31 | REPORTED_MECHANISM=sandbox checkpoint/fork lifecycle; straggler release; cache/budget scheduling telemetry | PCH_SAFETY_EXTENSION=hash-bound backend-neutral checkpoint; bounded release; class-aware admission with starvation guards",
+              "url": "https://arxiv.org/abs/2607.24653v1",
+              "sha256": "936A7A3B655947B014BA96B8A790C3CDB6EA8B37EEA514E4B7B52655E20AF0F8",
+              "evidence_level": "PRIMARY_PREPRINT_AUTHOR_REPORTED"
+            },
+            {
+              "source_id": "DEEPSEEK-V4-2606.19348V1",
+              "title": "DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence | latest_version_checked_at=2026-07-31 | REPORTED_MECHANISM=completed immutable blocks and live tail; full/periodic/zero derived-state persistence; lightweight metadata references; ordered trajectory log | PCH_SAFETY_EXTENSION=artifact-outer hydration; effect commit frontier prevents non-idempotent effect re-execution",
+              "url": "https://arxiv.org/abs/2606.19348v1",
+              "sha256": "55B2D72F772AC00DE2E470B3EE08443C648D971C7F57C52D6202895665E5978D",
+              "evidence_level": "PRIMARY_PREPRINT_AUTHOR_REPORTED"
+            },
+            {
+              "source_id": "MINIMAX-MSA-2606.13392V2",
+              "title": "MiniMax Sparse Attention | latest_version_checked_at=2026-07-31 | REPORTED_MECHANISM=learned two-stage sparse-attention selection before exact attention over selected context | PCH_SAFETY_EXTENSION=candidate index is a hint followed by exact source reread and a separately complete authority projection; authority lanes, hashes and CAS are not MiniMax claims",
+              "url": "https://arxiv.org/abs/2606.13392v2",
+              "sha256": "595D4411649DC9CD6B4EAC16585CFE57BD456F6D4B1CD8E02CD33E96EF7C2FE5",
+              "evidence_level": "PRIMARY_PREPRINT_AUTHOR_REPORTED"
+            },
+            {
+              "source_id": "GLM-5-2602.15763V2",
+              "title": "GLM-5: from Vibe Coding to Agentic Engineering | latest_version_checked_at=2026-07-31 | REPORTED_MECHANISM=asynchronous rollout generation; structured agent action/observation provenance | PCH_SAFETY_EXTENSION=bounded proposal queue; Host-owned oracle, chained receipts and exact context closure are not GLM claims",
+              "url": "https://arxiv.org/abs/2602.15763v2",
+              "sha256": "E20742FF36E08DC361DE6973F7F72AD38E107EDF8FD92D2A777A8428FC9B8F0E",
+              "evidence_level": "PRIMARY_PREPRINT_AUTHOR_REPORTED"
+            },
+            {
+              "source_id": "STEP-3.5-FLASH-2602.10604V2",
+              "title": "Step 3.5 Flash: Open Frontier-Level Intelligence with 11B Active Parameters | latest_version_checked_at=2026-07-31 | REPORTED_MECHANISM=selective current-instruction retention; background telemetry; conditional session reuse | PCH_SAFETY_EXTENSION=only observable action/result/evidence envelopes may affect authority; hidden reasoning, latent state and affinity cannot authorize effects or PASS",
+              "url": "https://arxiv.org/abs/2602.10604v2",
+              "sha256": "0F91D0A5ACCAC488CE3F607BE93253C3A9E2E76A74B042FA597BF6D47E2822C9",
+              "evidence_level": "PRIMARY_PREPRINT_AUTHOR_REPORTED"
+            },
+            {
+              "source_id": "QWEN-AGENTWORLD-2606.24597V1",
+              "title": "Qwen-AgentWorld: Language World Models for General Agents | latest_version_checked_at=2026-07-31 | REPORTED_MECHANISM=structured, domain-normalized initial-state/action/observation/next-state representations; executable rule anchors; controlled fault simulation | PCH_SAFETY_EXTENSION=hash-bound observable transitions; simulated observations require a local Host oracle and remain untrusted",
+              "url": "https://arxiv.org/abs/2606.24597v1",
+              "sha256": "1ACC32B7EF306F7C86B2B7C724432ED18F6C62EF400EEFF4601059D4CC2FD6FE",
+              "evidence_level": "PRIMARY_PREPRINT_AUTHOR_REPORTED"
+            }
+          ],
+          "transfer_gate": "Claim layers are explicit: REPORTED_MECHANISM is byte-bound author-reported evidence; PCH_SAFETY_EXTENSION is a PCH-owned constraint not attributed to the report; LOCAL_EXPERIMENT is the decision gate. A report mechanism remains a proposal until a local deterministic replay, property test, ablation or frozen provider experiment changes a PCH decision without weakening authority, correctness, privacy or recovery.",
+          "candidate_experiments": [
+            {
+              "candidate_id": "PCH-RX-001-TYPED-STATE-TRANSITION",
+              "priority": "P0",
+              "hypothesis": "LOCAL_EXPERIMENT; source_ids=[QWEN-AGENTWORLD-2606.24597V1, GLM-5-2602.15763V2]. A hash-bound, structured and domain-normalized initial-state, action, observation and next-state envelope removes free-text reconstruction from Operation and Worker provenance.",
+              "acceptance": "metrics=[authority_digest_mismatch_count, stale_transition_acceptance_count, forged_transition_acceptance_count]. Round-trip and crash replay produce one identical authority digest with zero stale or forged transition acceptance."
+            },
+            {
+              "candidate_id": "PCH-RX-002-TWO-STAGE-CONTEXT",
+              "priority": "P1",
+              "hypothesis": "LOCAL_EXPERIMENT; source_ids=[MINIMAX-MSA-2606.13392V2]. A local candidate index followed by exact source reread reduces context input while a mandatory authority lane preserves critical recall.",
+              "acceptance": "metrics=[critical_authority_recall, fresh_authority_recall, stale_acceptance_count, decision_equivalence, input_bytes]. Critical and fresh authority recall is 100%, stale acceptance is zero, downstream decisions match exhaustive retrieval, and input bytes fall by at least 30%."
+            },
+            {
+              "candidate_id": "PCH-RX-003-COMPOUND-CONTEXT-CACHE",
+              "priority": "P1",
+              "hypothesis": "LOCAL_EXPERIMENT; source_ids=[KIMI-K3-2607.24653V1, DEEPSEEK-V4-2606.19348V1]. All-or-nothing immutable artifact-outer context bundles with a noncacheable live tail reduce reconstruction while making hydration and live-tail skew observable without partial or cross-lineage hits.",
+              "acceptance": "metrics=[false_hit_count, partial_hydration_count, alias_mutation_count, authority_divergence_count, recomputation_ratio, live_tail_bytes_p50, live_tail_bytes_p95, live_tail_bytes_p99]. A 100000-step deterministic state-machine run has zero false hit, partial hydration, alias mutation or authority divergence, records live-tail p50/p95/p99, and reduces representative recomputation by at least 20%."
+            },
+            {
+              "candidate_id": "PCH-RX-004-BOUNDED-ASYNC-DAG",
+              "priority": "P0",
+              "hypothesis": "LOCAL_EXPERIMENT; source_ids=[KIMI-K3-2607.24653V1, GLM-5-2602.15763V2]. Class-aware admission of read-only proposal generation and independent WorkCells can release a global barrier while Host integration and authority remain serial and fresh.",
+              "acceptance": "metrics=[authority_digest_equivalence, stale_acceptance_count, duplicate_effect_count, queue_depth_by_class, queue_wait_ms_p50_by_class, queue_wait_ms_p95_by_class, queue_wait_ms_p99_by_class, starvation_count_by_class, short_request_latency_ms_p95, critical_path_idle_ms, makespan_ms]. Final authority digest matches the Strong Single oracle, stale acceptance, duplicate effects and per-class starvation are zero, queues remain bounded, short-request p95 does not regress, and long-tail makespan improves by at least 15%."
+            },
+            {
+              "candidate_id": "PCH-RX-005-SANDBOX-CHECKPOINT",
+              "priority": "P1",
+              "hypothesis": "LOCAL_EXPERIMENT; source_ids=[KIMI-K3-2607.24653V1, DEEPSEEK-V4-2606.19348V1]. A backend-neutral checkpoint, resume and fork contract can reduce recovery cost for isolated work without granting snapshot authority.",
+              "acceptance": "metrics=[workspace_digest_mismatch_count, receipt_digest_mismatch_count, stale_snapshot_acceptance_count, fork_leakage_count, recovery_cost_ratio]. Crash-point replay preserves workspace and receipt digests, stale snapshots and fork leakage are zero, and recovery costs less than full reconstruction."
+            },
+            {
+              "candidate_id": "PCH-RX-006-CONTROLLED-FAULT-SIMULATION",
+              "priority": "P0",
+              "hypothesis": "LOCAL_EXPERIMENT; source_ids=[QWEN-AGENTWORLD-2606.24597V1]. Deterministic action-observation simulators with partial results, invalid operations and long-context state dependencies expose failures before paid provider epochs.",
+              "acceptance": "metrics=[frozen_oracle_label_agreement, injected_failure_detection_rate, simulated_authority_acceptance_count, paid_provider_epochs_avoided]. Executable verifiers reproduce the frozen real-oracle labels, detect every injected failure class, and simulated output never authorizes a real effect."
+            },
+            {
+              "candidate_id": "PCH-RX-007-PROVIDER-AFFINITY",
+              "priority": "P2",
+              "hypothesis": "LOCAL_EXPERIMENT; source_ids=[KIMI-K3-2607.24653V1, STEP-3.5-FLASH-2602.10604V2]. Session affinity may reduce latency or improve cache reuse only when the active provider contract exposes and attributes a stable affinity capability.",
+              "acceptance": "metrics=[attributed_cache_input_tokens, latency_ms_p50, latency_ms_p95, provider_request_count, quality_oracle_result, payload_digest_equivalence]. A provider-specific frozen canary shows positive attributed cache or latency evidence with unchanged payload, request count, model profile and quality; otherwise remain unsupported."
+            },
+            {
+              "candidate_id": "PCH-RX-C01-PROVIDER-FRAGMENT-WAL",
+              "priority": "P3",
+              "hypothesis": "LOCAL_EXPERIMENT; CONDITIONAL_INACTIVE; source_ids=[DEEPSEEK-V4-2606.19348V1]. Activate only if the provider contract exposes stable, documented, privacy-qualified fragment handles and replay semantics through observable SDK or hook payloads. A local WAL of fragment metadata, never hidden provider state, may reduce recovery or retransmission cost without becoming authority.",
+              "acceptance": "metrics=[fragment_replay_success_rate, authority_divergence_count, privacy_violation_count, recovery_input_bytes, recovery_latency_ms, provider_request_count]. A frozen provider-specific crash and restart canary has zero authority divergence or privacy violation and positive attributed recovery savings with unchanged request count and quality; otherwise the candidate remains inactive and no WAL is created."
+            }
+          ],
+          "acceptance": "Only primary-source mechanisms with an explicit PCH abstraction, non-transferable boundary and local decision-changing experiment may enter the target architecture; no model-specific adapter or model-internal capability is claimed as Harness behavior."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-UX",
+          "priority": "P1",
+          "scope": "Desktop-only unified chat input, requirement and decision sidebar, Change Request, observability, pause and resume; no narrow-screen or mobile operability work",
+          "depends_on": ["PCH-QSE-20260729-001-INTAKE", "PCH-QSE-20260729-001-PLAN"],
+          "expected_artifacts": ["UI information architecture", "Change Request state machine", "Decision Inbox protocol"],
+          "acceptance": "At 1440x900 and 1920x1080, users can inspect, edit and recover PRD, Plan, decisions, risks, costs and evidence without creating a second authority; mobile and narrow-screen interaction are out of scope."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-DELIVERY",
+          "priority": "P1",
+          "scope": "Code quality, performance, security, tests, delivery evidence and maintainer handoff",
+          "depends_on": ["PCH-QSE-20260729-001-CONCURRENCY"],
+          "expected_artifacts": ["delivery gate", "handoff trace", "maintenance acceptance"],
+          "acceptance": "Requirement-to-evidence trace and clean-root delivery are independently reproducible."
+        },
+        {
+          "id": "PCH-QSE-20260729-001-ADVERSARIAL",
+          "priority": "P0",
+          "scope": "Property, metamorphic, crash, stamina, malicious Worker and topology benchmark design",
+          "depends_on": ["PCH-QSE-20260729-001-TOPOLOGY", "PCH-QSE-20260729-001-CONCURRENCY"],
+          "expected_artifacts": ["benchmark matrix", "rollout card", "ablation and replay plan"],
+          "acceptance": "Candidate architecture survives deterministic attacks and only uses paid provider runs when they can change a decision."
+        }
+      ],
+      "implementation_policy": "The landing phase may retain, deepen, replace, merge or delete existing architecture, interfaces and modules when the target design and migration evidence justify it; implementation is not limited to local patches.",
+      "completion_gate": "Current implementation, additive review, external evidence, architecture, UI, benchmarks, migrations and provider-backed receipts are merged into one consistent blueprint and verification closure."
+    }
+  ]
+}
