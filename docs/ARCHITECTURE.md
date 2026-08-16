@@ -217,9 +217,9 @@ WorkCell/Goal acceptance advances.
 | CAS bytes verified by `pch-cas://sha256/<hex>` | Worker summary and PatchSet before integration |
 | Hash-bound IntegrationReceipt and fresh oracle evidence | Pi JSONL or tool text without an authority receipt |
 
-SQLite uses WAL with `synchronous=FULL`. Schema migrations are forward-only and hash-checked; schema 19 includes core
-authority, Memory, Input Context, Task Flow, Multi execution, Cache, Compaction, provider accounting, performance,
-AcceptanceLedger, and PatchTransaction history.
+SQLite uses WAL with `synchronous=FULL`. Schema migrations are forward-only and hash-checked. The current schema 35
+spans core authority, Memory, Input Context, Task Flow, Single and Multi execution, Cache, Compaction, provider
+accounting, performance, acceptance, PatchTransaction, execution-lineage, and session-to-Goal binding history.
 
 Recovery follows a strict precedence:
 
@@ -281,18 +281,18 @@ block the provider request. Performance gains never waive correctness, privacy, 
   configured role profile; PCH does not silently downgrade them.
 - Destructive uninstall requires an installation marker, an explicit delete flag, and confirmation.
 
-## Release 1.2.1 evidence — 2026-07-28
+## Current repository evidence — 2026-08-16
 
-The complete local aggregate recorded in
+The current core-only verification aggregate recorded in
 [`manifests/PROJECT-STATE.json`](../manifests/PROJECT-STATE.json) produced:
 
 | Gate | Result |
 |---|---|
-| Runtime | Node `24.18.0`, SQLite `3.53.1`, authority schema `19` |
-| Test aggregate | `489` passed, `6` conditional skips, `0` failures |
-| Lifecycle | Install, upgrade, uninstall, arbitrary-cwd import, and self-contained checks passed |
-| Separate installed-Pi probe | Pi Coding Agent `0.82.1`; inactive path, Host start, restart recovery, and cleanup passed; receipt hash recorded separately from the aggregate |
-| Phase 1 local P95 | event commit `5.50 ms`; 1 MiB CAS put `24.07 ms`; snapshot read `3.50 ms`; lease renew `0.04 ms` |
+| Runtime | Node `24.18.0`, SQLite `3.53.1`, authority schema `35` |
+| Test aggregate | `883` passed, `6` contract-defined conditional skips, `0` failures |
+| Contracts and closure | SQL `001`–`035`, JSON, Markdown/Mermaid, state update, runtime build, and self-contained source closure passed |
+| Lifecycle | Install, upgrade, uninstall, arbitrary-cwd import, and installed-package doctor paths passed |
+| Public CI | [Runtime and release closure](https://github.com/KirschBluteX/pi-coding-harness/actions/runs/31951570773) passed on commit `fdbe142` |
 | Additional requests from the release gate | model `0`; provider `0` |
 
 Reproduce the aggregate gate from the repository root:
@@ -301,9 +301,10 @@ Reproduce the aggregate gate from the repository root:
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-project.ps1
 ```
 
-This command does not run the separate installed-Pi probe. The numeric contracts and measurement rules are documented in
+This command exercises the repository release closure. Environment-specific installed-Pi and provider-backed results
+remain separate receipts. Numeric contracts and measurement rules are documented in
 [`PERFORMANCE-BUDGET.md`](PERFORMANCE-BUDGET.md). Verification reports are intentionally excluded from Git; their
-SHA-256 receipts, including the installed-Pi probe receipt, are preserved in project state.
+SHA-256 receipts are preserved in project state.
 
 ### Evidence boundaries
 
@@ -315,11 +316,13 @@ SHA-256 receipts, including the installed-Pi probe receipt, are preserved in pro
   tests pass.
 - WAL auto-checkpoint remains disabled. Any maintenance Module must first prove steady-state, concurrency, shutdown,
   and crash behavior off the user hot path.
+- The public receipt covers the complete non-benchmark core release surface. An unrestricted comparison claim remains
+  gated on the deferred provider-backed PCH Single stress run, PCH Multi rerun, and four-run comparison.
 
 ## Further reading
 
 - [Implementation blueprint](PI-CODING-HARNESS-BLUEPRINT.md) — normative behavior and acceptance matrix
 - [Performance budget](PERFORMANCE-BUDGET.md) — numeric gates and honest measurement rules
 - [User guide](USER-GUIDE.md) — commands, Single/Multi use, recovery, and lifecycle
-- [SQL schema map](../schemas/sql/README.md) — migrations 001 through 019
+- [SQL schema map](../schemas/sql/README.md) — migrations 001 through 035
 - [Project state](../manifests/PROJECT-STATE.json) — hash-bound development receipts and evidence limits
