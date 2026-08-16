@@ -70,7 +70,7 @@ $document = [ordered]@{
     input_sources = @($inputSources)
     target_files = @($targetFiles)
 }
-$json = ($document | ConvertTo-Json -Depth 20) + "`n"
+$json = (($document | ConvertTo-Json -Depth 20) -replace "\r\n?", "`n") + "`n"
 $temporary = Join-Path (Split-Path -Parent $outputPath) ('.SOURCE-HASHES.tmp.' + [guid]::NewGuid().ToString('N') + '.json')
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 [IO.File]::WriteAllText($temporary, $json, $utf8)

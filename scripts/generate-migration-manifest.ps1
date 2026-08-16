@@ -164,7 +164,7 @@ $document = [ordered]@{
 
 [IO.Directory]::CreateDirectory((Split-Path -Parent $outputPath)) | Out-Null
 $temporary = Join-Path (Split-Path -Parent $outputPath) ('.MIGRATION-MANIFEST.tmp.' + [guid]::NewGuid().ToString('N') + '.json')
-$json = ($document | ConvertTo-Json -Depth 20) + "`n"
+$json = (($document | ConvertTo-Json -Depth 20) -replace "\r\n?", "`n") + "`n"
 [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
 if (Test-Path -LiteralPath $outputPath) {
     $backup = $temporary + '.bak'

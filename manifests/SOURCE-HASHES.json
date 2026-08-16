@@ -1,2964 +1,2975 @@
 {
   "$schema": "../schemas/source-hashes.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-08-16T05:28:07.7862423-07:00",
+  "generated_at": "2026-08-16T05:51:26.5078139-07:00",
   "algorithm": "SHA-256",
   "target_root": ".",
   "input_sources": [
     {
       "migration_id": "MIG-001",
+      "source": "X:\\Pi Coding Harness\\.gitattributes",
+      "sha256": "D60F352D0DB1404C70AFB4BB8B2CA3FD1C610572AA40720E8A0B7BAA7885418C",
+      "disposition": "COPIED"
+    },
+    {
+      "migration_id": "MIG-002",
       "source": "X:\\Pi Coding Harness\\.github\\workflows\\ci.yml",
       "sha256": "81496471229A1CE98D7F60E1C45278642FF30ECF1A5111833CB6C93DFAA7818E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-002",
+      "migration_id": "MIG-003",
       "source": "X:\\Pi Coding Harness\\.gitignore",
       "sha256": "655A71DD274442CB5000383341774262DB9802C7FD14A64474DD73C396C44385",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-003",
+      "migration_id": "MIG-004",
       "source": "X:\\Pi Coding Harness\\AGENTS.md",
       "sha256": "FF4EEFBED58EB87404CE0D514B286DC00256ACDC6071995BFDC4974D1D95A225",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-004",
+      "migration_id": "MIG-005",
       "source": "X:\\Pi Coding Harness\\config\\default.json",
       "sha256": "3A9E3C12D4E98794642298C694E789D1EF204CB87220373AD9F2E6432F461F51",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-005",
+      "migration_id": "MIG-006",
       "source": "X:\\Pi Coding Harness\\CONTRIBUTING.md",
       "sha256": "4DCF8F7F8532742409B9C4CCB8BECB0408DE6C59D47349F7185D41B4C54D1547",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-006",
+      "migration_id": "MIG-007",
       "source": "X:\\Pi Coding Harness\\docs\\ARCHITECTURE.md",
       "sha256": "95891E7ED4A92DC905B0E9306F152DA19468E9230A125D17BB9886BDA34FBBC7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-007",
+      "migration_id": "MIG-008",
       "source": "X:\\Pi Coding Harness\\docs\\IMPLEMENTATION-PLAYBOOK.md",
       "sha256": "70BDE17149D8A63114C0F633CDB10931F9267191B1451A87699E3E4F0692B6B1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-008",
+      "migration_id": "MIG-009",
       "source": "X:\\Pi Coding Harness\\docs\\PERFORMANCE-BUDGET.md",
       "sha256": "08595363D07019B4CA80A9BE2D531809D784DF2EF59407FBD899279A82223A63",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-009",
+      "migration_id": "MIG-010",
       "source": "X:\\Pi Coding Harness\\docs\\PI-CODING-HARNESS-BLUEPRINT.md",
       "sha256": "B964A184E898EAD3FCC2EFCD895D3E421FBDA76E08A19E82F83948E3D5DD6D2F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-010",
+      "migration_id": "MIG-011",
       "source": "X:\\Pi Coding Harness\\docs\\REVIEW-GATES.md",
       "sha256": "0A0BB47E38A04822170C7F1622196A2A7A588D163BAFDE77D42C9931155D9E40",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-011",
+      "migration_id": "MIG-012",
       "source": "X:\\Pi Coding Harness\\docs\\USER-GUIDE.md",
       "sha256": "486DE9701B75101D82D99D8E46A58EC4DD7E4FE0F529D767838D108180340D96",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-012",
+      "migration_id": "MIG-013",
       "source": "X:\\Pi Coding Harness\\eslint.config.js",
       "sha256": "7D051519C3B91D6FD251949DB20F095835EA55AEFA1670EE9E35039AC5E5516E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-013",
+      "migration_id": "MIG-014",
       "source": "X:\\Pi Coding Harness\\fixtures\\cache-observation.valid.json",
       "sha256": "F2E3C06B1F44F47C8C33307828E7983343F2A0A28344ACF54D69C7E72016D9B6",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-014",
+      "migration_id": "MIG-015",
       "source": "X:\\Pi Coding Harness\\fixtures\\checkpoint.valid.json",
       "sha256": "5F3C9514F057C96C96E9F05506B4EFBEC82461B230AE414FC6E905B85D63F3F7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-015",
+      "migration_id": "MIG-016",
       "source": "X:\\Pi Coding Harness\\fixtures\\domain.valid.json",
       "sha256": "7048BBD3A68C551C0B2FF1FFAAF4592EE5B72E652C9DABC3CFE143AAD51FA570",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-016",
+      "migration_id": "MIG-017",
       "source": "X:\\Pi Coding Harness\\fixtures\\event.valid.json",
       "sha256": "E22E54140333289943290ED2346888630EFF826DEBB1F817126CA5551805925A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-017",
+      "migration_id": "MIG-018",
       "source": "X:\\Pi Coding Harness\\fixtures\\memory-v3-capture-corpus.valid.json",
       "sha256": "51AE01F18F2CCD79AA622AD98EE1695E26581D84B4F24A54244664DF81D2822F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-018",
+      "migration_id": "MIG-019",
       "source": "X:\\Pi Coding Harness\\fixtures\\output-observation.valid.json",
       "sha256": "FB0134C90B7CD9F030AA7DCF4FC03B4B7EBB95443526FEB9E89D06363601A3F0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-019",
+      "migration_id": "MIG-020",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-contract.valid.json",
       "sha256": "E314DA3ABB3145842CAE50AEE8A36E4CDDAE229E61A1F6B4A2BDB92CCC780632",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-020",
+      "migration_id": "MIG-021",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-sample.valid.json",
       "sha256": "C080316911D5949A492B5F443410FB47CEAAC00C20A5EF0C1A65E65B23652AEE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-021",
+      "migration_id": "MIG-022",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-trial.valid.json",
       "sha256": "FCE09666F65364F960782EB828BCC6F5E1929997BC7D8B8D0174CB9A8E929858",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-022",
+      "migration_id": "MIG-023",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-verdict.valid.json",
       "sha256": "DEA932A952ED62EE093EDE5BE495987A83CC592EC3C2D4791D219BDA0893CAFF",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-023",
+      "migration_id": "MIG-024",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance\\node\\workload.mjs",
       "sha256": "F0F4BD3F4DB49DB57940985137F5F272B61FFCED8C34333D7B1CECE015B9CFF7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-024",
+      "migration_id": "MIG-025",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance\\powershell\\workload.ps1",
       "sha256": "73E7ECFEBFE29A457AD6D30C4E69E9889F36212D29DF4C3D1CF8297904E33B3A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-025",
+      "migration_id": "MIG-026",
       "source": "X:\\Pi Coding Harness\\fixtures\\plan.valid.json",
       "sha256": "E59151EAAA2AB34FD0D5C7B28CA95A4B2EEB989B7F0224209DA4DA2240335684",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-026",
+      "migration_id": "MIG-027",
       "source": "X:\\Pi Coding Harness\\fixtures\\plans\\README.md",
       "sha256": "A368D4CC63E4F6267C1072F02CFFBBD8D87F9D05ADAF0B816CAF3A55FFDCCAA5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-027",
+      "migration_id": "MIG-028",
       "source": "X:\\Pi Coding Harness\\fixtures\\prompt-generation.valid.json",
       "sha256": "07F64112CFDBDE6AB50AB2CA8D8B9CAB86C58614919546062978D970AF36DE1D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-028",
+      "migration_id": "MIG-029",
       "source": "X:\\Pi Coding Harness\\fixtures\\prompt-request.valid.json",
       "sha256": "FEAD0527D6835F437106314CF736BB71F24D2496F33F8BA07F53942734B57136",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-029",
+      "migration_id": "MIG-030",
       "source": "X:\\Pi Coding Harness\\fixtures\\receipt.valid.json",
       "sha256": "58AD31A690A22BF71DAF3BC480960ABE24546D85866B55A5161280BB37D951C2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-030",
+      "migration_id": "MIG-031",
       "source": "X:\\Pi Coding Harness\\fixtures\\requirements.valid.json",
       "sha256": "BEC2EF7A750D9F983009F3425617213278A7956BBCCEAEE8B440B3EC85951746",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-031",
+      "migration_id": "MIG-032",
       "source": "X:\\Pi Coding Harness\\fixtures\\requirements\\README.md",
       "sha256": "B7B82A4F440CD1002BF086E3381FF93CD67FD79D7BC4D5E0404F823A94D72290",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-032",
+      "migration_id": "MIG-033",
       "source": "X:\\Pi Coding Harness\\fixtures\\response-contract.valid.json",
       "sha256": "3C78D62FF1DFFCE1BF54E0DD4AC8D112647E5AAFE30E87418EB800C49F9B795A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-033",
+      "migration_id": "MIG-034",
       "source": "X:\\Pi Coding Harness\\fixtures\\tool-result-projection.valid.json",
       "sha256": "1CB8B2F53B211103C1F2975DEFD5B47245F4A4B6016A7770D37F2797F1408D53",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-034",
+      "migration_id": "MIG-035",
       "source": "X:\\Pi Coding Harness\\LICENSE",
       "sha256": "ECC8DE64590E1CF285815344CAE4EB84E88A0B8E8EAC806B3B6145301F4C1789",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-035",
+      "migration_id": "MIG-036",
       "source": "X:\\Pi Coding Harness\\LICENSES\\PI-CODING-AGENT-MIT.txt",
       "sha256": "FA7FCFB50C38B85FD39754A8EBC5F21C71903819FB82C48C5781FD3FF25ECB65",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-036",
+      "migration_id": "MIG-037",
       "source": "X:\\Pi Coding Harness\\LICENSES\\README.md",
       "sha256": "12B173E285FB024A64FA3B5F4959D4892CB3F22103592A3FF8FCD3D86E68738C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-037",
+      "migration_id": "MIG-038",
       "source": "X:\\Pi Coding Harness\\manifests\\ACCEPTANCE-CONTRACT.json",
       "sha256": "B4FF584379955C02F6AFFF7BBC793A909C64234F1B66DFC7651CE3285DAD7DE7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-038",
+      "migration_id": "MIG-039",
       "source": "X:\\Pi Coding Harness\\manifests\\CACHE-PROVIDER-EVIDENCE.json",
       "sha256": "961A4ADC80ECEADE91764D3B4DD94FAA0B2CB43B2EFCBA5BE3606E0A596325E6",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-039",
+      "migration_id": "MIG-040",
       "source": "X:\\Pi Coding Harness\\manifests\\QUEUED-SCOPE-EXTENSIONS.json",
       "sha256": "F1475492ED341015165268F7068EE05855A6C45EFACBD19D53B68A7099A9AAEB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-040",
+      "migration_id": "MIG-041",
       "source": "X:\\Pi Coding Harness\\NOTICE",
       "sha256": "1DF08E646EC58069293463CEAD15A31FB1C76FB8AF640D09F07840D58FCB7BE9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-041",
+      "migration_id": "MIG-042",
       "source": "X:\\Pi Coding Harness\\package-lock.json",
       "sha256": "E44D4814C650EB78A68C21AD5D95B6FCD95273D18441A8586F8599BB849455A4",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-042",
+      "migration_id": "MIG-043",
       "source": "X:\\Pi Coding Harness\\package.json",
       "sha256": "970860FA9529494873DD3FD26CB0B5B680726F2C184BA8A0900A6E4FE277A422",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-043",
+      "migration_id": "MIG-044",
       "source": "X:\\Pi Coding Harness\\README.md",
       "sha256": "5AB4C97049DA0C2FDDB6CF941D95925F41EAED93D53146859FBC6BA91F8FB823",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-044",
+      "migration_id": "MIG-045",
       "source": "X:\\Pi Coding Harness\\README.zh-CN.md",
       "sha256": "82BFC30C44D504D2D7073C473E855F4FA0586ADEFA427C8A8D0EFD5ACBC6D59A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-045",
+      "migration_id": "MIG-046",
       "source": "X:\\Pi Coding Harness\\schemas\\acceptance.schema.json",
       "sha256": "C0F2F0351238749AA49502B59034152D8C496DAAC16101A2DAA64C7876313DF1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-046",
+      "migration_id": "MIG-047",
       "source": "X:\\Pi Coding Harness\\schemas\\cache-observation.schema.json",
       "sha256": "2164DCE739DDD82BBEDCFF149FF1245755413FE1F78A31FF56A6F12FC72209BB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-047",
+      "migration_id": "MIG-048",
       "source": "X:\\Pi Coding Harness\\schemas\\cache-provider-evidence.schema.json",
       "sha256": "6F709B7488A3F52140B36EF13CE45B9B7761941530A866B7667017B9942DE41C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-048",
+      "migration_id": "MIG-049",
       "source": "X:\\Pi Coding Harness\\schemas\\checkpoint.schema.json",
       "sha256": "ADA9885CFC675E20DDC67648E0003388082370F32E1656E11889D6E80AC8D052",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-049",
+      "migration_id": "MIG-050",
       "source": "X:\\Pi Coding Harness\\schemas\\config.schema.json",
       "sha256": "F29296F1080CECBD19BEB4BE0FE0DA280088291055D93B4C420CC7C45AAF8890",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-050",
+      "migration_id": "MIG-051",
       "source": "X:\\Pi Coding Harness\\schemas\\context-candidate.schema.json",
       "sha256": "B669782BFC5E0B1EA5209DBBD84903C329A11F9E30DFFA82A77A2A3EBD46A295",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-051",
+      "migration_id": "MIG-052",
       "source": "X:\\Pi Coding Harness\\schemas\\context-compile-receipt.schema.json",
       "sha256": "39BE6B7F780477D20400FDB5E6BD77F134A9E02FD866AF7E861ED8A7B2CF5F94",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-052",
+      "migration_id": "MIG-053",
       "source": "X:\\Pi Coding Harness\\schemas\\context-demand.schema.json",
       "sha256": "A9C5D24E80308D972B9F5354D46F8AB281128132B53CAE96B99541BB38256C4F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-053",
+      "migration_id": "MIG-054",
       "source": "X:\\Pi Coding Harness\\schemas\\context-envelope.schema.json",
       "sha256": "A85787B154807C819FECB98C59B8851532EA9256AC9B48B9E22D6B83772483D2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-054",
+      "migration_id": "MIG-055",
       "source": "X:\\Pi Coding Harness\\schemas\\context-episode-observation.schema.json",
       "sha256": "A29DE250EBCCD781D9C4D8F371396D10AE72F7421C80E8CA108459E06C9BB996",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-055",
+      "migration_id": "MIG-056",
       "source": "X:\\Pi Coding Harness\\schemas\\context-layout-manifest.schema.json",
       "sha256": "61D67EC872BA31DE2417697F07AB274A72964B2A2E99081289EC205F6B39A842",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-056",
+      "migration_id": "MIG-057",
       "source": "X:\\Pi Coding Harness\\schemas\\context-projection-receipt.schema.json",
       "sha256": "BB93B6147035F3D0B7125CBD4A3C591E8BF47E46DBE45BABB1067262F4C14434",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-057",
+      "migration_id": "MIG-058",
       "source": "X:\\Pi Coding Harness\\schemas\\context-working-set.schema.json",
       "sha256": "6618E7F3DE4A716AF6261F8949356F23ABA8FADE0C0179F8B96473F8A8D55AC1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-058",
+      "migration_id": "MIG-059",
       "source": "X:\\Pi Coding Harness\\schemas\\domain.schema.json",
       "sha256": "B4EC8B0A2E23382B3E1956C435626B550520D1E097C96A1201EF54676987888F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-059",
+      "migration_id": "MIG-060",
       "source": "X:\\Pi Coding Harness\\schemas\\event.schema.json",
       "sha256": "18C7065FDB77C68DEC1EBA438C87DCF108DA79DB82FAA9AC8D608FB1DE7B3A19",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-060",
+      "migration_id": "MIG-061",
       "source": "X:\\Pi Coding Harness\\schemas\\execution-subject-ref.schema.json",
       "sha256": "6B383503AE60A3228A606042B24A8D5788FDD232BE1EE2869A08E9B189CE8B11",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-061",
+      "migration_id": "MIG-062",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-activation.schema.json",
       "sha256": "35CC28D703FD5AF7586C84ED0779EF87447CD3C8030BF7344209A764D53BDD41",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-062",
+      "migration_id": "MIG-063",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-common.schema.json",
       "sha256": "A45D5C12E49E580E50408B43A79205EF43F172552CD0029C637EE5DFDB545C26",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-063",
+      "migration_id": "MIG-064",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-user-authorization.schema.json",
       "sha256": "E11F1820714B33227C49917E72CA0FF990D8CE315A9218FB843BD1BA5AF366E9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-064",
+      "migration_id": "MIG-065",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-v1-activation.schema.json",
       "sha256": "4DCF76C237AB45FC17230B75C33863565D899111FAEADBCC214EB0E33297D717",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-065",
+      "migration_id": "MIG-066",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-v1-matched-preregistration.schema.json",
       "sha256": "1C3C0771CAC22699317257D01CC2FAB906F3494804D64391C423418550977F33",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-066",
+      "migration_id": "MIG-067",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-v1-matched.schema.json",
       "sha256": "FA2F5B4716BA8937D07CB8806E8E7447B21D07C86703D54327EF8C6BFC3594A5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-067",
+      "migration_id": "MIG-068",
       "source": "X:\\Pi Coding Harness\\schemas\\intake-calibration.schema.json",
       "sha256": "E8F080E5DE25F84E7E3664515827072FAE01DAD282BFBE6CC542530577325DA5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-068",
+      "migration_id": "MIG-069",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v2-activation.schema.json",
       "sha256": "36C6F968F568E6429DAD17BA0599266889B4FA8AAFA1ABB3301B80E30AC4B09B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-069",
+      "migration_id": "MIG-070",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v2-matched-corpus.schema.json",
       "sha256": "CF0BA381FF8DF80CFA5189CBC8D18E22CC3EDD509D3CCE37C2E85B89EF63EDFC",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-070",
+      "migration_id": "MIG-071",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v3-activation.schema.json",
       "sha256": "E3ED69290832D715532FC55F58EE4C1AC904B150912DD0F2DA68233E6F4DE57E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-071",
+      "migration_id": "MIG-072",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v3-capture-corpus.schema.json",
       "sha256": "77F316B1AFAD728522C228104A361C5F32BAD2987931DFDD07328991208A08EA",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-072",
+      "migration_id": "MIG-073",
       "source": "X:\\Pi Coding Harness\\schemas\\migration-manifest.schema.json",
       "sha256": "A7D12EBAC3B339FBDB2565728310800F7513655F37F2AD4C5C5777F4CAC4BCF4",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-073",
+      "migration_id": "MIG-074",
       "source": "X:\\Pi Coding Harness\\schemas\\output-observation.schema.json",
       "sha256": "C9EE3E46C19D4F7007F361E794CEDA15C9ACFD9E6F95EAA3142F1BFE6DEF6CE9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-074",
+      "migration_id": "MIG-075",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-contract.schema.json",
       "sha256": "4BF5DA22B338F809416E0662DE9E6EE18CEEFA0EFCAA8BAEA38A70A37C555EED",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-075",
+      "migration_id": "MIG-076",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-sample.schema.json",
       "sha256": "AE392354DCFA94655ED983A7B736FF96D343E1BBF0A6F60B0BD5096BB54E6336",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-076",
+      "migration_id": "MIG-077",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-trial.schema.json",
       "sha256": "50D6CFC0E337AD8556865E954FA2DEF32FB846232A5AFFF9C5D876215038B57B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-077",
+      "migration_id": "MIG-078",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-verdict.schema.json",
       "sha256": "18ACD4B528AA8E911DC7F4F63A8FF04B37EC71B7082C38A5A4ACCDA67910D6F9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-078",
+      "migration_id": "MIG-079",
       "source": "X:\\Pi Coding Harness\\schemas\\plan.schema.json",
       "sha256": "C09A4AF07C4451F7738CD7542C7A33C25C39605C0875E1BA75582DB7B68CA329",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-079",
+      "migration_id": "MIG-080",
       "source": "X:\\Pi Coding Harness\\schemas\\project-knowledge-claim.schema.json",
       "sha256": "4E3648D8E1889F8F44D6F50F3097400F0FCEB5665D819B38643AABE1D2D8FF87",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-080",
+      "migration_id": "MIG-081",
       "source": "X:\\Pi Coding Harness\\schemas\\project-source-manifest.schema.json",
       "sha256": "320FBBBBDA23DF67B691BBAED7C66BFFA4E9A44129BAC65654FC5CD1402B0371",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-081",
+      "migration_id": "MIG-082",
       "source": "X:\\Pi Coding Harness\\schemas\\project-state.schema.json",
       "sha256": "45688903038BFE5CA729C610697DA894318B8E20C6823DE35FAFF1C127F5FE15",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-082",
+      "migration_id": "MIG-083",
       "source": "X:\\Pi Coding Harness\\schemas\\prompt-generation.schema.json",
       "sha256": "FE43C064B75E364D965F454CA74EF87B7A5D0955E15B81B49DB124596CF4B611",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-083",
+      "migration_id": "MIG-084",
       "source": "X:\\Pi Coding Harness\\schemas\\prompt-request.schema.json",
       "sha256": "062B5C538F614DDCA28F131793D976E431EC8A59D76B41E06D62D76FF367CAD4",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-084",
+      "migration_id": "MIG-085",
       "source": "X:\\Pi Coding Harness\\schemas\\provider-turn-ledger.schema.json",
       "sha256": "D90654A41817AAB54D44A08A848EAADADF6F276C1AC3369A6CFC9BEDDEE6314D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-085",
+      "migration_id": "MIG-086",
       "source": "X:\\Pi Coding Harness\\schemas\\queued-scope-extensions.schema.json",
       "sha256": "63534C25FDE621633FFA45571AA4BC1CE098B324A56DF9E7164444C50FE56F15",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-086",
+      "migration_id": "MIG-087",
       "source": "X:\\Pi Coding Harness\\schemas\\read-evidence-receipt.schema.json",
       "sha256": "96998511E1693A1AC65D9E5B64AD1AFBDE6E5EA5762F9184E1F858AC0D13EA9F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-087",
+      "migration_id": "MIG-088",
       "source": "X:\\Pi Coding Harness\\schemas\\receipt.schema.json",
       "sha256": "23D70A6BA2D2AE6EF46D76F0AF2AB4E2091EC6AA7AAF38F903B32BCEA9F4090D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-088",
+      "migration_id": "MIG-089",
       "source": "X:\\Pi Coding Harness\\schemas\\requirements.schema.json",
       "sha256": "6CC4BC082B491B5C4F1A38978F6D4CCDE384A36B08E8227882BF551DF93810C2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-089",
+      "migration_id": "MIG-090",
       "source": "X:\\Pi Coding Harness\\schemas\\response-contract.schema.json",
       "sha256": "456FBE80B3989075366D784AE20678C119B9B73FFC98450B5606DE260718EFCF",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-090",
+      "migration_id": "MIG-091",
       "source": "X:\\Pi Coding Harness\\schemas\\source-hashes.schema.json",
       "sha256": "72B00C45D28C6F592A49D220600A8D492F3646518B185608367D1F236CA85F0F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-091",
+      "migration_id": "MIG-092",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\001_core.sql",
       "sha256": "E8A8E1D9131FB6BC42C2E798A3E353226322E9FC09D3F51AEE393CC15E28A8CD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-092",
+      "migration_id": "MIG-093",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\002_experiments.sql",
       "sha256": "FE46461DE70764F5FBDFD5A979D796B0C03C6638CAE42203EA11684F1CA332FE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-093",
+      "migration_id": "MIG-094",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\003_memory.sql",
       "sha256": "C1D2DE15A624A2E72E7DC8D7A021721907DA8FAA0335AE3424331A6E2F687A3F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-094",
+      "migration_id": "MIG-095",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\004_memory_fts.sql",
       "sha256": "9BAB9B4C4D132D0331C3942D23B25D1C602C320A6A670D9C8E4583C584E15D5D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-095",
+      "migration_id": "MIG-096",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\005_memory_claims.sql",
       "sha256": "E66F94FF88747F754734575FD41A89B12C1D8318BCBE66949CDFFA655B4E8C9E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-096",
+      "migration_id": "MIG-097",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\006_memory_claims_fts.sql",
       "sha256": "9A9D137A7DA2D6AFBA9295000E69675B6471E364D1C67AF043B60F9F0769881A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-097",
+      "migration_id": "MIG-098",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\007_memory_checkpoint.sql",
       "sha256": "266F0E068530D91F9EA02FA2454DAD3AEBB3D9536AB08A76A27DE05845B98E72",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-098",
+      "migration_id": "MIG-099",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\008_memory_v3_vault.sql",
       "sha256": "3F74F1AF0DF8397DFBFD27EFB30983538826C7EB499DAB3A1E00C1F6C8928335",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-099",
+      "migration_id": "MIG-100",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\009_memory_v3_lifecycle.sql",
       "sha256": "F6398FCEC4E959D9CA5261FC254141DCFF0ED7E62D96E1507484963758002944",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-100",
+      "migration_id": "MIG-101",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\010_memory_v3_1_capture.sql",
       "sha256": "2092EE899426E67B3BE2F97827036791B093BC21C4B746E7A074E7E64E0D5324",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-101",
+      "migration_id": "MIG-102",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\011_task_flow_kernel_v1.sql",
       "sha256": "01689995A45ECFC1BC6B9EB6C3D641D344325FBD970D305E503011A8C630C049",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-102",
+      "migration_id": "MIG-103",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\012_input_context_v1.sql",
       "sha256": "BD8D18D644311AD32F7C51D4B60E9CA374477CD39EC02D39B74B366EE6F716EB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-103",
+      "migration_id": "MIG-104",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\013_coding_harness_v1.sql",
       "sha256": "986C9D78D63D5D80D4C870CFCBC1E99B3C9468EA183C601A1578B866EE015A60",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-104",
+      "migration_id": "MIG-105",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\014_cache_v2.sql",
       "sha256": "169F293591A3574440AC98F0340D301496377E296EBEC51B7E8A9C2FD7725236",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-105",
+      "migration_id": "MIG-106",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\015_compaction_v2_1.sql",
       "sha256": "019F4F3084E9D35132755963EE32A5586FD36A8DC0238AD0175E11F440C0FD03",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-106",
+      "migration_id": "MIG-107",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\016_provider_turn_ledger_v2.sql",
       "sha256": "6571DD7DE25526558A712A61AEB11C4FB5E86B6111EC856E47056049A80F3886",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-107",
+      "migration_id": "MIG-108",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\017_target_performance_receipts.sql",
       "sha256": "509CA86DD5C22308DAD4AE1A9EA0A6F9C88D09C2508B19E5C43D655553A9C690",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-108",
+      "migration_id": "MIG-109",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\018_control_plane_v2.sql",
       "sha256": "9896911AD8F4B2753876192DD3EE19141834CA361B0EC03564E54B7C695340E0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-109",
+      "migration_id": "MIG-110",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\019_patch_transaction_v1.sql",
       "sha256": "1337C601F8E9AA9D67D53993A7230C364AD1D387E794A929AB6C704B5A629C5F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-110",
+      "migration_id": "MIG-111",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\020_authority_acceptance_v2.sql",
       "sha256": "DFAFA731FF43339683759F431F5119E7DD001A0F0DEF400BCED164604EEF76E7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-111",
+      "migration_id": "MIG-112",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\021_intake_decision_goal_fit_v2.sql",
       "sha256": "3D97EF9347EF8FF667B04EB3998300D64ED2B4FD98E6F7FBE4E51B774DA3E869",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-112",
+      "migration_id": "MIG-113",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\022_plan_change_invalidation_v2.sql",
       "sha256": "BDAE37FDC3CC4A345B7B2A84D47BBD10BBB4D4B865FC763C03A3CA9950336233",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-113",
+      "migration_id": "MIG-114",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\023_dynamic_multi_v2.sql",
       "sha256": "90DC6C980B95D30865BF06D5FF97665790A301CA8F41E837AFB0AB1C1B12215E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-114",
+      "migration_id": "MIG-115",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\024_active_goal_change_intake_v2.sql",
       "sha256": "401B3A5A7032CBA991A04CA909323D8459A531258106B03ED13F160FDA84CE38",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-115",
+      "migration_id": "MIG-116",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\025_goal_fit_assessment_v2.sql",
       "sha256": "A85F5FBE76770EA6F33C7B2932397E4FE2B281D9D34E5326E7E4B35E0A1E9D7D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-116",
+      "migration_id": "MIG-117",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\026_goal_fit_review_identity_v2.sql",
       "sha256": "8A4E1A820F23283195F4642890C2ABEED2DA6402C8D7524F0DBE98E8B4DA806F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-117",
+      "migration_id": "MIG-118",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\027_change_acceptance_v2.sql",
       "sha256": "B41647CB9855DCB6748563E4F078599D386FF88E72637F9DC08827555AE55B64",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-118",
+      "migration_id": "MIG-119",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\028_dynamic_multi_execution_v2.sql",
       "sha256": "55DF090CD93AF7C4F20D47B7CED0FF7CEC3F63B63C00242D286A3C0F046DD9A6",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-119",
+      "migration_id": "MIG-120",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\029_provider_call_plan_v2.sql",
       "sha256": "805EB2A57D7D6495F97ACEB9C8CE62639F2A3E8215738D696EEA5CBB731D5F3A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-120",
+      "migration_id": "MIG-121",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\030_provider_turn_goal_binding_v1.sql",
       "sha256": "569259465E3642F37D78525C4615F5B2B1EEA5339D78859BD6184F63D48D4822",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-121",
+      "migration_id": "MIG-122",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\031_dynamic_multi_integration_journal_v2.sql",
       "sha256": "CE99D4F2540358718656A3C88DE3944A0D26F5E9F5B7D9ED39863386679AF0D5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-122",
+      "migration_id": "MIG-123",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\032_strong_single_rollout_registry_v1.sql",
       "sha256": "50ED93F91FAF53FF7D7CA31FA6A6453A0FEA8ED5034DF3ED09A31352CCBEEF56",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-123",
+      "migration_id": "MIG-124",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\033_workload_comparability_v1.sql",
       "sha256": "E35593E5944F0700F43F6D6332F19D13BF974562B33F5DA68DB0459930419E3E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-124",
+      "migration_id": "MIG-125",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\034_dynamic_multi_proposal_v2.sql",
       "sha256": "0951F3A3CFF44825AB3E4E15F5D7FD8F5F542C70A65A5283A64113FE64895F62",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-125",
+      "migration_id": "MIG-126",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\035_session_goal_binding_v1.sql",
       "sha256": "9D4EC08FE264A1980FC3CF5EEA25FA60B3CB821CB0840F1695E6DDB0E23FB724",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-126",
+      "migration_id": "MIG-127",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\README.md",
       "sha256": "A627E69DEF2D8B1E5812DDFE193BBDEBC51E4E4A6009D44F058F56FB3BCF3694",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-127",
+      "migration_id": "MIG-128",
       "source": "X:\\Pi Coding Harness\\schemas\\task-flow.schema.json",
       "sha256": "A32DEC87B13D1731C92FB23BFCBD847EFACE2EA13948FCC70003A8D7F469A104",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-128",
+      "migration_id": "MIG-129",
       "source": "X:\\Pi Coding Harness\\schemas\\tool-result-projection.schema.json",
       "sha256": "F9C82493A5E870A9C19739A69D0C984AA05E13695B78495EB79E12C6B9C57074",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-129",
+      "migration_id": "MIG-130",
       "source": "X:\\Pi Coding Harness\\schemas\\tool-surface-plan.schema.json",
       "sha256": "A59AE0CE52761750FCA9AAE92DEFEC9A8430A10A5E6F0D91D1BF4302FB3B8F4D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-130",
+      "migration_id": "MIG-131",
       "source": "X:\\Pi Coding Harness\\schemas\\user-function-release-gate.schema.json",
       "sha256": "6D8CCAE1DE0FD54ACEF0A22534389EE773BB845280078C88BE4F4C3BC2BFF7A1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-131",
+      "migration_id": "MIG-132",
       "source": "X:\\Pi Coding Harness\\scripts\\doctor.ps1",
       "sha256": "79A3B592C02B0A3674B94287E806D3A4A54D02D0DE9B15CBFDCE998128067A0C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-132",
-      "source": "X:\\Pi Coding Harness\\scripts\\generate-migration-manifest.ps1",
-      "sha256": "A0C64C2F4A1A8244BE97D93D34C8040805CF2149D6582C37D4B36831FD677618",
-      "disposition": "COPIED"
-    },
-    {
       "migration_id": "MIG-133",
-      "source": "X:\\Pi Coding Harness\\scripts\\generate-source-hashes.ps1",
-      "sha256": "C63FF7ADEB7A5DD40D19DF46D2D3CD4044E3948CE0A461D96C3DA119A102C14C",
+      "source": "X:\\Pi Coding Harness\\scripts\\generate-migration-manifest.ps1",
+      "sha256": "159688616C5ACCDFA05F2C4070B96365F8A4062E29674A3ADEBD01929BE9FF3E",
       "disposition": "COPIED"
     },
     {
       "migration_id": "MIG-134",
+      "source": "X:\\Pi Coding Harness\\scripts\\generate-source-hashes.ps1",
+      "sha256": "A1D3A1643F1F555523B77D8E36DBDD7EBA3BCABCDD0FC0D9039347A221031575",
+      "disposition": "COPIED"
+    },
+    {
+      "migration_id": "MIG-135",
       "source": "X:\\Pi Coding Harness\\scripts\\install.ps1",
       "sha256": "BEB2EA5543641B4329A79BD1E870C8AC5EFB5AF3EFC4DA2EE33AB195F336019E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-135",
+      "migration_id": "MIG-136",
       "source": "X:\\Pi Coding Harness\\scripts\\invoke-lifecycle.ps1",
       "sha256": "71A5243F1359092299954EF116DE6634E9B06A6B0B8CE12DE086203A43AAEC0D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-136",
+      "migration_id": "MIG-137",
       "source": "X:\\Pi Coding Harness\\scripts\\measure-cache-evidence.ps1",
       "sha256": "1399C24EF13705C841728495DB7423DD3B5C0F4AF21B0D48CEC77130C670E8E9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-137",
+      "migration_id": "MIG-138",
       "source": "X:\\Pi Coding Harness\\scripts\\show-resume-context.ps1",
       "sha256": "836D1C5DFAD0803FEA0732EEF902A72D5887BD07873E5E15812F2A41516E8022",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-138",
+      "migration_id": "MIG-139",
       "source": "X:\\Pi Coding Harness\\scripts\\uninstall.ps1",
       "sha256": "DF0BBD868698C763B6D02988D6BE2BA742B9B4FF5E8E1C478E12CFE16D5A1073",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-139",
+      "migration_id": "MIG-140",
       "source": "X:\\Pi Coding Harness\\scripts\\update-project-state.ps1",
-      "sha256": "95F406D858D93AA43E131D2934BB858031AC70FA977A789A46B4445E5C7A2FC5",
+      "sha256": "8FEF6C20342A3F9F708903FF8C3B101946A922291F23513767F52A642B37F350",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-140",
+      "migration_id": "MIG-141",
       "source": "X:\\Pi Coding Harness\\scripts\\upgrade.ps1",
       "sha256": "667BCAAF3B367F4501113040A1C1911B18E2397AB1B4E0368D47D3E5BF23740B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-141",
+      "migration_id": "MIG-142",
       "source": "X:\\Pi Coding Harness\\scripts\\validate-json.mjs",
       "sha256": "D25757A3308C05AB8643B270E4D690D3E3923FBDCF14F85E0B3CA24CE513B97E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-142",
+      "migration_id": "MIG-143",
       "source": "X:\\Pi Coding Harness\\scripts\\validate-json.py",
       "sha256": "ED8C60EEC9C0D90D2F6D5AE98D5847ED68B32ED9EC001EDF00825F16F7CBA74B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-143",
+      "migration_id": "MIG-144",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-lifecycle.ps1",
       "sha256": "18B98EBAAC84978DF6866B7F18F43206450453D1D142E54C4AE1D7994009AFC6",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-144",
+      "migration_id": "MIG-145",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-markdown.mjs",
       "sha256": "FB04145EFEE4AF42FE20E69C0F5C24D35743A09CC0DA754D1D18C1100389D2D0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-145",
+      "migration_id": "MIG-146",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-performance-baseline.ps1",
       "sha256": "F9BDB95AAE741970CC5D98BDFACCAAB422F75C11D2A3A054F5A59F87CD10E8CD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-146",
+      "migration_id": "MIG-147",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-project.ps1",
       "sha256": "D95DAEA1CC5C3E8C2E834771AE7B67D352000A14DB1E34BC0AB936B2DAEBB8F4",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-147",
+      "migration_id": "MIG-148",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-provider-backed-compaction.mjs",
       "sha256": "0273B3317499A0B22A2B02ADBE5A046BCC9EFFAC8B6BF08993141B35EB326B23",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-148",
+      "migration_id": "MIG-149",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-self-contained.ps1",
       "sha256": "C44BEDBBA6A40FD8B0C428BDEA43E00E7731DA0138BDAF4EAB6294D8CF9E4B1C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-149",
+      "migration_id": "MIG-150",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-sql.mjs",
       "sha256": "16A93C03BD79C6210AEC2E4841DEBEDCE451A11FBC374905E93EADB061429FE8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-150",
+      "migration_id": "MIG-151",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-state-update.ps1",
       "sha256": "2228369DA20FB4A9EF5E891B3FD8FB812FB158D260ECBBB2B95F9FA92082FC86",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-151",
+      "migration_id": "MIG-152",
       "source": "X:\\Pi Coding Harness\\SECURITY.md",
       "sha256": "B8D64B4219D324B4FF5B430598F0D94DB9B5318B5D477BD2583AA3B50A76342A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-152",
+      "migration_id": "MIG-153",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\completion-repository.ts",
       "sha256": "D330E0A9B5D1B67571D11F39DB202EFE8254D3211DF5ABCFB9F12A5FA0124AD7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-153",
+      "migration_id": "MIG-154",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\delivery-repository.ts",
       "sha256": "C7CDA7D882B9C547D012B1D185505957B7842B41DD307F1125C1289A3000DD1A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-154",
+      "migration_id": "MIG-155",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\domain.ts",
       "sha256": "50E8D1D62BEFB0B0A9D55AB4739F9C413AF6D028B871871ED55C9B1E32B5A18B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-155",
+      "migration_id": "MIG-156",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\evidence-repository.ts",
       "sha256": "204C8D559DEB37C2895869E242D2F403420689B11E6255F2B07D913533693C4A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-156",
+      "migration_id": "MIG-157",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\execution-lineage.ts",
       "sha256": "1BAFC5C3E3166B698ACC26A6B2073561B2316E9898893F499875C131A7D9A43C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-157",
+      "migration_id": "MIG-158",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\finalize.ts",
       "sha256": "F5D4012FD27CD7AFFA0D28D06F1CBE0E7ED72AB56114CB9B26255644012D6CF7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-158",
+      "migration_id": "MIG-159",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\repository.ts",
       "sha256": "78548996B6DD7F91214C6837BA2D4DE442910D8CA886767BE165A3D0247C46B2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-159",
+      "migration_id": "MIG-160",
       "source": "X:\\Pi Coding Harness\\src\\artifacts\\artifact-store.ts",
       "sha256": "27200E6C231064464B91A5BA1A9FCBC379E218B679EE66A41CD85AB755FF7BCF",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-160",
+      "migration_id": "MIG-161",
       "source": "X:\\Pi Coding Harness\\src\\artifacts\\atomic-file.ts",
       "sha256": "E668082CC0FFC3399BF6501E009E4691F4DA4FC01D0854428CB776DF09205766",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-161",
+      "migration_id": "MIG-162",
       "source": "X:\\Pi Coding Harness\\src\\artifacts\\classify.ts",
       "sha256": "D4B65729D0A013839C7DB0D0B92FC2B1662ABB13088B86B3752CF4504DA78DFC",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-162",
+      "migration_id": "MIG-163",
       "source": "X:\\Pi Coding Harness\\src\\authority\\authority-transaction-kernel.ts",
       "sha256": "ECC708CF524158D6204082492BD8316931AEC410FC7662633439A8D6C27FC06C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-163",
+      "migration_id": "MIG-164",
       "source": "X:\\Pi Coding Harness\\src\\authority\\canonical-json.ts",
       "sha256": "507A84249F531C06B8EE9AB7C59BF375ABA4B3F3695D7687B7A81C5F0234002E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-164",
+      "migration_id": "MIG-165",
       "source": "X:\\Pi Coding Harness\\src\\authority\\database.ts",
       "sha256": "50B06AE65E9C660BE5CD8DC9CF434E97F0D25E5F5FB86C0509FE59DE632CE5EB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-165",
+      "migration_id": "MIG-166",
       "source": "X:\\Pi Coding Harness\\src\\authority\\event-chain.ts",
       "sha256": "14B845E9197206C26E5DF32A20A960141FE22FBDDA91FDFADCF81926243F8ADA",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-166",
+      "migration_id": "MIG-167",
       "source": "X:\\Pi Coding Harness\\src\\authority\\experiment-migrate.ts",
       "sha256": "77492B20421FF6034EBD1549F8C77C6C8534BF1EAD01896AA47E18FEE8E2400A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-167",
+      "migration_id": "MIG-168",
       "source": "X:\\Pi Coding Harness\\src\\authority\\lease.ts",
       "sha256": "6A2765B8707736C763384719EE6B8F6601439210D2CEC6CFD9D7DF5A7B7C324D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-168",
+      "migration_id": "MIG-169",
       "source": "X:\\Pi Coding Harness\\src\\authority\\memory-migrate.ts",
       "sha256": "E1CC9636B3893262B6A8256902A588E5B64392E504D2F88C49DF6414E0CF567D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-169",
+      "migration_id": "MIG-170",
       "source": "X:\\Pi Coding Harness\\src\\authority\\migrate.ts",
       "sha256": "3662C33C2B38A4E492019DF380B968C938C122E280E347C475FA197EFCA1C869",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-170",
+      "migration_id": "MIG-171",
       "source": "X:\\Pi Coding Harness\\src\\authority\\projections.ts",
       "sha256": "04E3E1D6B79042DC2670FBC4F79BE92A50B4A1BB37135C500D2DB8D05592B0A0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-171",
+      "migration_id": "MIG-172",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories.ts",
       "sha256": "D1D5495F0714438D246D103D488F7FD541512CEE2954BF4C8D298FE3DF3AF312",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-172",
+      "migration_id": "MIG-173",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\checkpoints.ts",
       "sha256": "442B1075FE900092E838EFE1FECED11C14E106B1924D9DBDB30CC3DB2AAA95FB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-173",
+      "migration_id": "MIG-174",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\common.ts",
       "sha256": "FCB32C766044EB4AB1984300B0F12F43EDB5DDFF172C300524EFE4C1C5F10A9D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-174",
+      "migration_id": "MIG-175",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\decisions.ts",
       "sha256": "BA3015749FFE06082D5E4DB4D0F2C1864DD217F04A8AA47D712C90B344F9E3ED",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-175",
+      "migration_id": "MIG-176",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\effects.ts",
       "sha256": "53DB5AB07DDBF3D3B78BCA30C77B8131AC88DF7CA3FF1DA9AC55F979D9F6B882",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-176",
+      "migration_id": "MIG-177",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\evidence.ts",
       "sha256": "735B536318AC00CB7A607EFCCA0245DD3C54CD497C473778F5B6CF56BD787C0C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-177",
+      "migration_id": "MIG-178",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\experiments.ts",
       "sha256": "E143BB96A7AB9B00E109F3A344F1C7CFA8F582E5753F925246A974FF9CF19A4C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-178",
+      "migration_id": "MIG-179",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\memory-capture-v31.ts",
       "sha256": "43A000D8580CF5B086F84324D716B5DB3519D34CB6E5A21DD21693D2020BEB04",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-179",
+      "migration_id": "MIG-180",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\memory-v3.ts",
       "sha256": "4715759B3A8A331B81ACD109CAF473DE8DEB49D633C700D6AD4FC266E7C3FFAB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-180",
+      "migration_id": "MIG-181",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\memory.ts",
       "sha256": "60595D6F13EC30DFA829B815E3484E91809B0C7BFF7ED2B81C0506B3A047E327",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-181",
+      "migration_id": "MIG-182",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\plan-health.ts",
       "sha256": "50E3427E021A86A39F1E3FB1EC56C11815A74039236429E463EEEA8CD468DC83",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-182",
+      "migration_id": "MIG-183",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\plans.ts",
       "sha256": "127532E20F96CCBCBBB67CC24DBE01CF3B7E1CBF17236611531EB53ACF4E1813",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-183",
+      "migration_id": "MIG-184",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\receipts.ts",
       "sha256": "808BC4E5F9AEFE6D300EB9D391A1833A2904085D555256E1F365A64537FFA895",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-184",
+      "migration_id": "MIG-185",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\recovery.ts",
       "sha256": "90BB2C926A553781A035A917E284E5A94CE3214A20BC6164A53703C82C7B58A5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-185",
+      "migration_id": "MIG-186",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\requirements.ts",
       "sha256": "AC3F4DDD62DA98031E23121A692FB7DEA33E2325721F4F3EFC1BCAEC0FD17D81",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-186",
+      "migration_id": "MIG-187",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\workflow.ts",
       "sha256": "92BB380BE8EFDBACF8D159BB9E37C8CD226AC2BC89F53966AE246C25E5811FB4",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-187",
+      "migration_id": "MIG-188",
       "source": "X:\\Pi Coding Harness\\src\\authority\\sqlite-runtime.ts",
       "sha256": "E54517A1D98482B25494C7BB7ADA9D0EA8F0B8F1C29E41FFEA79667A7DB03B13",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-188",
+      "migration_id": "MIG-189",
       "source": "X:\\Pi Coding Harness\\src\\authority\\state-machines.ts",
       "sha256": "D3908B5787E6F77F6DDCCB51B038D6786F3AD724CB8E77CF581F32780A703221",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-189",
+      "migration_id": "MIG-190",
       "source": "X:\\Pi Coding Harness\\src\\authority\\transactions.ts",
       "sha256": "4077D223706079DEE049A361AB87FBB0C6BBD3B463D0E4BBBFABDA7B5F3524ED",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-190",
+      "migration_id": "MIG-191",
       "source": "X:\\Pi Coding Harness\\src\\benchmarks\\orchbench\\simulator.ts",
       "sha256": "F33CFF15B8848967D6AFBCE9531275B1C7A11C81B978E3ACCB8AEAA3135AC95A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-191",
+      "migration_id": "MIG-192",
       "source": "X:\\Pi Coding Harness\\src\\bridge\\register.ts",
       "sha256": "AD673CC2D20C53E91E55CA56B150B86E7BD18B2A01F3408169900E63CE41F429",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-192",
+      "migration_id": "MIG-193",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\codex-local-openai-responses.ts",
       "sha256": "8A79B51CC72B6D252611173AD131537AB6F56C910CCD050D965B3A3EA2C509DB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-193",
+      "migration_id": "MIG-194",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\domain.ts",
       "sha256": "42B46EC0277E3E65639638A152206C62779B51E9731EDE2893910BD0732945D1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-194",
+      "migration_id": "MIG-195",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\geekspace-openai-completions.ts",
       "sha256": "46F75F4036E33C43FA84552013780841AC0DA3A962E60B49A10BEFBA94CECD93",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-195",
+      "migration_id": "MIG-196",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\provider-contract.ts",
       "sha256": "57D535DD48130FF61B755FA54594DBBDE602663157ACAACEFB3BC6497A332DD1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-196",
+      "migration_id": "MIG-197",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\provider-contracts.ts",
       "sha256": "60B128D8B9E62C6D49425066110E3575D045D809F4B0D369B13D5B4F5350C84B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-197",
+      "migration_id": "MIG-198",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\repository.ts",
       "sha256": "4793EFDB5DF1E1374DD027C42F89710AE48C0D107B2D325C8D4706A49D4DC14F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-198",
+      "migration_id": "MIG-199",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\runtime.ts",
       "sha256": "061D2714676616C4DF6AE851A40E85F0F7206C6CC5AE4D7BF24AFDE10B313EB7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-199",
+      "migration_id": "MIG-200",
       "source": "X:\\Pi Coding Harness\\src\\cache\\eligibility.ts",
       "sha256": "4575777A693307F202BD4FCF7B97A458927E298FCB5C9E3E9665E4850B4C395B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-200",
+      "migration_id": "MIG-201",
       "source": "X:\\Pi Coding Harness\\src\\cache\\prefix-governance.ts",
       "sha256": "B63F1C226FE214978BD10EE6EA08E13974058F0A76E0CB34EF106EE020054C05",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-201",
+      "migration_id": "MIG-202",
       "source": "X:\\Pi Coding Harness\\src\\cache\\provider-prompt-extractor.ts",
       "sha256": "7DE8CD14BC2E74839496B84A608A14D78163871EC681F89535A3AB2574EA3A77",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-202",
+      "migration_id": "MIG-203",
       "source": "X:\\Pi Coding Harness\\src\\cache\\retention.ts",
       "sha256": "0757E44F27741B48F5E357594339FA4A406EA05A952CC6192EE268C8878CB197",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-203",
+      "migration_id": "MIG-204",
       "source": "X:\\Pi Coding Harness\\src\\cache\\telemetry.ts",
       "sha256": "E75A1166CF7E021BD47665B1EB104A6A9992C193612BF601412F337BFCA69EEA",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-204",
+      "migration_id": "MIG-205",
       "source": "X:\\Pi Coding Harness\\src\\config\\load-config.ts",
       "sha256": "9A4E4ECB0A4CC23277422798FCE16C53E822951A7626D455F3BF6A50C66DE659",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-205",
+      "migration_id": "MIG-206",
       "source": "X:\\Pi Coding Harness\\src\\config\\runtime-resolution.ts",
       "sha256": "9E90B984E49AA272BF791B331FDAD59C29EB34C1E05E4B0347DCD64C92C0726A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-206",
+      "migration_id": "MIG-207",
       "source": "X:\\Pi Coding Harness\\src\\config\\types.ts",
       "sha256": "E7C0A2AF1CAA47698D31C79F31B04C3A33FEEAD0AF25FE34E320C8C6C41C393D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-207",
+      "migration_id": "MIG-208",
       "source": "X:\\Pi Coding Harness\\src\\context\\compaction-v21\\domain.ts",
       "sha256": "2333B4270760CA8DC74CD5E07ECC3BF3898465FB9B42B8A377FCF21F7A63655A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-208",
+      "migration_id": "MIG-209",
       "source": "X:\\Pi Coding Harness\\src\\context\\compaction-v21\\repository.ts",
       "sha256": "DA239B21FEE368BC7BCCA74E93C03872A8FC52580108991F72CCCE869665C314",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-209",
+      "migration_id": "MIG-210",
       "source": "X:\\Pi Coding Harness\\src\\context\\prompt-generation.ts",
       "sha256": "99313B095722AC5F19F9D3FFCA10D744A6144C8B7406CCEA8628E19C74DF8EFE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-210",
+      "migration_id": "MIG-211",
       "source": "X:\\Pi Coding Harness\\src\\context\\prompt-request.ts",
       "sha256": "2122965738B7BA655063C76B2FBEBAC1A7F0CAD01A2C94AC827EC652324C908F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-211",
+      "migration_id": "MIG-212",
       "source": "X:\\Pi Coding Harness\\src\\context\\protected-projection.ts",
       "sha256": "68B7CB2F09E702E0CA05FEFBDDD4D5FB9EDE8AEE7CD6C77C2428D0E1A243F56A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-212",
+      "migration_id": "MIG-213",
       "source": "X:\\Pi Coding Harness\\src\\context\\provider-prompt-prefix.ts",
       "sha256": "57EC367B216282C8B8E2200AF2D1C6FD884958BDACC72A1BFDDE222AAD8E6E0A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-213",
+      "migration_id": "MIG-214",
       "source": "X:\\Pi Coding Harness\\src\\control\\control-frame.ts",
       "sha256": "6FA5C81EB9F4F841EDBDACA0D5F6A13F023E30F8DFAF56FAA2EB41DA057F0C97",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-214",
+      "migration_id": "MIG-215",
       "source": "X:\\Pi Coding Harness\\src\\control\\generation-governor.ts",
       "sha256": "C05204DFE1F2423C48F1B9A9BB91DC5B485D4AC64064E106014FE74255BA2C98",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-215",
+      "migration_id": "MIG-216",
       "source": "X:\\Pi Coding Harness\\src\\effects\\bounded-command.ts",
       "sha256": "FA285B8DD48427ADF4952EC0850E0426E0CCFCD212ED7CC6D4C29DBC43221044",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-216",
+      "migration_id": "MIG-217",
       "source": "X:\\Pi Coding Harness\\src\\effects\\normalize.ts",
       "sha256": "D7C9B3CD925A08867462E2B5DB1A939FAABD153D61245652D0B89DDC0384904E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-217",
+      "migration_id": "MIG-218",
       "source": "X:\\Pi Coding Harness\\src\\effects\\oracle-policy.ts",
       "sha256": "EAD842282FA3068A5A46D576663814D9238ACB124187E9ED08B40FFB6E5AFFC1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-218",
+      "migration_id": "MIG-219",
       "source": "X:\\Pi Coding Harness\\src\\effects\\patch-transaction.ts",
       "sha256": "33362E0C935410BB54754C6B2E438DA69E1CF9A60D1DA8D66E01E73E6E5B6E43",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-219",
+      "migration_id": "MIG-220",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\clock.ts",
       "sha256": "80598854CD1E181BA864B71A5B200C9DADCF313947C31EBA4833A2943C6EE42E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-220",
+      "migration_id": "MIG-221",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\crypto.ts",
       "sha256": "938EEB1EBA810EF61A3542DD4E8E8DD81744376210F81EF5662201F68B4D0BD9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-221",
+      "migration_id": "MIG-222",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\errors.ts",
       "sha256": "1DCE02983C03EAA333FD2E44E973D91AE378FD22DB1C5991A46AE4A4DB26D194",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-222",
+      "migration_id": "MIG-223",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\ids.ts",
       "sha256": "7AD4E1583AA559EB1EF6B7E069ECD89011F92508F817B32D0AD3AF30E2271034",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-223",
+      "migration_id": "MIG-224",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\validation.ts",
       "sha256": "3C9B73F470DB53F97AFE32BA9BCB110B86399F496B46951B2724055A508E6B17",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-224",
+      "migration_id": "MIG-225",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\dynamic-multi-proposal.ts",
       "sha256": "8D6CDF4D60B5748607D55DA01E48056B28884C7DFBD444E9C352D493D60C79C9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-225",
+      "migration_id": "MIG-226",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\dynamic-multi-simulation.ts",
       "sha256": "84460EA66B0C1D9601D036BF9F47432E38A1D634270040573C4606D5C5AEF330",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-226",
+      "migration_id": "MIG-227",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\strong-single-rollout.ts",
       "sha256": "D462A5C9048AED9BBFA20491BC54A4CA6A18A0A4FBCFEB0AF68FC31C0B285795",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-227",
+      "migration_id": "MIG-228",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\topology-gate.ts",
       "sha256": "418333D07B15CC2DB09AAA58C7B68BFCE66D2F8B3414C50F37FA6C315DB96C5A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-228",
+      "migration_id": "MIG-229",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\workload-comparability.ts",
       "sha256": "1C6A51E31D927ECE71F67064A7C2F93D0678CBC2ABDD3FDB451395CB1183F260",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-229",
+      "migration_id": "MIG-230",
       "source": "X:\\Pi Coding Harness\\src\\harness\\commands.ts",
       "sha256": "7EC4579AC38AAFEC1CEC12917593C2D0139F1BC64F75C543BB5154994F8C3E72",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-230",
+      "migration_id": "MIG-231",
       "source": "X:\\Pi Coding Harness\\src\\harness\\domain.ts",
       "sha256": "1F81B38FD8BA96DC02CD46B7D396B6F3944A66A0CAE461D261FC258BE46560FD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-231",
+      "migration_id": "MIG-232",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\commands.ts",
       "sha256": "218AD75604AA04468550A401C0D78C033590BD6C1139029C66B9260A9F770D6D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-232",
+      "migration_id": "MIG-233",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\coordinator.ts",
       "sha256": "52836E94C97FB73B422965A84CE1C40DF9938E32F4BB24E3175D348CA528E05C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-233",
+      "migration_id": "MIG-234",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\dag.ts",
       "sha256": "F407E755057838CEA87E1762CC1759328170D6221AB885BB1FCEC9ABAE90848D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-234",
+      "migration_id": "MIG-235",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\domain.ts",
       "sha256": "B6F19FFDDECCFD8C389A24E51F2860DF6601587DF78C0CEC0F2084B14F633C3B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-235",
+      "migration_id": "MIG-236",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\integration-journal.ts",
       "sha256": "E561E8D6E8900DE24F4CBE30B95E768B0C12EE1884EAAB77D987A81153F96193",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-236",
+      "migration_id": "MIG-237",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\repository.ts",
       "sha256": "8603EAE219544822D88608EA24A34857BDE4A3A76E9C6F05D3599A1D104B9672",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-237",
+      "migration_id": "MIG-238",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\application-protocol.ts",
       "sha256": "C8B192ACC0BD2207E6CDD4329C9A5796BF7A9D12125D17034EC8378855840130",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-238",
+      "migration_id": "MIG-239",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\client.ts",
       "sha256": "E55B49C52F85F3054318F0CB11418978949E13C465057B53B77B1F9D26237B76",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-239",
+      "migration_id": "MIG-240",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\context-runtime.ts",
       "sha256": "91CE0E4C287C519069C9BA8FD1CF26EC36FCE754ACE61FAF85EA18C5C5D54ADB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-240",
+      "migration_id": "MIG-241",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\decision-inbox.ts",
       "sha256": "D506BBB27278D04E3013343457516DC9A557EB93F98ABFED4A051217D8D14D56",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-241",
+      "migration_id": "MIG-242",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\dynamic-multi-lowering.ts",
       "sha256": "9444C96D7DAC1297932C518714B91B0C8AC4CF1D05F86EDE3B12A1D85E6D3AD7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-242",
+      "migration_id": "MIG-243",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\entry.ts",
       "sha256": "A723F926B75EBE7D1A95961A45B70088CB7BEB38507E5C9997BCD89321C6B2F3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-243",
+      "migration_id": "MIG-244",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\production-dynamic-multi.ts",
       "sha256": "6E99727FFECB5DA072C27301CE656542C6617BEB9092062E81BB22A1B269AD13",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-244",
+      "migration_id": "MIG-245",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\protocol.ts",
       "sha256": "12F1A08FCBBD3ACFAC2C1F1E0A007303641C01E8683E16B2DACB37630755F6C1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-245",
+      "migration_id": "MIG-246",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\runtime.ts",
       "sha256": "B04431F93046BABE40C83BB521BCD50F5FE616D7B3A15040531B2A6F3B97773B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-246",
+      "migration_id": "MIG-247",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\server.ts",
       "sha256": "B290BDC983C10813EA0EE30793E8EA8837CA22663CDF01D5882FDE0AE051C66C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-247",
+      "migration_id": "MIG-248",
       "source": "X:\\Pi Coding Harness\\src\\harness\\migrate.ts",
       "sha256": "F48A0B1D35E0F3EDDE89FA76E5A993FA9907C687A971EAA67908D59D364E097E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-248",
+      "migration_id": "MIG-249",
       "source": "X:\\Pi Coding Harness\\src\\harness\\output-policy.ts",
       "sha256": "73DAB298359485E39F098F43EAA7E29364C89E5750EDDF1FF05973C5AA5FF970",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-249",
+      "migration_id": "MIG-250",
       "source": "X:\\Pi Coding Harness\\src\\harness\\post-migrate.ts",
       "sha256": "FD61D0BEAD4DB50CC694770EA204AF6A1E64BCB787CD9E810A5D559EF0AEAE93",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-250",
+      "migration_id": "MIG-251",
       "source": "X:\\Pi Coding Harness\\src\\harness\\repository.ts",
       "sha256": "1F7311968A226F7FEE056D1F71187D00470974DA6D71F8A5A91371F6E4CB19B0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-251",
+      "migration_id": "MIG-252",
       "source": "X:\\Pi Coding Harness\\src\\harness\\runtime-fingerprint.ts",
       "sha256": "10E865178C22D179051BB3287CE00593A0C3D0BA107591647C89C8E168EED368",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-252",
+      "migration_id": "MIG-253",
       "source": "X:\\Pi Coding Harness\\src\\harness\\scope-path.ts",
       "sha256": "D9F9C0DBF288487330D1E1626C15E14F98B86821D2CB5FF3EC69D5EEB9576896",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-253",
+      "migration_id": "MIG-254",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\attempt-executor-v2.ts",
       "sha256": "150ADBA3D4565B6C0B2FC3D94C261484295E989E1377C6B7BAA31877B29ABA35",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-254",
+      "migration_id": "MIG-255",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\executor.ts",
       "sha256": "795690D97029E60C448088DFCDF10558DEE70C6BF5C32118E9C71BD07989B9C0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-255",
+      "migration_id": "MIG-256",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\runtime-policy.ts",
       "sha256": "498BA0C85F61D333DFBF678FE17F5ED11C6034AF8072FD9BAD7D5AEA38CA4AD2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-256",
+      "migration_id": "MIG-257",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\scoped-mirror.ts",
       "sha256": "2D8A5041F00F371E5203D2534FFF9846A3FEC8F852E6DFAC5B11D8AB3EC333FC",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-257",
+      "migration_id": "MIG-258",
       "source": "X:\\Pi Coding Harness\\src\\index.ts",
       "sha256": "1B430523B77829026FBDC70BDAAAF349B1385B93D652CAC83396B2E91F9441B5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-258",
+      "migration_id": "MIG-259",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\batch-rehydrator.ts",
       "sha256": "3E03CC9767C0980B849102A72F147FBE605AC520B3E1FAF995F24C19ECB6FDAF",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-259",
+      "migration_id": "MIG-260",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\budget.ts",
       "sha256": "A42BA455B517CFB48E2A38BCADC604EF6BCCE28575AA40005BF10FFA4FF60580",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-260",
+      "migration_id": "MIG-261",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\canonical.ts",
       "sha256": "3CB9E252A790FBBA1AC25D116F31036143D24D6B23E25A8EA41CAB956BD66798",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-261",
+      "migration_id": "MIG-262",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\capture-adapters.ts",
       "sha256": "9B523D45877142B4EAB00BAF972E0B42BA3391280DE024866135F4A283EF2C18",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-262",
+      "migration_id": "MIG-263",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\context-compiler.ts",
       "sha256": "F8903A873DF982232CFB2D944BE33BE1754F42446455A16CAA917AFB85B31467",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-263",
+      "migration_id": "MIG-264",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\context-tool.ts",
       "sha256": "CFE3D2D4267B08BA67C7B7DD9ECD2DDE22A046FF104D13F1D421CBA2E769F06F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-264",
+      "migration_id": "MIG-265",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\coverage.ts",
       "sha256": "3C9A34300C15C1BB79DB359AB46E6B32D0CC65992FACBED0E570425EB2001860",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-265",
+      "migration_id": "MIG-266",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\delivery.ts",
       "sha256": "3800DD13B84ADA0F589F481E0EF67526B5DC51D8516F46A62B533F8713D5D09D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-266",
+      "migration_id": "MIG-267",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\domain.ts",
       "sha256": "98F65EA56DC3192CAC01D2733A9A18B05E5B735F05C42EEC0BCEDEC8FC844960",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-267",
+      "migration_id": "MIG-268",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\evidence-catalog.ts",
       "sha256": "A7407C8502344E51D6DA2789A37DA3ABE695FC9B3B5C84D9A15A55842515C8E3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-268",
+      "migration_id": "MIG-269",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\integration-contracts.ts",
       "sha256": "D2AD5C14F0E37A55EFBEF338EEACCFBD1F9AF0E3FA9CDA0148B03E3A1DA28BA5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-269",
+      "migration_id": "MIG-270",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\invalidation.ts",
       "sha256": "2AC86EE1FA95BC4D1553C3A7ED97A5F76F744463766875CC940AF95556F56058",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-270",
+      "migration_id": "MIG-271",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\migrate.ts",
       "sha256": "3E30F7EA3808FC6FC5F0892A7608DCCED5A53C64387D09B64C2336B8CE29640E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-271",
+      "migration_id": "MIG-272",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\mutation-guard.ts",
       "sha256": "97FA9458927F37034EF8804FB649881A053FBDB39CFD83E2C4B04E44987AC304",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-272",
+      "migration_id": "MIG-273",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\pi-context-projector.ts",
       "sha256": "BCE8F167907A6063F00D5726E6B8576705411A2E6298B849C158A886E5B79E05",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-273",
+      "migration_id": "MIG-274",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\projection-delta.ts",
       "sha256": "3C725E2D493D108FFC0DDE36181C71AA60016BE26C5ECAAD0BCFAD1238D3E9F6",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-274",
+      "migration_id": "MIG-275",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\projection-saga.ts",
       "sha256": "B087D64BDE05CD73C9C5B7DCDFEDD6B2353DE60E9606CBC62CED720D550D405E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-275",
+      "migration_id": "MIG-276",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\prompt-layout.ts",
       "sha256": "E2DF4420C153F0E01F9CCDE7015216D65C454E35EB3C3E8CD887CE45FB92A7C8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-276",
+      "migration_id": "MIG-277",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\provider-turn-ledger.ts",
       "sha256": "DC67DF13765694AEAC64F76DC28F7C9B2C7164391ED58C81301AD129DBEDFA44",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-277",
+      "migration_id": "MIG-278",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\repository.ts",
       "sha256": "E2A34806B36C243C29A8F46E11F32A9267C3792662523CCD4AADB42C15EE8BCD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-278",
+      "migration_id": "MIG-279",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\retained-ledger.ts",
       "sha256": "049EC6FBC1AAB699F9A49C5C3F452C765DDF4BCA4A108C372DA6DAEA18FBBB83",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-279",
+      "migration_id": "MIG-280",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\runtime.ts",
       "sha256": "557A638314FDC1C6E76AB89936F67945F7F38604780FA8CABE750D88912C6E33",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-280",
+      "migration_id": "MIG-281",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\adapters.ts",
       "sha256": "2E2B7A7462EE44FBCBDA5D699BC0E24542E6B1F2DB79E77E9DD51CD3CDE43579",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-281",
+      "migration_id": "MIG-282",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\domain.ts",
       "sha256": "C7234BC4FCFC82AABF1BE4B2E02EDD571813FB57E01155EC356E44CDB88455A3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-282",
+      "migration_id": "MIG-283",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\lookup-index.ts",
       "sha256": "F808E2EF87FF4EBA6B57DD477BB57C9CC415A70B456C22AA2E8CFB609CF715DD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-283",
+      "migration_id": "MIG-284",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\service.ts",
       "sha256": "22764D01FF57DCF1340D85AA58DA809985619444F3DD8B973536DE4FCE0849D8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-284",
+      "migration_id": "MIG-285",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\tool-surface.ts",
       "sha256": "F42A028F6327B54A314E7E713829F520F1311A66141550C2F326527EB32EA90E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-285",
+      "migration_id": "MIG-286",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\validity.ts",
       "sha256": "1A09465E08762595CCDCCEC84813C6214640CCDE0E5367907B0DFC2D128E351C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-286",
+      "migration_id": "MIG-287",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\domain.ts",
       "sha256": "1BB7456D5D9EC1CCA01FF4A9B6382E83F08742F882F1ADF075823B008A9324F0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-287",
+      "migration_id": "MIG-288",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\finalize.ts",
       "sha256": "D86E2497D77C7C2E5C9FADA893405967D4749A905663EA9E45D2B9B1AACD2018",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-288",
+      "migration_id": "MIG-289",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\initial-draft.ts",
       "sha256": "3117D94B18D5E8A663A88D7B976FCC94B7D7CAD7025E8A86807E6856406902BE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-289",
+      "migration_id": "MIG-290",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\repository.ts",
       "sha256": "EA622A4F1626D0A72B3E8951D2F6D2778780A0CAD624BB356562E19DC91AFF5E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-290",
+      "migration_id": "MIG-291",
       "source": "X:\\Pi Coding Harness\\src\\memory\\admission.ts",
       "sha256": "57906A03E69EDB8D56833A15F7384959C13E3BB780E82C1841418A6FA4601F45",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-291",
+      "migration_id": "MIG-292",
       "source": "X:\\Pi Coding Harness\\src\\memory\\capture-signal.ts",
       "sha256": "9E75EBDEC7D92291F5B4E0E11BB42CAD594BDD54098547F5108690055955FEA3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-292",
+      "migration_id": "MIG-293",
       "source": "X:\\Pi Coding Harness\\src\\memory\\capture.ts",
       "sha256": "56A6086F3350E26C1CDB790AEA485FD2B71B4E81693C617BD167D40652A72738",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-293",
+      "migration_id": "MIG-294",
       "source": "X:\\Pi Coding Harness\\src\\memory\\checkpoint.ts",
       "sha256": "5254F804CC2699CFD726243B7BB668BD9C34F314998EE26AB0A3069673D9D54B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-294",
+      "migration_id": "MIG-295",
       "source": "X:\\Pi Coding Harness\\src\\memory\\cjk.ts",
       "sha256": "3C2A569A430B87D252A8E9F0103BE817C44CBA851B7BC1A8F7EC156667E70236",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-295",
+      "migration_id": "MIG-296",
       "source": "X:\\Pi Coding Harness\\src\\memory\\commands.ts",
       "sha256": "3BFF9A326702859682081027146B63EA56940492AB99AEB6B875808428FD18EA",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-296",
+      "migration_id": "MIG-297",
       "source": "X:\\Pi Coding Harness\\src\\memory\\context-projector.ts",
       "sha256": "F1FF6A3A77E903516CF9A80DACD53A33089983F995CC8B377D509588BAD1FF73",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-297",
+      "migration_id": "MIG-298",
       "source": "X:\\Pi Coding Harness\\src\\memory\\engine.ts",
       "sha256": "67C521DD50DAC796D00B2ACC67A5D0CF5BEC5A3629A69DE324E1EE953939E835",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-298",
+      "migration_id": "MIG-299",
       "source": "X:\\Pi Coding Harness\\src\\memory\\index-drainer.ts",
       "sha256": "B76ADD7F06A8616837573A76180B29745B8690FB66FC7BD4411BA4A24EC756FE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-299",
+      "migration_id": "MIG-300",
       "source": "X:\\Pi Coding Harness\\src\\memory\\ranking.ts",
       "sha256": "A17D3B3B2128EBA3367BF945122CF2469648A760B18C18A045B0D61E3018CDA7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-300",
+      "migration_id": "MIG-301",
       "source": "X:\\Pi Coding Harness\\src\\memory\\retrieval-merge.ts",
       "sha256": "39BB7539CC78B5601E403D7E2AC4A455DC2858395F5B14FAEC8F26892EA5E298",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-301",
+      "migration_id": "MIG-302",
       "source": "X:\\Pi Coding Harness\\src\\memory\\retrieval.ts",
       "sha256": "30A4CA044412F9EEA1FB7079D1887E3ECD2D382FA0E66A0D25F37CC9451516ED",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-302",
+      "migration_id": "MIG-303",
       "source": "X:\\Pi Coding Harness\\src\\memory\\security.ts",
       "sha256": "6804C96A252C57448213E19AC43577F9ABC2AD20E8F42DEE12D7D12448DF9C21",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-303",
+      "migration_id": "MIG-304",
       "source": "X:\\Pi Coding Harness\\src\\memory\\source-resolvers.ts",
       "sha256": "E712EE28FD00D75E80BC7976DDC60C42E6CC4AEAE3ECC5868189E3EC8F24C7D2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-304",
+      "migration_id": "MIG-305",
       "source": "X:\\Pi Coding Harness\\src\\memory\\telemetry.ts",
       "sha256": "A4781BE25528ED90F5AC234655308EA969E28DC923795F813E891F319102AEFC",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-305",
+      "migration_id": "MIG-306",
       "source": "X:\\Pi Coding Harness\\src\\memory\\types.ts",
       "sha256": "0B2457064D1B4C516CF02CA3810ECB8B09816C95B5E1BD19205E0AD4B6967C9D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-306",
+      "migration_id": "MIG-307",
       "source": "X:\\Pi Coding Harness\\src\\memory\\v3-engine.ts",
       "sha256": "1E892D4931F4A7B91EA801860F34EECCA9FAC8A06F7E50FCB03E22D46CB531A8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-307",
+      "migration_id": "MIG-308",
       "source": "X:\\Pi Coding Harness\\src\\memory\\v3-retrieval.ts",
       "sha256": "9F7CCC5C0DEC0966999EB2822D304F4CF680EF1554B98BB0D927A757D6F96B3D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-308",
+      "migration_id": "MIG-309",
       "source": "X:\\Pi Coding Harness\\src\\memory\\vault.ts",
       "sha256": "F0646CF20D8C834C0BFCABC79B35DB49D03F1180DC1F7C3320DB99D300AF3566",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-309",
+      "migration_id": "MIG-310",
       "source": "X:\\Pi Coding Harness\\src\\output\\response-contract.ts",
       "sha256": "D5E95712CE18EF2672DB0434EB79158044AA166505C68922A3448FCADB84FD7F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-310",
+      "migration_id": "MIG-311",
       "source": "X:\\Pi Coding Harness\\src\\output\\stable-policy.ts",
       "sha256": "A82E9BF7BA66B836AC1E83A98913AD8A7A337534DB7CAB72A25F6494838136A7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-311",
+      "migration_id": "MIG-312",
       "source": "X:\\Pi Coding Harness\\src\\performance\\benchmark-harness.ts",
       "sha256": "283F4F19639997496CA715F5B49C2EC61EEB975B313C56482F6E10088448635D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-312",
+      "migration_id": "MIG-313",
       "source": "X:\\Pi Coding Harness\\src\\performance\\contract.ts",
       "sha256": "FEA2FA6187DB9EC331B05CFD0F4B49C7E1A29DB2140B0B75C9D7A840030204F5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-313",
+      "migration_id": "MIG-314",
       "source": "X:\\Pi Coding Harness\\src\\performance\\opportunities.ts",
       "sha256": "46CBA6570A6B2CBC7B4623B4C94F037563BAC9D3367BF022B6D5D784BDE1C29B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-314",
+      "migration_id": "MIG-315",
       "source": "X:\\Pi Coding Harness\\src\\performance\\task-flow-measurements.ts",
       "sha256": "E33ED3C4B0DDBEB9D98EB2CFC492F94ED755C1833904FCD557F240E92571E288",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-315",
+      "migration_id": "MIG-316",
       "source": "X:\\Pi Coding Harness\\src\\performance\\task-flow-policy.ts",
       "sha256": "58CEBE4B4D0EBF546942C4D235DFF6209C59601E83C1342B23DE3E69AB6B4FEB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-316",
+      "migration_id": "MIG-317",
       "source": "X:\\Pi Coding Harness\\src\\performance\\task-flow-repository.ts",
       "sha256": "6270918D63BDA9EA3FA98691B7EA8C95E2661D18456B08816BEC1F4821D7E055",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-317",
+      "migration_id": "MIG-318",
       "source": "X:\\Pi Coding Harness\\src\\performance\\trial-types.ts",
       "sha256": "95001E458CFF21057D67032ACBD039B5133A48019E65A0F9580286E37404795F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-318",
+      "migration_id": "MIG-319",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\active-goal-input.ts",
       "sha256": "03C33FD82B5F6282754A84A17D3E3412DF117FCEC19924315A110AA78ED363B8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-319",
+      "migration_id": "MIG-320",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\change-acceptance.ts",
       "sha256": "646DCBF4A3DA823EDB20DA338CB7C529AAEF88BC6771A51F040273376DA220BA",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-320",
+      "migration_id": "MIG-321",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\change-impact.ts",
       "sha256": "BAC7915FB006EB07CC89609BEA7A87D2BC5D4F9FFB6BA3DDF820C27BD08F5651",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-321",
+      "migration_id": "MIG-322",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\change-request.ts",
       "sha256": "342B9FF6CDE48A991F223B9850E5C7EE657C33B1EA1BC77E41AFBB986A8E0793",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-322",
+      "migration_id": "MIG-323",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\correction-budget.ts",
       "sha256": "13EBFD62E31F87658F90FA0964AD1091B0DDF2F06B3E67A400164057EDD4889A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-323",
+      "migration_id": "MIG-324",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\finalize.ts",
       "sha256": "80DAFF9202732144877EA031A91589F1535F11CAE5BF1E7A8F49E695D037EA64",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-324",
+      "migration_id": "MIG-325",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\graph.ts",
       "sha256": "FC9FF45E3FB645AE991DD330B2B9670EE76CD030EAAC2C55244BBB7202291679",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-325",
+      "migration_id": "MIG-326",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\repository.ts",
       "sha256": "04C9CDA3812C12C82C87DB0BC51656C6E1A226C0084522955E681F9A813F57BC",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-326",
+      "migration_id": "MIG-327",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\revision-delta.ts",
       "sha256": "9CF20DAA7D80941C85A3583B76A95A74380F8227674ECBD5B1E135F3A238A4A2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-327",
+      "migration_id": "MIG-328",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\stage-gate.ts",
       "sha256": "378818F2BEE6A6B2DAE5795A81E55CEED86BB48A7876F4021C15F408CD6C6CC5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-328",
+      "migration_id": "MIG-329",
       "source": "X:\\Pi Coding Harness\\src\\planning\\clarification.ts",
       "sha256": "DC4169432A23307216D02BDB5ED72CDC2A6E50DA7E2D43449FD2EC98DE65DB0F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-329",
+      "migration_id": "MIG-330",
       "source": "X:\\Pi Coding Harness\\src\\planning\\intake-classifier.ts",
       "sha256": "1AF1F74722E43FCB8CE491B449C686AA9769085F6BA655AD677FBD4041140387",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-330",
+      "migration_id": "MIG-331",
       "source": "X:\\Pi Coding Harness\\src\\planning\\plan-continuation.ts",
       "sha256": "D7FD3B7A0C781096EB7CD903798FC5EF0326E78DE28A26AA6B2DE0B316767445",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-331",
+      "migration_id": "MIG-332",
       "source": "X:\\Pi Coding Harness\\src\\planning\\plan-finalization.ts",
       "sha256": "0AD71AC89B86208CE6FDBFB38A467035BC22A68AF4D2E0500074CE7276D802CE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-332",
+      "migration_id": "MIG-333",
       "source": "X:\\Pi Coding Harness\\src\\planning\\plan-health.ts",
       "sha256": "3070BE3582D87A40D4709C27FDCA90F47A1F7EFDFA7909ED6A69011AF05CAFDD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-333",
+      "migration_id": "MIG-334",
       "source": "X:\\Pi Coding Harness\\src\\planning\\route-classifier.ts",
       "sha256": "3E42DF56F08E594AE85E745544798775B0A9BC3E967C139B56E4DEACCEDCBCBA",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-334",
+      "migration_id": "MIG-335",
       "source": "X:\\Pi Coding Harness\\src\\planning\\types.ts",
       "sha256": "954CE4378CB829978C898AD3EBFE1888C1B3BFA588BE2470D62ED59CBA7D2416",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-335",
+      "migration_id": "MIG-336",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\domain.ts",
       "sha256": "FBD965177C68113CE15E3B2D3EDFBE05E2A02CFD5D83C0129688624D3400808B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-336",
+      "migration_id": "MIG-337",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\invocation.ts",
       "sha256": "B55589351FAEB4F299891FC6BDB0D77C85121B10ACF459362524C6D188EE49BD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-337",
+      "migration_id": "MIG-338",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\repository.ts",
       "sha256": "E1901B2BB3E935719AEC2277E0D70D782F42781CDBF5BF7E37BE1988FC3B9807",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-338",
+      "migration_id": "MIG-339",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\worker-plan.ts",
       "sha256": "4B88098D0C8C6CBB509B59749B294E4F03AAAE8CEB01AE73265B334B13C32154",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-339",
+      "migration_id": "MIG-340",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\active-goal.ts",
       "sha256": "60742C39CF03A65641009233FE42DCB80F729A90BBE9B296BD75C2A597E0EA2E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-340",
+      "migration_id": "MIG-341",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\coding-harness-services.ts",
       "sha256": "3CD56264EF69FB6F5E07B77363927B496BCDD4BC29C7E4AF5DC9530E89405E70",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-341",
+      "migration_id": "MIG-342",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\lifecycle.ts",
       "sha256": "35E2E85757AE50570F2748C3896D67EA7C4AB28AC2FC0C928E9BDB765D259942",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-342",
+      "migration_id": "MIG-343",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\recovery.ts",
       "sha256": "267A1BE3146950131AB4D3D6C10C2987611341F0AE59457441B4C5892CC9318F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-343",
+      "migration_id": "MIG-344",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\task-flow-session.ts",
       "sha256": "7EF664003E4CFE5A93B574124F5AB2D664993B13BCA6F64C2F3FEBB7F3A90796",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-344",
+      "migration_id": "MIG-345",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\task-flow-view.ts",
       "sha256": "1110F94E5B5D5E655A37F5B0884B2700ACF66ECFD703F8148443A1208A6E7535",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-345",
+      "migration_id": "MIG-346",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\acceptance-ledger.ts",
       "sha256": "6257EA444D1236140AB598A895E00D815B087CD6CA2836D31B094377F7AC3350",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-346",
+      "migration_id": "MIG-347",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\admission.ts",
       "sha256": "4CAF4990209797E963C8846B1F4A8FF0D23CF0A1A0A455495EB70B0621175BFB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-347",
+      "migration_id": "MIG-348",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\commands.ts",
       "sha256": "3577A87DE0502A7B7DAE36EAAF36D9BF42BE9D636992FCCCCDA8A5C18CCFF4CF",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-348",
+      "migration_id": "MIG-349",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\domain.ts",
       "sha256": "49364AF7CF99D5D30A4AFB72A84A1F36D3CC23C01229A37DEF968A2DAFA83672",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-349",
+      "migration_id": "MIG-350",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\finalize.ts",
       "sha256": "480AF906DC5D744C79B6F65CA933C77E5F0C7E7380D019CC5CDEA185A76C4C5E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-350",
+      "migration_id": "MIG-351",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\health.ts",
       "sha256": "4EB727262F63C4975F775A4AD368DFFC4137DA257ED4641F475D92C81C16979A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-351",
+      "migration_id": "MIG-352",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\kernel.ts",
       "sha256": "75C6DE7719467BA9F03C1424E72700DB4ADF504D495DF464CFC68A4B6FE4DC09",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-352",
+      "migration_id": "MIG-353",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\migrate.ts",
       "sha256": "26F7EBCA3E3548525C59E745C818C7BC614553571106FE9C1948DF24246D59AC",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-353",
+      "migration_id": "MIG-354",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\operation-lifecycle.ts",
       "sha256": "6F7265FB2B7826B11C4AA2E94EB0310D6192708140B59A14CA99F7D5915CF51B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-354",
+      "migration_id": "MIG-355",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\oracles.ts",
       "sha256": "64276BD1CEE936E6281A2F834341A36DFD6BF76A0B5292EE3E05632A38DCA7A9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-355",
+      "migration_id": "MIG-356",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\repository.ts",
       "sha256": "BD49D3C8D68E7B0B51DFF06395228937DEACE505A4AD6E8CA80C431C740B4A05",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-356",
+      "migration_id": "MIG-357",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\route-revision.ts",
       "sha256": "1174CB9BDBF5E5D1C67FA0D3B382714FD8098E274C3FEB59D825E92376DF773C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-357",
+      "migration_id": "MIG-358",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\session-binding.ts",
       "sha256": "88EC2D42B62045F56DCF63CE61981D72051F758A18FD8039229B52AF1C91E65F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-358",
+      "migration_id": "MIG-359",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\workspace-baseline.ts",
       "sha256": "E2E201390C43381D67977E911BA87D0752F0343B7FA420795B744D64778825DD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-359",
+      "migration_id": "MIG-360",
       "source": "X:\\Pi Coding Harness\\tests\\acceptance\\memory-quality.test.ts",
       "sha256": "BDF35D55AF1A03FCCBBC1E162D2A891A959ABBB4F6A47D4A833E2C3586FEAA6A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-360",
+      "migration_id": "MIG-361",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\harness-migration.test.ts",
       "sha256": "4CA23FCD82E8586F39D8DB47030BF4A11E3CE50E43D2144893563EB6CABFD82C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-361",
+      "migration_id": "MIG-362",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\harness-post-migration.test.ts",
       "sha256": "7238E6900F22A47FD01C680555F95F96CB9EA30C3E725002E0914C916A7CF327",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-362",
+      "migration_id": "MIG-363",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\input-context-migration.test.ts",
       "sha256": "57891E783DC2B0CB5D58A74CEDF8528A16A4F3E9B24A0589559C8C254B0F2F15",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-363",
+      "migration_id": "MIG-364",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\intake-v2-authority.test.ts",
       "sha256": "57904F5CAF5A0455E93767987C5B35405035FA1A0CE1A0C33C01A94BFD18D2F0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-364",
+      "migration_id": "MIG-365",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\memory-authority.test.ts",
       "sha256": "A2D33DBF73340B7C2A2D7B9AD99F855FE20CAC45327A77FFC451754AEC3816E2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-365",
+      "migration_id": "MIG-366",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\patch-transaction-recovery.test.ts",
       "sha256": "2830F466B941202B184AC02ECF555A410352B24829FEF793531B3DB13B01A24D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-366",
+      "migration_id": "MIG-367",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\runtime-schema-upgrade-gate.test.ts",
       "sha256": "1018C2F9C4B22DA0107D31EB90E27B7C167459A39FDA76191085979F7FD832FB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-367",
+      "migration_id": "MIG-368",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\acceptance-v2.ts",
       "sha256": "A749D69599082B3C50ED02A37D2B221E599F96AA75381DDB640694495B90BE3D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-368",
+      "migration_id": "MIG-369",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\authority.ts",
       "sha256": "6FF38AC13D5040E20CFA5D399417E4801621DBA2FFB0CA95376F2AAE8FBCBC0F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-369",
+      "migration_id": "MIG-370",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\execution-v2.ts",
       "sha256": "551C42907FD195FD6565CA4B7F0EBA8944BEA0D73884C3A61D604DC22C0B821C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-370",
+      "migration_id": "MIG-371",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\goal-fit.ts",
       "sha256": "3746D28F558EF825AA67A82F4DA6D821E606EFBF707FAB1D09ED740D5AF11527",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-371",
+      "migration_id": "MIG-372",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\harness.ts",
       "sha256": "24ED6AD59D0D8A66BFA5758DF6B53472278FA80F3C0AA6CD18CDD93D8B65C9CB",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-372",
+      "migration_id": "MIG-373",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\performance-root.ts",
       "sha256": "4DC60C888AA96914A66F1483A7FF527CC0C877DE620CB053380769C8D6B98C8A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-373",
+      "migration_id": "MIG-374",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\phase2.ts",
       "sha256": "0BD420B722B4B47BB87B1C98A3EB82F74E69B15DA6D6BAAD39FC613FE2DD925B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-374",
+      "migration_id": "MIG-375",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\phase6.ts",
       "sha256": "D9FF96E59C006AC4E2F713C1BC94E250B1E62BCDBBE37911D022196C4EF49987",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-375",
+      "migration_id": "MIG-376",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\task-flow-session.ts",
       "sha256": "2C072397BF3F68C1C60A6C71AF9AFE1215A69FFB2524C0DFCF922198C1C47BE5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-376",
+      "migration_id": "MIG-377",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\task-flow.ts",
       "sha256": "028E3F3F857B61F6A161A7C2B06551D65E9DE44CCC97E05E2D6CE5A94222A904",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-377",
+      "migration_id": "MIG-378",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\authority-crash.test.ts",
       "sha256": "D56951896C7C5C34021574943873C9146D433E8DC7D5EFD7D55CC49EA3170486",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-378",
+      "migration_id": "MIG-379",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\cache-v2-harness.test.ts",
       "sha256": "D1E67DA222D0CB56EA55B8854CA684218B8D4DCEE392EE29EE50D78945B694C0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-379",
+      "migration_id": "MIG-380",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\cas.test.ts",
       "sha256": "5E0A6AC80DEFF54C5C46E4AB2A588F6DEDB572CE79D45EEC84CA1D97051CF702",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-380",
+      "migration_id": "MIG-381",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\execution-v2-authority.test.ts",
-      "sha256": "39223EF6ECEED1618FD00F244AFB3E76A84E6CC812B516444EAA1C47B662C038",
+      "sha256": "6298DD053C7B2E1EA778B2B02B945054E046DD80B1045CAF674492E35BA079E1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-381",
+      "migration_id": "MIG-382",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\execution-v2-coordinator.test.ts",
       "sha256": "E1C116417A42D9E27CACE2482AA5C942AE48DE64CFE1BF7E53CF8FB3D096BD49",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-382",
+      "migration_id": "MIG-383",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-authority.test.ts",
       "sha256": "20FC28C0453710DBE0A6FC5ACD69FC85394ED540A61DEA0432AB34CD0F4DA754",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-383",
+      "migration_id": "MIG-384",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-host-execution-v2.test.ts",
       "sha256": "D3D331EC28EAF59752FB5566E3B2011F29E73AD6A566E95322D1ABAED29A152B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-384",
+      "migration_id": "MIG-385",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-host-runtime.test.ts",
       "sha256": "788979B2FCD44AD9191650642BD3E6691EAFED6288F429FBB597CD0181EFE0DD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-385",
+      "migration_id": "MIG-386",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-worker-executor.test.ts",
       "sha256": "D433BC7CEEA41C4481B1170D37A1E47743F8D668C1639DE8A28292DCF4509336",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-386",
+      "migration_id": "MIG-387",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-worker-lifecycle.test.ts",
       "sha256": "C2AC04266B58D2876BA73070F898423637247C9094244509B782945074E17909",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-387",
+      "migration_id": "MIG-388",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\input-context-authority.test.ts",
       "sha256": "30AE32020A07D1DD4BFFAAD514F7240C8FFDA2B082E993CC67E3C996CE31B4FD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-388",
+      "migration_id": "MIG-389",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\input-context-evidence.test.ts",
       "sha256": "1260DDE982F9B5D224547F23365A22E6557DEB65ACC038A42DC2C479DA3BA4C1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-389",
+      "migration_id": "MIG-390",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\lease-fencing.test.ts",
       "sha256": "61D54C2325C5383EC9BC9A3419B749E793F912D3F8FA719CE858619484A2CB3F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-390",
+      "migration_id": "MIG-391",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\lifecycle-authority-integrity.test.ts",
       "sha256": "1B77ED03DDAA6DC7FCB96544CF3214E30B6D65F24E6FE9C8CB0867499AE646AE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-391",
+      "migration_id": "MIG-392",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-index-recovery.test.ts",
       "sha256": "38D64F1C614080AB334EA54C39EC9C434ADF58B9867F636491A7D7B2D2117B50",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-392",
+      "migration_id": "MIG-393",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-migration.test.ts",
       "sha256": "B5BB6F7B7D8455ABCAAA3F8586F35F25579D776F72C7DF2A4A493F6B5CCFCA71",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-393",
+      "migration_id": "MIG-394",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-privacy.test.ts",
       "sha256": "DD0990AA2D304778186BF6599EFFCB1114A0DE1AE22EACBBE358EE00BD8C0BBA",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-394",
+      "migration_id": "MIG-395",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-tamper.test.ts",
       "sha256": "0B66A83BEFDFABBAD23FD150102399CFC88757873078AC7017FE1C18A3D80C21",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-395",
+      "migration_id": "MIG-396",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v3-authority.test.ts",
       "sha256": "00F3450202177552720FFDBCA05D28564A4FF56666DD5F34582F8B4FEDFCAC58",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-396",
+      "migration_id": "MIG-397",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v3-engine.test.ts",
       "sha256": "68F3867F635EF9FE3D6F1A986DA81DA6D404ED2E182045B3702EB0AD4B41C184",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-397",
+      "migration_id": "MIG-398",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v3-lifecycle.test.ts",
       "sha256": "653CB22813F6D4FF0A5DB96CCB2FD746B23BE52FDAADFE5D6348844A2A365981",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-398",
+      "migration_id": "MIG-399",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v31-capture-authority.test.ts",
       "sha256": "1A95C651A1B0098B918D9724C8FC28F7628355E3DAF81B171029588F589C093A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-399",
+      "migration_id": "MIG-400",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\migration.test.ts",
       "sha256": "86CF149B93D086023380589D378480D76D7D13B6B322B16E0AEFC963AC27D700",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-400",
+      "migration_id": "MIG-401",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\performance-fixtures.test.ts",
       "sha256": "2761AD193DBEA3C49CDF01A1A65F13B90609B31F0155008882B6895335BDF8B4",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-401",
+      "migration_id": "MIG-402",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\plan-v2-authority.test.ts",
       "sha256": "EF9AC7379A467528BE665C385D6B082C098C0BB0FC422B73258E87AC8CBC1407",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-402",
+      "migration_id": "MIG-403",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\projection-rebuild.test.ts",
       "sha256": "719E01F8621DC857529BDF151B15D32E64851834FB8A724EE83FE676F492F382",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-403",
+      "migration_id": "MIG-404",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\prompt-generation.test.ts",
       "sha256": "ADF77F3DA823053FC534D25FFC90859E7C2510EBF87CB2A42757B9FB37A63A46",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-404",
+      "migration_id": "MIG-405",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\prompt-request-chain.test.ts",
       "sha256": "E249775DF722FF697013D5BC5A31B21268AA0999A0D718C7F47182139B0A0FEE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-405",
+      "migration_id": "MIG-406",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\provider-call-plan-v2-authority.test.ts",
       "sha256": "C47A2290A11420D2EA7BE106A30C34B1E9B84A3F23AA17382761254A7C123850",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-406",
+      "migration_id": "MIG-407",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\strong-single-provider-usage.test.ts",
       "sha256": "9B4B8E47256A15335262E69FFA08338CA0A18207358103922B5D6A423540D1B7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-407",
+      "migration_id": "MIG-408",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\task-flow-authority.test.ts",
       "sha256": "DAF595D15A84EE5032F93D6064A1B19A9EB8B658AAB502AD2355ED4C782A3F2D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-408",
+      "migration_id": "MIG-409",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\task-flow-session.test.ts",
       "sha256": "A60CEC88FFDF4F2BB86A6F1B79EAD2A02FCE5CDBC086229C00675A7C1510E659",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-409",
+      "migration_id": "MIG-410",
       "source": "X:\\Pi Coding Harness\\tests\\lifecycle\\install.test.ps1",
       "sha256": "A93B5CF2F85416941972E43EA5948A85387E29689A7A29B96848B9B952CD77BE",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-410",
+      "migration_id": "MIG-411",
       "source": "X:\\Pi Coding Harness\\tests\\lifecycle\\uninstall.test.ps1",
       "sha256": "FB0D5537FFEB59DA5487314CBF57A70D13D2CFCE1F136149B9D72CDA031BDEC0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-411",
+      "migration_id": "MIG-412",
       "source": "X:\\Pi Coding Harness\\tests\\lifecycle\\upgrade.test.ps1",
       "sha256": "32358A8986E2F19F143EA327451281C02D0CBFFF59CC3AC33BA27C697C4513F0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-412",
+      "migration_id": "MIG-413",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\cache-v2.test.ts",
       "sha256": "869DD3F75F2671369DABC84A6217FC540573E28D75C75221056A692F3525BC90",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-413",
+      "migration_id": "MIG-414",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\long.ts",
       "sha256": "C03D62C299C9EAFD020D9681BCBD3B8A55ED053E3E6496B899F47D7CFDA13C31",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-414",
+      "migration_id": "MIG-415",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\memory-v2.test.ts",
       "sha256": "BBDB1191163E6C364D954BDA894DC54C48D7B47547EACF5FF6B55BFE54C540D8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-415",
+      "migration_id": "MIG-416",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\memory-v3.test.ts",
       "sha256": "E1824664E19F656C420588BA92E29BE1DB523EE80979218F349712452D94FB85",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-416",
+      "migration_id": "MIG-417",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\orchbench-v2.test.ts",
       "sha256": "99A5A75CB3B2BA91F83DAC6725EB1DCE37115B02A61F0929B02F5CF13D1B18A5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-417",
+      "migration_id": "MIG-418",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\phase-1.test.ts",
       "sha256": "2A2A6E32B44D88850E180828A412A76B241F737EA1C71DC86D71359C6A98F034",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-418",
+      "migration_id": "MIG-419",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\phase-6.test.ts",
       "sha256": "1AD1BAA10E47D16F9A1D20C2630BC10F9C484EE99ADAB40221C0792DC1A4D392",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-419",
+      "migration_id": "MIG-420",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\short.ts",
       "sha256": "761883F0DA42A0A753198041420D2C9B04428560B53AC735637F8E605CC2FFC7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-420",
+      "migration_id": "MIG-421",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\task-flow.test.ts",
       "sha256": "DCD0AA60F79AE23BFDED234257609D6AB08668C7098C4D0D828C45E17A116225",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-421",
+      "migration_id": "MIG-422",
       "source": "X:\\Pi Coding Harness\\tests\\pi\\coding-harness-bridge.test.ts",
       "sha256": "1CDC1EE399FEB7A8294A4BD05F3F8145289746A9477FB26F34F8133E1FC51030",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-422",
+      "migration_id": "MIG-423",
       "source": "X:\\Pi Coding Harness\\tests\\pi\\memory-commands.test.ts",
       "sha256": "9BFE5134C37250A9E96B203377E2973A34CA2FE778782886801F13D229C50331",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-423",
+      "migration_id": "MIG-424",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-authority-v2.test.ts",
       "sha256": "F996B80BA264A67B0AD217A3FD8E37A82859A26014E0A988ACDEF1461458467E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-424",
+      "migration_id": "MIG-425",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-evidence-v2.test.ts",
       "sha256": "F1C39507CF5ECE3585D49F7D1FE297A207CE032F9C6D7992E4DADBF879C00432",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-425",
+      "migration_id": "MIG-426",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-ledger.test.ts",
       "sha256": "F1652354D16EAA62EC8DEBCD25E24A71DFE6971D2DABC3126DC2CB3CC91FF65D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-426",
+      "migration_id": "MIG-427",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-v2.test.ts",
       "sha256": "951CD15F312D0D69C1790E5315296262873025AFF0CDDC878F33E368710C1F9B",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-427",
+      "migration_id": "MIG-428",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\active-goal-input-v2.test.ts",
       "sha256": "CCFD5A09CEF6C19B4E11EB6D7CD240164A6BC959A9D4B2BE1DB9DF50A49C1157",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-428",
+      "migration_id": "MIG-429",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\architecture-dependencies.test.ts",
       "sha256": "A4378FBD17F75ACEA6E9877E890ABEB22BAC852B5FE45FEDDF2DDAC7B3ACBD81",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-429",
+      "migration_id": "MIG-430",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\benchmark-harness.test.ts",
       "sha256": "81679E76CCD92B09175388C80AD3597F6A3FA4B0A042791B033286157537380D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-430",
+      "migration_id": "MIG-431",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\bounded-command.test.ts",
       "sha256": "6A40F886D152C84DD3E38A9C497E8545F70D2A7B4E9FACA15C2FC7C417374238",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-431",
+      "migration_id": "MIG-432",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\cache-v2-codex-local.test.ts",
       "sha256": "5E2668FA88245A0FA8DE61DAB55F22CEFCA52ACDB56B72CA7F4FAEF9FB247573",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-432",
+      "migration_id": "MIG-433",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\cache-v2-geekspace.test.ts",
       "sha256": "54E10111E57CAB3603CBBBDBFA8007761D73FFAE03E536BF49C8E9F0BFF7636E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-433",
+      "migration_id": "MIG-434",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\canonical-json.test.ts",
       "sha256": "4FCA3507937DEDD1631807D73C83291CD94BC6CF008EE574A5EC237C0C0DBC34",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-434",
+      "migration_id": "MIG-435",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\change-acceptance-v2.test.ts",
       "sha256": "4E33590B149B6AD07A7C08BDC050C8183CCA98BEC269AF07CCEEB4625511746E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-435",
+      "migration_id": "MIG-436",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\cjk.test.ts",
       "sha256": "47CEE6F430457528AD547CE2FF8605E6A8108D58AA1404FA6AA1151B48F6E06C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-436",
+      "migration_id": "MIG-437",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\clarification.test.ts",
       "sha256": "5049B4485D31918799A4638B2DB6B2E79BBC00388A94CDB9C3AA7AB4DFDC3551",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-437",
+      "migration_id": "MIG-438",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\config.test.ts",
       "sha256": "5425D72917C71C083EF3BBD4EF13F8C898E9CFC70C520F4007150B98E230C453",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-438",
+      "migration_id": "MIG-439",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\control-plane-v2.test.ts",
       "sha256": "8D7C1D04288DF01C0C1FEDA1EDC0F89C64B7052C4CD8FA2A188E8BEEA2151987",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-439",
+      "migration_id": "MIG-440",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\decision-inbox-v2.test.ts",
       "sha256": "9287D390A26D1A2855FCEF5B7E7CEFF66C85CFCCA0502B15E6B274E16AAF1E17",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-440",
+      "migration_id": "MIG-441",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\dynamic-multi-proposal.test.ts",
       "sha256": "A8D8882AD891EE6CF27E919D7B6DB1F2170A75A578C7CCA4FBC05B7B5E780D8F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-441",
+      "migration_id": "MIG-442",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\dynamic-multi-simulation.test.ts",
       "sha256": "0944A83A9CA41734D27F738FA7B25995A5C1DD32CE53317483B045425174DB89",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-442",
+      "migration_id": "MIG-443",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\effects-normalize.test.ts",
       "sha256": "024D23A45B693CDCFFB26F46D6046F05E2B781521D19122D3633A58FF72ED717",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-443",
+      "migration_id": "MIG-444",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\event-chain.test.ts",
       "sha256": "8C9177BB0895751C99642929407B5BAB18FFCD0CDF9142928601F345F909D4FC",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-444",
+      "migration_id": "MIG-445",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\execution-v2-domain.test.ts",
       "sha256": "3E751884E694C84FF6996AD3AE5DFBBCC56D907C4DF6481F9F0855F4E4A65DD3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-445",
+      "migration_id": "MIG-446",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\generation-governor.test.ts",
       "sha256": "F45523B46E6F4CBB21840FE751EA51D3730D7431EDA152A385AD4F3804068AE0",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-446",
+      "migration_id": "MIG-447",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-domain.test.ts",
       "sha256": "2421EF517766073E464F28E958CDF1CB36C0A2941C84F6BF5AB736DA1D451989",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-447",
+      "migration_id": "MIG-448",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-host-protocol.test.ts",
       "sha256": "9D4BF768C3EB5E1776745587C7EC5CD8A67C2A6DF6F577B63946AA662BDB1200",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-448",
+      "migration_id": "MIG-449",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-output-policy.test.ts",
       "sha256": "C479077AFD2673C731B7183322BA7E9F86BBCCB096F0856FAC9E642A098FCBE3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-449",
+      "migration_id": "MIG-450",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-scope-path.test.ts",
       "sha256": "403E3901CA58D7F73AEA5AFCC80F02E866ABD7E0FDA4A0E93B39A0296BB9DBF5",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-450",
+      "migration_id": "MIG-451",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-worker-runtime-policy.test.ts",
       "sha256": "D42BF28BBD814C271A8A347D7CF716962F88AA23EEFD7BD79F804B5CB6815253",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-451",
+      "migration_id": "MIG-452",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\host-dynamic-multi-lowering.test.ts",
       "sha256": "CFFE79DA3DB834B5F49DF9172104001946009FDE820B7E493504982255FF284A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-452",
+      "migration_id": "MIG-453",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-budget.test.ts",
       "sha256": "8EBF2254AB2448072C1AB6709A8A02AC13FFB318C52E16264CFAE02A0AB916E3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-453",
+      "migration_id": "MIG-454",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-compiler.test.ts",
       "sha256": "27B802886854BE2A894DF13F4A22EF22306839689A4CC195A5024286D46FB5B8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-454",
+      "migration_id": "MIG-455",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-context-tool.test.ts",
       "sha256": "855BEC6131A8191F86C02DFB88367941C9486D1AD0E79F662C18759D7EB70670",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-455",
+      "migration_id": "MIG-456",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-domain.test.ts",
       "sha256": "9000B5FE82641541E0C7E763042D417B2D999BC4149E125B07D1ED23500FEE7D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-456",
+      "migration_id": "MIG-457",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-integrations.test.ts",
       "sha256": "42E09345764CD49AF1A45A1AA5DCBB5DB69491CAD4F8F2C4DD22F08D68CE139A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-457",
+      "migration_id": "MIG-458",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-projector.test.ts",
       "sha256": "A6C20796828AA8045BAB8E6AB23F90AF019AEAE7BDBB6668F0935A39DB9B1705",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-458",
+      "migration_id": "MIG-459",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-provider-turn.test.ts",
       "sha256": "BDA64C9ED40BD9A0F7BE50E08B8F80A6F7CE6A83381FAC584A864E20ECD724DD",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-459",
+      "migration_id": "MIG-460",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-structural.test.ts",
       "sha256": "36AF21DA4A66951A85C4725E03535910D2891581527FD90D7E3A5F6754B56420",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-460",
+      "migration_id": "MIG-461",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-validity.test.ts",
       "sha256": "30A30049A7C167593F05EADD37C5D868AB5499964114AAF0187D6A3496E81CD9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-461",
+      "migration_id": "MIG-462",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\intake-classifier.test.ts",
       "sha256": "C4F60FF9968BE7A27D5B44469E9A913EB5DD4E9368374A4B34D43457B66F7906",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-462",
+      "migration_id": "MIG-463",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\intake-v2.test.ts",
       "sha256": "F96019D115FE568E93644900FAFE6BDA21F3E29D98768378BD2BD34A4D2FF541",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-463",
+      "migration_id": "MIG-464",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\memory-admission.test.ts",
       "sha256": "5DFB0C980A8E4EBEF08D62BB500A5787C42A6AAC4DA4EE5A66DB2FE339D10B15",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-464",
+      "migration_id": "MIG-465",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\memory-capture.test.ts",
       "sha256": "DE97D53B1DF6DD5C21FB91C54161397ABC9D62D4392B685E927DA9D2BC928F61",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-465",
+      "migration_id": "MIG-466",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\memory-vault.test.ts",
       "sha256": "440008F7E64C7C5F7607D1931495A0AEE6D5AA23E3DA88DD2EB6547142DF8723",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-466",
+      "migration_id": "MIG-467",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\migration-manifest-contract.test.ts",
       "sha256": "73ADB59C7279C35348171235C0EF220148615153C54C6202291B8C20316FB94A",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-467",
+      "migration_id": "MIG-468",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\performance-contract.test.ts",
       "sha256": "71F3AFCA4D17B0B9A25648F98D46BB498BE00A65BCFA1253A5B4836E92B3F2E2",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-468",
+      "migration_id": "MIG-469",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-change-impact-v2.test.ts",
       "sha256": "D33EB861BB6F383D882054DD19BEB460BBA9C60CEE00A01D50EBCD1A9AE5CF2D",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-469",
+      "migration_id": "MIG-470",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-health.test.ts",
       "sha256": "5C85653FD91873F77B8AE73102690CC1854A1A17A33469056B98354D00456A06",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-470",
+      "migration_id": "MIG-471",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-revision-delta-v2.test.ts",
       "sha256": "F6C4940150D4D23605A4B6F3A2C70687F8013A1E8540C7C6F064B3838EF3144F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-471",
+      "migration_id": "MIG-472",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-revision-v2.test.ts",
       "sha256": "8DAFFE96159A17032EF4A0DBDFE861AF9D9E986188A49E15ED1E7CBF8B8CEC6F",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-472",
+      "migration_id": "MIG-473",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\production-dynamic-multi.test.ts",
       "sha256": "F97A02A2E8B1A8B99AF2AD7BCADF7D051F93483DE7B34CB65E823B52DE7DE2F9",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-473",
+      "migration_id": "MIG-474",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\provider-call-plan-v2.test.ts",
       "sha256": "310E94DDD8EB12812BB31AC944B5162CC3CC917DB48D96CFC73948BEFC7B1D28",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-474",
+      "migration_id": "MIG-475",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\ranking.test.ts",
       "sha256": "4F3CA7123D4A5406609DC5657425AEA0616CD4CB09AB239AE49DD9B7EDFEBD29",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-475",
+      "migration_id": "MIG-476",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\response-contract.test.ts",
       "sha256": "6758A8551C22961E6B7F1D5A37E8175D9C7D8C815538B90A3589DF39CCCB6359",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-476",
+      "migration_id": "MIG-477",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\route-classifier.test.ts",
       "sha256": "378DBBAD072D031FA4E409C4DEE67CCC4ADDA0C5177F8BF9526B47EBC98DFE42",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-477",
+      "migration_id": "MIG-478",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\runtime-build-surface.test.ts",
       "sha256": "621B0246E9B6374A2C6BB8698D82B3008B9F4166F3C04CF332A301424217446E",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-478",
+      "migration_id": "MIG-479",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\scoped-worker-mirror.test.ts",
       "sha256": "8E6A1E92AA6B844C8DBB9725D0920ACC39F31A2074267ECA112390F198D99326",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-479",
+      "migration_id": "MIG-480",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\sqlite-runtime.test.ts",
       "sha256": "541F368DDBE6164040F7ACC516C9184145CFDFB7CA19A00264B8E5002484E239",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-480",
+      "migration_id": "MIG-481",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\state-machines.test.ts",
       "sha256": "530E81586416EB76FF9D147787373B5AEE33805A4E41FF6BFEFA85E7486932E3",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-481",
+      "migration_id": "MIG-482",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\strong-single-comparability.test.ts",
       "sha256": "73BB48C5A3C671F919E2CC11A4703E4ED72472F38BA417358ADECB585D7AC2A7",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-482",
+      "migration_id": "MIG-483",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\target-performance-measurements.test.ts",
       "sha256": "B41167CEF2F8604560A88448AFBC3338388296A6A175D5AB16E860BED609D5A1",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-483",
+      "migration_id": "MIG-484",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\target-performance-task-flow.test.ts",
       "sha256": "E538ECFC762E039DE7EF58FE69FD569CF4B2C5A67B0600C992200E54026DBA8C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-484",
+      "migration_id": "MIG-485",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\task-flow-finalization-v2.test.ts",
       "sha256": "E474BDA48757AAFB17BA0D1FCBF0AE8C26A732741EE02B27AFCEFC3272065F53",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-485",
+      "migration_id": "MIG-486",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\task-flow-policy.test.ts",
       "sha256": "FBC5BA402BC558058E252110633FAF13A522B7925BDF55F7BCAA79F46A912246",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-486",
+      "migration_id": "MIG-487",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\topology-gate-v2.test.ts",
       "sha256": "5350524225B8C6073D4D013C623416DA2E7C353C8CEE8ED0E5596C20E859FE2C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-487",
+      "migration_id": "MIG-488",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\verification-order.test.ts",
       "sha256": "0AFEF337AFC221DC91001839F32F48C59CD516E58D1F56C0FE39EF67C922F1D8",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-488",
+      "migration_id": "MIG-489",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\worker-attempt-executor-v2.test.ts",
       "sha256": "E99219AC1FBB20358DDAF5262E289709443C3A0031ED9F51445E3D34F40076B4",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-489",
+      "migration_id": "MIG-490",
       "source": "X:\\Pi Coding Harness\\THIRD_PARTY_NOTICES.md",
       "sha256": "6554B0ED359DA27CF4EEA3023B8FB8FBC9FB1C55E69494A9142618A02542F9EF",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-490",
+      "migration_id": "MIG-491",
       "source": "X:\\Pi Coding Harness\\tsconfig.json",
       "sha256": "3C72598CE21DEF4D570D370B9F0BDA7F3EC64B1FFDB3814BCB6F5CD6229B6EDF",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-491",
+      "migration_id": "MIG-492",
       "source": "X:\\Pi Coding Harness\\tsconfig.runtime.json",
       "sha256": "AE9D001393BE2CB19FC864BD80B73CD953B3CCBEE038878929A02C781F3AE82C",
       "disposition": "COPIED"
     },
     {
-      "migration_id": "MIG-492",
+      "migration_id": "MIG-493",
       "source": "X:\\Pi Coding Harness\\vitest.config.ts",
       "sha256": "ED26ED3BE2CBB0571861EE93E81EA79447387C37F430B7D21A009D66CBA1DF60",
       "disposition": "COPIED"
     }
   ],
   "target_files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "D60F352D0DB1404C70AFB4BB8B2CA3FD1C610572AA40720E8A0B7BAA7885418C",
+      "bytes": 19
+    },
     {
       "path": ".github/workflows/ci.yml",
       "sha256": "81496471229A1CE98D7F60E1C45278642FF30ECF1A5111833CB6C93DFAA7818E",
@@ -3151,8 +3162,8 @@
     },
     {
       "path": "manifests/MIGRATION-MANIFEST.json",
-      "sha256": "29C19EC6EC3088F6B8FB7DF21D970385B57B8B416390834E5756521014A17990",
-      "bytes": 300596
+      "sha256": "BC87B56D19C3658F391171DF22A2D0415C8CF7FC9831E82C21F83DFD25107BF1",
+      "bytes": 294982
     },
     {
       "path": "manifests/QUEUED-SCOPE-EXTENSIONS.json",
@@ -3621,13 +3632,13 @@
     },
     {
       "path": "scripts/generate-migration-manifest.ps1",
-      "sha256": "A0C64C2F4A1A8244BE97D93D34C8040805CF2149D6582C37D4B36831FD677618",
-      "bytes": 7977
+      "sha256": "159688616C5ACCDFA05F2C4070B96365F8A4062E29674A3ADEBD01929BE9FF3E",
+      "bytes": 8002
     },
     {
       "path": "scripts/generate-source-hashes.ps1",
-      "sha256": "C63FF7ADEB7A5DD40D19DF46D2D3CD4044E3948CE0A461D96C3DA119A102C14C",
-      "bytes": 4001
+      "sha256": "A1D3A1643F1F555523B77D8E36DBDD7EBA3BCABCDD0FC0D9039347A221031575",
+      "bytes": 4026
     },
     {
       "path": "scripts/install.ps1",
@@ -3656,8 +3667,8 @@
     },
     {
       "path": "scripts/update-project-state.ps1",
-      "sha256": "95F406D858D93AA43E131D2934BB858031AC70FA977A789A46B4445E5C7A2FC5",
-      "bytes": 10252
+      "sha256": "8FEF6C20342A3F9F708903FF8C3B101946A922291F23513767F52A642B37F350",
+      "bytes": 10277
     },
     {
       "path": "scripts/upgrade.ps1",
@@ -4861,8 +4872,8 @@
     },
     {
       "path": "tests/integration/execution-v2-authority.test.ts",
-      "sha256": "39223EF6ECEED1618FD00F244AFB3E76A84E6CC812B516444EAA1C47B662C038",
-      "bytes": 114647
+      "sha256": "6298DD053C7B2E1EA778B2B02B945054E046DD80B1045CAF674492E35BA079E1",
+      "bytes": 112706
     },
     {
       "path": "tests/integration/execution-v2-coordinator.test.ts",

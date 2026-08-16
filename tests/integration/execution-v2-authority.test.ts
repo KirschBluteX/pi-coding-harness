@@ -1,4 +1,4 @@
-﻿import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
 import { ArtifactStore } from "../../src/artifacts/artifact-store.js";

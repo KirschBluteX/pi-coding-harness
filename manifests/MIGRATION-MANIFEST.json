@@ -1,12 +1,24 @@
 {
   "$schema": "../schemas/migration-manifest.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-08-16T05:28:00.1526229-07:00",
+  "generated_at": "2026-08-16T05:51:16.8916948-07:00",
   "target_root": ".",
   "selection_policy": "Project-owned source, tests, schemas, current documentation, lifecycle scripts and license evidence are copied; dependencies, known generated files, build output, reports, runtime state and version-control metadata are excluded.",
   "entries": [
     {
       "id": "MIG-001",
+      "source": "X:\\Pi Coding Harness\\.gitattributes",
+      "destination": ".gitattributes",
+      "source_sha256": "D60F352D0DB1404C70AFB4BB8B2CA3FD1C610572AA40720E8A0B7BAA7885418C",
+      "destination_sha256": "D60F352D0DB1404C70AFB4BB8B2CA3FD1C610572AA40720E8A0B7BAA7885418C",
+      "category": "CODE",
+      "purpose": "Required self-contained release closure.",
+      "disposition": "COPIED",
+      "rewritten": false,
+      "reason": "Copied byte-for-byte into the renamed release root."
+    },
+    {
+      "id": "MIG-002",
       "source": "X:\\Pi Coding Harness\\.github\\workflows\\ci.yml",
       "destination": ".github/workflows/ci.yml",
       "source_sha256": "81496471229A1CE98D7F60E1C45278642FF30ECF1A5111833CB6C93DFAA7818E",
@@ -18,7 +30,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-002",
+      "id": "MIG-003",
       "source": "X:\\Pi Coding Harness\\.gitignore",
       "destination": ".gitignore",
       "source_sha256": "655A71DD274442CB5000383341774262DB9802C7FD14A64474DD73C396C44385",
@@ -30,7 +42,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-003",
+      "id": "MIG-004",
       "source": "X:\\Pi Coding Harness\\AGENTS.md",
       "destination": "AGENTS.md",
       "source_sha256": "FF4EEFBED58EB87404CE0D514B286DC00256ACDC6071995BFDC4974D1D95A225",
@@ -42,7 +54,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-004",
+      "id": "MIG-005",
       "source": "X:\\Pi Coding Harness\\config\\default.json",
       "destination": "config/default.json",
       "source_sha256": "3A9E3C12D4E98794642298C694E789D1EF204CB87220373AD9F2E6432F461F51",
@@ -54,7 +66,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-005",
+      "id": "MIG-006",
       "source": "X:\\Pi Coding Harness\\CONTRIBUTING.md",
       "destination": "CONTRIBUTING.md",
       "source_sha256": "4DCF8F7F8532742409B9C4CCB8BECB0408DE6C59D47349F7185D41B4C54D1547",
@@ -66,7 +78,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-006",
+      "id": "MIG-007",
       "source": "X:\\Pi Coding Harness\\docs\\ARCHITECTURE.md",
       "destination": "docs/ARCHITECTURE.md",
       "source_sha256": "95891E7ED4A92DC905B0E9306F152DA19468E9230A125D17BB9886BDA34FBBC7",
@@ -78,7 +90,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-007",
+      "id": "MIG-008",
       "source": "X:\\Pi Coding Harness\\docs\\IMPLEMENTATION-PLAYBOOK.md",
       "destination": "docs/IMPLEMENTATION-PLAYBOOK.md",
       "source_sha256": "70BDE17149D8A63114C0F633CDB10931F9267191B1451A87699E3E4F0692B6B1",
@@ -90,7 +102,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-008",
+      "id": "MIG-009",
       "source": "X:\\Pi Coding Harness\\docs\\PERFORMANCE-BUDGET.md",
       "destination": "docs/PERFORMANCE-BUDGET.md",
       "source_sha256": "08595363D07019B4CA80A9BE2D531809D784DF2EF59407FBD899279A82223A63",
@@ -102,7 +114,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-009",
+      "id": "MIG-010",
       "source": "X:\\Pi Coding Harness\\docs\\PI-CODING-HARNESS-BLUEPRINT.md",
       "destination": "docs/PI-CODING-HARNESS-BLUEPRINT.md",
       "source_sha256": "B964A184E898EAD3FCC2EFCD895D3E421FBDA76E08A19E82F83948E3D5DD6D2F",
@@ -114,7 +126,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-010",
+      "id": "MIG-011",
       "source": "X:\\Pi Coding Harness\\docs\\REVIEW-GATES.md",
       "destination": "docs/REVIEW-GATES.md",
       "source_sha256": "0A0BB47E38A04822170C7F1622196A2A7A588D163BAFDE77D42C9931155D9E40",
@@ -126,7 +138,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-011",
+      "id": "MIG-012",
       "source": "X:\\Pi Coding Harness\\docs\\USER-GUIDE.md",
       "destination": "docs/USER-GUIDE.md",
       "source_sha256": "486DE9701B75101D82D99D8E46A58EC4DD7E4FE0F529D767838D108180340D96",
@@ -138,7 +150,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-012",
+      "id": "MIG-013",
       "source": "X:\\Pi Coding Harness\\eslint.config.js",
       "destination": "eslint.config.js",
       "source_sha256": "7D051519C3B91D6FD251949DB20F095835EA55AEFA1670EE9E35039AC5E5516E",
@@ -150,7 +162,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-013",
+      "id": "MIG-014",
       "source": "X:\\Pi Coding Harness\\fixtures\\cache-observation.valid.json",
       "destination": "fixtures/cache-observation.valid.json",
       "source_sha256": "F2E3C06B1F44F47C8C33307828E7983343F2A0A28344ACF54D69C7E72016D9B6",
@@ -162,7 +174,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-014",
+      "id": "MIG-015",
       "source": "X:\\Pi Coding Harness\\fixtures\\checkpoint.valid.json",
       "destination": "fixtures/checkpoint.valid.json",
       "source_sha256": "5F3C9514F057C96C96E9F05506B4EFBEC82461B230AE414FC6E905B85D63F3F7",
@@ -174,7 +186,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-015",
+      "id": "MIG-016",
       "source": "X:\\Pi Coding Harness\\fixtures\\domain.valid.json",
       "destination": "fixtures/domain.valid.json",
       "source_sha256": "7048BBD3A68C551C0B2FF1FFAAF4592EE5B72E652C9DABC3CFE143AAD51FA570",
@@ -186,7 +198,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-016",
+      "id": "MIG-017",
       "source": "X:\\Pi Coding Harness\\fixtures\\event.valid.json",
       "destination": "fixtures/event.valid.json",
       "source_sha256": "E22E54140333289943290ED2346888630EFF826DEBB1F817126CA5551805925A",
@@ -198,7 +210,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-017",
+      "id": "MIG-018",
       "source": "X:\\Pi Coding Harness\\fixtures\\memory-v3-capture-corpus.valid.json",
       "destination": "fixtures/memory-v3-capture-corpus.valid.json",
       "source_sha256": "51AE01F18F2CCD79AA622AD98EE1695E26581D84B4F24A54244664DF81D2822F",
@@ -210,7 +222,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-018",
+      "id": "MIG-019",
       "source": "X:\\Pi Coding Harness\\fixtures\\output-observation.valid.json",
       "destination": "fixtures/output-observation.valid.json",
       "source_sha256": "FB0134C90B7CD9F030AA7DCF4FC03B4B7EBB95443526FEB9E89D06363601A3F0",
@@ -222,7 +234,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-019",
+      "id": "MIG-020",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-contract.valid.json",
       "destination": "fixtures/performance-contract.valid.json",
       "source_sha256": "E314DA3ABB3145842CAE50AEE8A36E4CDDAE229E61A1F6B4A2BDB92CCC780632",
@@ -234,7 +246,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-020",
+      "id": "MIG-021",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-sample.valid.json",
       "destination": "fixtures/performance-sample.valid.json",
       "source_sha256": "C080316911D5949A492B5F443410FB47CEAAC00C20A5EF0C1A65E65B23652AEE",
@@ -246,7 +258,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-021",
+      "id": "MIG-022",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-trial.valid.json",
       "destination": "fixtures/performance-trial.valid.json",
       "source_sha256": "FCE09666F65364F960782EB828BCC6F5E1929997BC7D8B8D0174CB9A8E929858",
@@ -258,7 +270,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-022",
+      "id": "MIG-023",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance-verdict.valid.json",
       "destination": "fixtures/performance-verdict.valid.json",
       "source_sha256": "DEA932A952ED62EE093EDE5BE495987A83CC592EC3C2D4791D219BDA0893CAFF",
@@ -270,7 +282,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-023",
+      "id": "MIG-024",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance\\node\\workload.mjs",
       "destination": "fixtures/performance/node/workload.mjs",
       "source_sha256": "F0F4BD3F4DB49DB57940985137F5F272B61FFCED8C34333D7B1CECE015B9CFF7",
@@ -282,7 +294,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-024",
+      "id": "MIG-025",
       "source": "X:\\Pi Coding Harness\\fixtures\\performance\\powershell\\workload.ps1",
       "destination": "fixtures/performance/powershell/workload.ps1",
       "source_sha256": "73E7ECFEBFE29A457AD6D30C4E69E9889F36212D29DF4C3D1CF8297904E33B3A",
@@ -294,7 +306,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-025",
+      "id": "MIG-026",
       "source": "X:\\Pi Coding Harness\\fixtures\\plan.valid.json",
       "destination": "fixtures/plan.valid.json",
       "source_sha256": "E59151EAAA2AB34FD0D5C7B28CA95A4B2EEB989B7F0224209DA4DA2240335684",
@@ -306,7 +318,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-026",
+      "id": "MIG-027",
       "source": "X:\\Pi Coding Harness\\fixtures\\plans\\README.md",
       "destination": "fixtures/plans/README.md",
       "source_sha256": "A368D4CC63E4F6267C1072F02CFFBBD8D87F9D05ADAF0B816CAF3A55FFDCCAA5",
@@ -318,7 +330,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-027",
+      "id": "MIG-028",
       "source": "X:\\Pi Coding Harness\\fixtures\\prompt-generation.valid.json",
       "destination": "fixtures/prompt-generation.valid.json",
       "source_sha256": "07F64112CFDBDE6AB50AB2CA8D8B9CAB86C58614919546062978D970AF36DE1D",
@@ -330,7 +342,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-028",
+      "id": "MIG-029",
       "source": "X:\\Pi Coding Harness\\fixtures\\prompt-request.valid.json",
       "destination": "fixtures/prompt-request.valid.json",
       "source_sha256": "FEAD0527D6835F437106314CF736BB71F24D2496F33F8BA07F53942734B57136",
@@ -342,7 +354,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-029",
+      "id": "MIG-030",
       "source": "X:\\Pi Coding Harness\\fixtures\\receipt.valid.json",
       "destination": "fixtures/receipt.valid.json",
       "source_sha256": "58AD31A690A22BF71DAF3BC480960ABE24546D85866B55A5161280BB37D951C2",
@@ -354,7 +366,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-030",
+      "id": "MIG-031",
       "source": "X:\\Pi Coding Harness\\fixtures\\requirements.valid.json",
       "destination": "fixtures/requirements.valid.json",
       "source_sha256": "BEC2EF7A750D9F983009F3425617213278A7956BBCCEAEE8B440B3EC85951746",
@@ -366,7 +378,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-031",
+      "id": "MIG-032",
       "source": "X:\\Pi Coding Harness\\fixtures\\requirements\\README.md",
       "destination": "fixtures/requirements/README.md",
       "source_sha256": "B7B82A4F440CD1002BF086E3381FF93CD67FD79D7BC4D5E0404F823A94D72290",
@@ -378,7 +390,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-032",
+      "id": "MIG-033",
       "source": "X:\\Pi Coding Harness\\fixtures\\response-contract.valid.json",
       "destination": "fixtures/response-contract.valid.json",
       "source_sha256": "3C78D62FF1DFFCE1BF54E0DD4AC8D112647E5AAFE30E87418EB800C49F9B795A",
@@ -390,7 +402,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-033",
+      "id": "MIG-034",
       "source": "X:\\Pi Coding Harness\\fixtures\\tool-result-projection.valid.json",
       "destination": "fixtures/tool-result-projection.valid.json",
       "source_sha256": "1CB8B2F53B211103C1F2975DEFD5B47245F4A4B6016A7770D37F2797F1408D53",
@@ -402,7 +414,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-034",
+      "id": "MIG-035",
       "source": "X:\\Pi Coding Harness\\LICENSE",
       "destination": "LICENSE",
       "source_sha256": "ECC8DE64590E1CF285815344CAE4EB84E88A0B8E8EAC806B3B6145301F4C1789",
@@ -414,7 +426,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-035",
+      "id": "MIG-036",
       "source": "X:\\Pi Coding Harness\\LICENSES\\PI-CODING-AGENT-MIT.txt",
       "destination": "LICENSES/PI-CODING-AGENT-MIT.txt",
       "source_sha256": "FA7FCFB50C38B85FD39754A8EBC5F21C71903819FB82C48C5781FD3FF25ECB65",
@@ -426,7 +438,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-036",
+      "id": "MIG-037",
       "source": "X:\\Pi Coding Harness\\LICENSES\\README.md",
       "destination": "LICENSES/README.md",
       "source_sha256": "12B173E285FB024A64FA3B5F4959D4892CB3F22103592A3FF8FCD3D86E68738C",
@@ -438,7 +450,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-037",
+      "id": "MIG-038",
       "source": "X:\\Pi Coding Harness\\manifests\\ACCEPTANCE-CONTRACT.json",
       "destination": "manifests/ACCEPTANCE-CONTRACT.json",
       "source_sha256": "B4FF584379955C02F6AFFF7BBC793A909C64234F1B66DFC7651CE3285DAD7DE7",
@@ -450,7 +462,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-038",
+      "id": "MIG-039",
       "source": "X:\\Pi Coding Harness\\manifests\\CACHE-PROVIDER-EVIDENCE.json",
       "destination": "manifests/CACHE-PROVIDER-EVIDENCE.json",
       "source_sha256": "961A4ADC80ECEADE91764D3B4DD94FAA0B2CB43B2EFCBA5BE3606E0A596325E6",
@@ -462,7 +474,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-039",
+      "id": "MIG-040",
       "source": "X:\\Pi Coding Harness\\manifests\\QUEUED-SCOPE-EXTENSIONS.json",
       "destination": "manifests/QUEUED-SCOPE-EXTENSIONS.json",
       "source_sha256": "F1475492ED341015165268F7068EE05855A6C45EFACBD19D53B68A7099A9AAEB",
@@ -474,7 +486,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-040",
+      "id": "MIG-041",
       "source": "X:\\Pi Coding Harness\\NOTICE",
       "destination": "NOTICE",
       "source_sha256": "1DF08E646EC58069293463CEAD15A31FB1C76FB8AF640D09F07840D58FCB7BE9",
@@ -486,7 +498,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-041",
+      "id": "MIG-042",
       "source": "X:\\Pi Coding Harness\\package-lock.json",
       "destination": "package-lock.json",
       "source_sha256": "E44D4814C650EB78A68C21AD5D95B6FCD95273D18441A8586F8599BB849455A4",
@@ -498,7 +510,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-042",
+      "id": "MIG-043",
       "source": "X:\\Pi Coding Harness\\package.json",
       "destination": "package.json",
       "source_sha256": "970860FA9529494873DD3FD26CB0B5B680726F2C184BA8A0900A6E4FE277A422",
@@ -510,7 +522,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-043",
+      "id": "MIG-044",
       "source": "X:\\Pi Coding Harness\\README.md",
       "destination": "README.md",
       "source_sha256": "5AB4C97049DA0C2FDDB6CF941D95925F41EAED93D53146859FBC6BA91F8FB823",
@@ -522,7 +534,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-044",
+      "id": "MIG-045",
       "source": "X:\\Pi Coding Harness\\README.zh-CN.md",
       "destination": "README.zh-CN.md",
       "source_sha256": "82BFC30C44D504D2D7073C473E855F4FA0586ADEFA427C8A8D0EFD5ACBC6D59A",
@@ -534,7 +546,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-045",
+      "id": "MIG-046",
       "source": "X:\\Pi Coding Harness\\schemas\\acceptance.schema.json",
       "destination": "schemas/acceptance.schema.json",
       "source_sha256": "C0F2F0351238749AA49502B59034152D8C496DAAC16101A2DAA64C7876313DF1",
@@ -546,7 +558,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-046",
+      "id": "MIG-047",
       "source": "X:\\Pi Coding Harness\\schemas\\cache-observation.schema.json",
       "destination": "schemas/cache-observation.schema.json",
       "source_sha256": "2164DCE739DDD82BBEDCFF149FF1245755413FE1F78A31FF56A6F12FC72209BB",
@@ -558,7 +570,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-047",
+      "id": "MIG-048",
       "source": "X:\\Pi Coding Harness\\schemas\\cache-provider-evidence.schema.json",
       "destination": "schemas/cache-provider-evidence.schema.json",
       "source_sha256": "6F709B7488A3F52140B36EF13CE45B9B7761941530A866B7667017B9942DE41C",
@@ -570,7 +582,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-048",
+      "id": "MIG-049",
       "source": "X:\\Pi Coding Harness\\schemas\\checkpoint.schema.json",
       "destination": "schemas/checkpoint.schema.json",
       "source_sha256": "ADA9885CFC675E20DDC67648E0003388082370F32E1656E11889D6E80AC8D052",
@@ -582,7 +594,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-049",
+      "id": "MIG-050",
       "source": "X:\\Pi Coding Harness\\schemas\\config.schema.json",
       "destination": "schemas/config.schema.json",
       "source_sha256": "F29296F1080CECBD19BEB4BE0FE0DA280088291055D93B4C420CC7C45AAF8890",
@@ -594,7 +606,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-050",
+      "id": "MIG-051",
       "source": "X:\\Pi Coding Harness\\schemas\\context-candidate.schema.json",
       "destination": "schemas/context-candidate.schema.json",
       "source_sha256": "B669782BFC5E0B1EA5209DBBD84903C329A11F9E30DFFA82A77A2A3EBD46A295",
@@ -606,7 +618,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-051",
+      "id": "MIG-052",
       "source": "X:\\Pi Coding Harness\\schemas\\context-compile-receipt.schema.json",
       "destination": "schemas/context-compile-receipt.schema.json",
       "source_sha256": "39BE6B7F780477D20400FDB5E6BD77F134A9E02FD866AF7E861ED8A7B2CF5F94",
@@ -618,7 +630,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-052",
+      "id": "MIG-053",
       "source": "X:\\Pi Coding Harness\\schemas\\context-demand.schema.json",
       "destination": "schemas/context-demand.schema.json",
       "source_sha256": "A9C5D24E80308D972B9F5354D46F8AB281128132B53CAE96B99541BB38256C4F",
@@ -630,7 +642,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-053",
+      "id": "MIG-054",
       "source": "X:\\Pi Coding Harness\\schemas\\context-envelope.schema.json",
       "destination": "schemas/context-envelope.schema.json",
       "source_sha256": "A85787B154807C819FECB98C59B8851532EA9256AC9B48B9E22D6B83772483D2",
@@ -642,7 +654,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-054",
+      "id": "MIG-055",
       "source": "X:\\Pi Coding Harness\\schemas\\context-episode-observation.schema.json",
       "destination": "schemas/context-episode-observation.schema.json",
       "source_sha256": "A29DE250EBCCD781D9C4D8F371396D10AE72F7421C80E8CA108459E06C9BB996",
@@ -654,7 +666,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-055",
+      "id": "MIG-056",
       "source": "X:\\Pi Coding Harness\\schemas\\context-layout-manifest.schema.json",
       "destination": "schemas/context-layout-manifest.schema.json",
       "source_sha256": "61D67EC872BA31DE2417697F07AB274A72964B2A2E99081289EC205F6B39A842",
@@ -666,7 +678,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-056",
+      "id": "MIG-057",
       "source": "X:\\Pi Coding Harness\\schemas\\context-projection-receipt.schema.json",
       "destination": "schemas/context-projection-receipt.schema.json",
       "source_sha256": "BB93B6147035F3D0B7125CBD4A3C591E8BF47E46DBE45BABB1067262F4C14434",
@@ -678,7 +690,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-057",
+      "id": "MIG-058",
       "source": "X:\\Pi Coding Harness\\schemas\\context-working-set.schema.json",
       "destination": "schemas/context-working-set.schema.json",
       "source_sha256": "6618E7F3DE4A716AF6261F8949356F23ABA8FADE0C0179F8B96473F8A8D55AC1",
@@ -690,7 +702,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-058",
+      "id": "MIG-059",
       "source": "X:\\Pi Coding Harness\\schemas\\domain.schema.json",
       "destination": "schemas/domain.schema.json",
       "source_sha256": "B4EC8B0A2E23382B3E1956C435626B550520D1E097C96A1201EF54676987888F",
@@ -702,7 +714,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-059",
+      "id": "MIG-060",
       "source": "X:\\Pi Coding Harness\\schemas\\event.schema.json",
       "destination": "schemas/event.schema.json",
       "source_sha256": "18C7065FDB77C68DEC1EBA438C87DCF108DA79DB82FAA9AC8D608FB1DE7B3A19",
@@ -714,7 +726,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-060",
+      "id": "MIG-061",
       "source": "X:\\Pi Coding Harness\\schemas\\execution-subject-ref.schema.json",
       "destination": "schemas/execution-subject-ref.schema.json",
       "source_sha256": "6B383503AE60A3228A606042B24A8D5788FDD232BE1EE2869A08E9B189CE8B11",
@@ -726,7 +738,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-061",
+      "id": "MIG-062",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-activation.schema.json",
       "destination": "schemas/input-context-activation.schema.json",
       "source_sha256": "35CC28D703FD5AF7586C84ED0779EF87447CD3C8030BF7344209A764D53BDD41",
@@ -738,7 +750,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-062",
+      "id": "MIG-063",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-common.schema.json",
       "destination": "schemas/input-context-common.schema.json",
       "source_sha256": "A45D5C12E49E580E50408B43A79205EF43F172552CD0029C637EE5DFDB545C26",
@@ -750,7 +762,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-063",
+      "id": "MIG-064",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-user-authorization.schema.json",
       "destination": "schemas/input-context-user-authorization.schema.json",
       "source_sha256": "E11F1820714B33227C49917E72CA0FF990D8CE315A9218FB843BD1BA5AF366E9",
@@ -762,7 +774,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-064",
+      "id": "MIG-065",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-v1-activation.schema.json",
       "destination": "schemas/input-context-v1-activation.schema.json",
       "source_sha256": "4DCF76C237AB45FC17230B75C33863565D899111FAEADBCC214EB0E33297D717",
@@ -774,7 +786,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-065",
+      "id": "MIG-066",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-v1-matched-preregistration.schema.json",
       "destination": "schemas/input-context-v1-matched-preregistration.schema.json",
       "source_sha256": "1C3C0771CAC22699317257D01CC2FAB906F3494804D64391C423418550977F33",
@@ -786,7 +798,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-066",
+      "id": "MIG-067",
       "source": "X:\\Pi Coding Harness\\schemas\\input-context-v1-matched.schema.json",
       "destination": "schemas/input-context-v1-matched.schema.json",
       "source_sha256": "FA2F5B4716BA8937D07CB8806E8E7447B21D07C86703D54327EF8C6BFC3594A5",
@@ -798,7 +810,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-067",
+      "id": "MIG-068",
       "source": "X:\\Pi Coding Harness\\schemas\\intake-calibration.schema.json",
       "destination": "schemas/intake-calibration.schema.json",
       "source_sha256": "E8F080E5DE25F84E7E3664515827072FAE01DAD282BFBE6CC542530577325DA5",
@@ -810,7 +822,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-068",
+      "id": "MIG-069",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v2-activation.schema.json",
       "destination": "schemas/memory-v2-activation.schema.json",
       "source_sha256": "36C6F968F568E6429DAD17BA0599266889B4FA8AAFA1ABB3301B80E30AC4B09B",
@@ -822,7 +834,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-069",
+      "id": "MIG-070",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v2-matched-corpus.schema.json",
       "destination": "schemas/memory-v2-matched-corpus.schema.json",
       "source_sha256": "CF0BA381FF8DF80CFA5189CBC8D18E22CC3EDD509D3CCE37C2E85B89EF63EDFC",
@@ -834,7 +846,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-070",
+      "id": "MIG-071",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v3-activation.schema.json",
       "destination": "schemas/memory-v3-activation.schema.json",
       "source_sha256": "E3ED69290832D715532FC55F58EE4C1AC904B150912DD0F2DA68233E6F4DE57E",
@@ -846,7 +858,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-071",
+      "id": "MIG-072",
       "source": "X:\\Pi Coding Harness\\schemas\\memory-v3-capture-corpus.schema.json",
       "destination": "schemas/memory-v3-capture-corpus.schema.json",
       "source_sha256": "77F316B1AFAD728522C228104A361C5F32BAD2987931DFDD07328991208A08EA",
@@ -858,7 +870,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-072",
+      "id": "MIG-073",
       "source": "X:\\Pi Coding Harness\\schemas\\migration-manifest.schema.json",
       "destination": "schemas/migration-manifest.schema.json",
       "source_sha256": "A7D12EBAC3B339FBDB2565728310800F7513655F37F2AD4C5C5777F4CAC4BCF4",
@@ -870,7 +882,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-073",
+      "id": "MIG-074",
       "source": "X:\\Pi Coding Harness\\schemas\\output-observation.schema.json",
       "destination": "schemas/output-observation.schema.json",
       "source_sha256": "C9EE3E46C19D4F7007F361E794CEDA15C9ACFD9E6F95EAA3142F1BFE6DEF6CE9",
@@ -882,7 +894,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-074",
+      "id": "MIG-075",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-contract.schema.json",
       "destination": "schemas/performance-contract.schema.json",
       "source_sha256": "4BF5DA22B338F809416E0662DE9E6EE18CEEFA0EFCAA8BAEA38A70A37C555EED",
@@ -894,7 +906,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-075",
+      "id": "MIG-076",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-sample.schema.json",
       "destination": "schemas/performance-sample.schema.json",
       "source_sha256": "AE392354DCFA94655ED983A7B736FF96D343E1BBF0A6F60B0BD5096BB54E6336",
@@ -906,7 +918,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-076",
+      "id": "MIG-077",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-trial.schema.json",
       "destination": "schemas/performance-trial.schema.json",
       "source_sha256": "50D6CFC0E337AD8556865E954FA2DEF32FB846232A5AFFF9C5D876215038B57B",
@@ -918,7 +930,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-077",
+      "id": "MIG-078",
       "source": "X:\\Pi Coding Harness\\schemas\\performance-verdict.schema.json",
       "destination": "schemas/performance-verdict.schema.json",
       "source_sha256": "18ACD4B528AA8E911DC7F4F63A8FF04B37EC71B7082C38A5A4ACCDA67910D6F9",
@@ -930,7 +942,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-078",
+      "id": "MIG-079",
       "source": "X:\\Pi Coding Harness\\schemas\\plan.schema.json",
       "destination": "schemas/plan.schema.json",
       "source_sha256": "C09A4AF07C4451F7738CD7542C7A33C25C39605C0875E1BA75582DB7B68CA329",
@@ -942,7 +954,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-079",
+      "id": "MIG-080",
       "source": "X:\\Pi Coding Harness\\schemas\\project-knowledge-claim.schema.json",
       "destination": "schemas/project-knowledge-claim.schema.json",
       "source_sha256": "4E3648D8E1889F8F44D6F50F3097400F0FCEB5665D819B38643AABE1D2D8FF87",
@@ -954,7 +966,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-080",
+      "id": "MIG-081",
       "source": "X:\\Pi Coding Harness\\schemas\\project-source-manifest.schema.json",
       "destination": "schemas/project-source-manifest.schema.json",
       "source_sha256": "320FBBBBDA23DF67B691BBAED7C66BFFA4E9A44129BAC65654FC5CD1402B0371",
@@ -966,7 +978,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-081",
+      "id": "MIG-082",
       "source": "X:\\Pi Coding Harness\\schemas\\project-state.schema.json",
       "destination": "schemas/project-state.schema.json",
       "source_sha256": "45688903038BFE5CA729C610697DA894318B8E20C6823DE35FAFF1C127F5FE15",
@@ -978,7 +990,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-082",
+      "id": "MIG-083",
       "source": "X:\\Pi Coding Harness\\schemas\\prompt-generation.schema.json",
       "destination": "schemas/prompt-generation.schema.json",
       "source_sha256": "FE43C064B75E364D965F454CA74EF87B7A5D0955E15B81B49DB124596CF4B611",
@@ -990,7 +1002,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-083",
+      "id": "MIG-084",
       "source": "X:\\Pi Coding Harness\\schemas\\prompt-request.schema.json",
       "destination": "schemas/prompt-request.schema.json",
       "source_sha256": "062B5C538F614DDCA28F131793D976E431EC8A59D76B41E06D62D76FF367CAD4",
@@ -1002,7 +1014,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-084",
+      "id": "MIG-085",
       "source": "X:\\Pi Coding Harness\\schemas\\provider-turn-ledger.schema.json",
       "destination": "schemas/provider-turn-ledger.schema.json",
       "source_sha256": "D90654A41817AAB54D44A08A848EAADADF6F276C1AC3369A6CFC9BEDDEE6314D",
@@ -1014,7 +1026,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-085",
+      "id": "MIG-086",
       "source": "X:\\Pi Coding Harness\\schemas\\queued-scope-extensions.schema.json",
       "destination": "schemas/queued-scope-extensions.schema.json",
       "source_sha256": "63534C25FDE621633FFA45571AA4BC1CE098B324A56DF9E7164444C50FE56F15",
@@ -1026,7 +1038,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-086",
+      "id": "MIG-087",
       "source": "X:\\Pi Coding Harness\\schemas\\read-evidence-receipt.schema.json",
       "destination": "schemas/read-evidence-receipt.schema.json",
       "source_sha256": "96998511E1693A1AC65D9E5B64AD1AFBDE6E5EA5762F9184E1F858AC0D13EA9F",
@@ -1038,7 +1050,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-087",
+      "id": "MIG-088",
       "source": "X:\\Pi Coding Harness\\schemas\\receipt.schema.json",
       "destination": "schemas/receipt.schema.json",
       "source_sha256": "23D70A6BA2D2AE6EF46D76F0AF2AB4E2091EC6AA7AAF38F903B32BCEA9F4090D",
@@ -1050,7 +1062,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-088",
+      "id": "MIG-089",
       "source": "X:\\Pi Coding Harness\\schemas\\requirements.schema.json",
       "destination": "schemas/requirements.schema.json",
       "source_sha256": "6CC4BC082B491B5C4F1A38978F6D4CCDE384A36B08E8227882BF551DF93810C2",
@@ -1062,7 +1074,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-089",
+      "id": "MIG-090",
       "source": "X:\\Pi Coding Harness\\schemas\\response-contract.schema.json",
       "destination": "schemas/response-contract.schema.json",
       "source_sha256": "456FBE80B3989075366D784AE20678C119B9B73FFC98450B5606DE260718EFCF",
@@ -1074,7 +1086,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-090",
+      "id": "MIG-091",
       "source": "X:\\Pi Coding Harness\\schemas\\source-hashes.schema.json",
       "destination": "schemas/source-hashes.schema.json",
       "source_sha256": "72B00C45D28C6F592A49D220600A8D492F3646518B185608367D1F236CA85F0F",
@@ -1086,7 +1098,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-091",
+      "id": "MIG-092",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\001_core.sql",
       "destination": "schemas/sql/001_core.sql",
       "source_sha256": "E8A8E1D9131FB6BC42C2E798A3E353226322E9FC09D3F51AEE393CC15E28A8CD",
@@ -1098,7 +1110,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-092",
+      "id": "MIG-093",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\002_experiments.sql",
       "destination": "schemas/sql/002_experiments.sql",
       "source_sha256": "FE46461DE70764F5FBDFD5A979D796B0C03C6638CAE42203EA11684F1CA332FE",
@@ -1110,7 +1122,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-093",
+      "id": "MIG-094",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\003_memory.sql",
       "destination": "schemas/sql/003_memory.sql",
       "source_sha256": "C1D2DE15A624A2E72E7DC8D7A021721907DA8FAA0335AE3424331A6E2F687A3F",
@@ -1122,7 +1134,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-094",
+      "id": "MIG-095",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\004_memory_fts.sql",
       "destination": "schemas/sql/004_memory_fts.sql",
       "source_sha256": "9BAB9B4C4D132D0331C3942D23B25D1C602C320A6A670D9C8E4583C584E15D5D",
@@ -1134,7 +1146,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-095",
+      "id": "MIG-096",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\005_memory_claims.sql",
       "destination": "schemas/sql/005_memory_claims.sql",
       "source_sha256": "E66F94FF88747F754734575FD41A89B12C1D8318BCBE66949CDFFA655B4E8C9E",
@@ -1146,7 +1158,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-096",
+      "id": "MIG-097",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\006_memory_claims_fts.sql",
       "destination": "schemas/sql/006_memory_claims_fts.sql",
       "source_sha256": "9A9D137A7DA2D6AFBA9295000E69675B6471E364D1C67AF043B60F9F0769881A",
@@ -1158,7 +1170,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-097",
+      "id": "MIG-098",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\007_memory_checkpoint.sql",
       "destination": "schemas/sql/007_memory_checkpoint.sql",
       "source_sha256": "266F0E068530D91F9EA02FA2454DAD3AEBB3D9536AB08A76A27DE05845B98E72",
@@ -1170,7 +1182,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-098",
+      "id": "MIG-099",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\008_memory_v3_vault.sql",
       "destination": "schemas/sql/008_memory_v3_vault.sql",
       "source_sha256": "3F74F1AF0DF8397DFBFD27EFB30983538826C7EB499DAB3A1E00C1F6C8928335",
@@ -1182,7 +1194,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-099",
+      "id": "MIG-100",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\009_memory_v3_lifecycle.sql",
       "destination": "schemas/sql/009_memory_v3_lifecycle.sql",
       "source_sha256": "F6398FCEC4E959D9CA5261FC254141DCFF0ED7E62D96E1507484963758002944",
@@ -1194,7 +1206,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-100",
+      "id": "MIG-101",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\010_memory_v3_1_capture.sql",
       "destination": "schemas/sql/010_memory_v3_1_capture.sql",
       "source_sha256": "2092EE899426E67B3BE2F97827036791B093BC21C4B746E7A074E7E64E0D5324",
@@ -1206,7 +1218,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-101",
+      "id": "MIG-102",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\011_task_flow_kernel_v1.sql",
       "destination": "schemas/sql/011_task_flow_kernel_v1.sql",
       "source_sha256": "01689995A45ECFC1BC6B9EB6C3D641D344325FBD970D305E503011A8C630C049",
@@ -1218,7 +1230,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-102",
+      "id": "MIG-103",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\012_input_context_v1.sql",
       "destination": "schemas/sql/012_input_context_v1.sql",
       "source_sha256": "BD8D18D644311AD32F7C51D4B60E9CA374477CD39EC02D39B74B366EE6F716EB",
@@ -1230,7 +1242,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-103",
+      "id": "MIG-104",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\013_coding_harness_v1.sql",
       "destination": "schemas/sql/013_coding_harness_v1.sql",
       "source_sha256": "986C9D78D63D5D80D4C870CFCBC1E99B3C9468EA183C601A1578B866EE015A60",
@@ -1242,7 +1254,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-104",
+      "id": "MIG-105",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\014_cache_v2.sql",
       "destination": "schemas/sql/014_cache_v2.sql",
       "source_sha256": "169F293591A3574440AC98F0340D301496377E296EBEC51B7E8A9C2FD7725236",
@@ -1254,7 +1266,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-105",
+      "id": "MIG-106",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\015_compaction_v2_1.sql",
       "destination": "schemas/sql/015_compaction_v2_1.sql",
       "source_sha256": "019F4F3084E9D35132755963EE32A5586FD36A8DC0238AD0175E11F440C0FD03",
@@ -1266,7 +1278,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-106",
+      "id": "MIG-107",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\016_provider_turn_ledger_v2.sql",
       "destination": "schemas/sql/016_provider_turn_ledger_v2.sql",
       "source_sha256": "6571DD7DE25526558A712A61AEB11C4FB5E86B6111EC856E47056049A80F3886",
@@ -1278,7 +1290,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-107",
+      "id": "MIG-108",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\017_target_performance_receipts.sql",
       "destination": "schemas/sql/017_target_performance_receipts.sql",
       "source_sha256": "509CA86DD5C22308DAD4AE1A9EA0A6F9C88D09C2508B19E5C43D655553A9C690",
@@ -1290,7 +1302,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-108",
+      "id": "MIG-109",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\018_control_plane_v2.sql",
       "destination": "schemas/sql/018_control_plane_v2.sql",
       "source_sha256": "9896911AD8F4B2753876192DD3EE19141834CA361B0EC03564E54B7C695340E0",
@@ -1302,7 +1314,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-109",
+      "id": "MIG-110",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\019_patch_transaction_v1.sql",
       "destination": "schemas/sql/019_patch_transaction_v1.sql",
       "source_sha256": "1337C601F8E9AA9D67D53993A7230C364AD1D387E794A929AB6C704B5A629C5F",
@@ -1314,7 +1326,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-110",
+      "id": "MIG-111",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\020_authority_acceptance_v2.sql",
       "destination": "schemas/sql/020_authority_acceptance_v2.sql",
       "source_sha256": "DFAFA731FF43339683759F431F5119E7DD001A0F0DEF400BCED164604EEF76E7",
@@ -1326,7 +1338,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-111",
+      "id": "MIG-112",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\021_intake_decision_goal_fit_v2.sql",
       "destination": "schemas/sql/021_intake_decision_goal_fit_v2.sql",
       "source_sha256": "3D97EF9347EF8FF667B04EB3998300D64ED2B4FD98E6F7FBE4E51B774DA3E869",
@@ -1338,7 +1350,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-112",
+      "id": "MIG-113",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\022_plan_change_invalidation_v2.sql",
       "destination": "schemas/sql/022_plan_change_invalidation_v2.sql",
       "source_sha256": "BDAE37FDC3CC4A345B7B2A84D47BBD10BBB4D4B865FC763C03A3CA9950336233",
@@ -1350,7 +1362,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-113",
+      "id": "MIG-114",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\023_dynamic_multi_v2.sql",
       "destination": "schemas/sql/023_dynamic_multi_v2.sql",
       "source_sha256": "90DC6C980B95D30865BF06D5FF97665790A301CA8F41E837AFB0AB1C1B12215E",
@@ -1362,7 +1374,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-114",
+      "id": "MIG-115",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\024_active_goal_change_intake_v2.sql",
       "destination": "schemas/sql/024_active_goal_change_intake_v2.sql",
       "source_sha256": "401B3A5A7032CBA991A04CA909323D8459A531258106B03ED13F160FDA84CE38",
@@ -1374,7 +1386,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-115",
+      "id": "MIG-116",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\025_goal_fit_assessment_v2.sql",
       "destination": "schemas/sql/025_goal_fit_assessment_v2.sql",
       "source_sha256": "A85F5FBE76770EA6F33C7B2932397E4FE2B281D9D34E5326E7E4B35E0A1E9D7D",
@@ -1386,7 +1398,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-116",
+      "id": "MIG-117",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\026_goal_fit_review_identity_v2.sql",
       "destination": "schemas/sql/026_goal_fit_review_identity_v2.sql",
       "source_sha256": "8A4E1A820F23283195F4642890C2ABEED2DA6402C8D7524F0DBE98E8B4DA806F",
@@ -1398,7 +1410,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-117",
+      "id": "MIG-118",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\027_change_acceptance_v2.sql",
       "destination": "schemas/sql/027_change_acceptance_v2.sql",
       "source_sha256": "B41647CB9855DCB6748563E4F078599D386FF88E72637F9DC08827555AE55B64",
@@ -1410,7 +1422,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-118",
+      "id": "MIG-119",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\028_dynamic_multi_execution_v2.sql",
       "destination": "schemas/sql/028_dynamic_multi_execution_v2.sql",
       "source_sha256": "55DF090CD93AF7C4F20D47B7CED0FF7CEC3F63B63C00242D286A3C0F046DD9A6",
@@ -1422,7 +1434,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-119",
+      "id": "MIG-120",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\029_provider_call_plan_v2.sql",
       "destination": "schemas/sql/029_provider_call_plan_v2.sql",
       "source_sha256": "805EB2A57D7D6495F97ACEB9C8CE62639F2A3E8215738D696EEA5CBB731D5F3A",
@@ -1434,7 +1446,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-120",
+      "id": "MIG-121",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\030_provider_turn_goal_binding_v1.sql",
       "destination": "schemas/sql/030_provider_turn_goal_binding_v1.sql",
       "source_sha256": "569259465E3642F37D78525C4615F5B2B1EEA5339D78859BD6184F63D48D4822",
@@ -1446,7 +1458,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-121",
+      "id": "MIG-122",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\031_dynamic_multi_integration_journal_v2.sql",
       "destination": "schemas/sql/031_dynamic_multi_integration_journal_v2.sql",
       "source_sha256": "CE99D4F2540358718656A3C88DE3944A0D26F5E9F5B7D9ED39863386679AF0D5",
@@ -1458,7 +1470,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-122",
+      "id": "MIG-123",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\032_strong_single_rollout_registry_v1.sql",
       "destination": "schemas/sql/032_strong_single_rollout_registry_v1.sql",
       "source_sha256": "50ED93F91FAF53FF7D7CA31FA6A6453A0FEA8ED5034DF3ED09A31352CCBEEF56",
@@ -1470,7 +1482,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-123",
+      "id": "MIG-124",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\033_workload_comparability_v1.sql",
       "destination": "schemas/sql/033_workload_comparability_v1.sql",
       "source_sha256": "E35593E5944F0700F43F6D6332F19D13BF974562B33F5DA68DB0459930419E3E",
@@ -1482,7 +1494,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-124",
+      "id": "MIG-125",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\034_dynamic_multi_proposal_v2.sql",
       "destination": "schemas/sql/034_dynamic_multi_proposal_v2.sql",
       "source_sha256": "0951F3A3CFF44825AB3E4E15F5D7FD8F5F542C70A65A5283A64113FE64895F62",
@@ -1494,7 +1506,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-125",
+      "id": "MIG-126",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\035_session_goal_binding_v1.sql",
       "destination": "schemas/sql/035_session_goal_binding_v1.sql",
       "source_sha256": "9D4EC08FE264A1980FC3CF5EEA25FA60B3CB821CB0840F1695E6DDB0E23FB724",
@@ -1506,7 +1518,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-126",
+      "id": "MIG-127",
       "source": "X:\\Pi Coding Harness\\schemas\\sql\\README.md",
       "destination": "schemas/sql/README.md",
       "source_sha256": "A627E69DEF2D8B1E5812DDFE193BBDEBC51E4E4A6009D44F058F56FB3BCF3694",
@@ -1518,7 +1530,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-127",
+      "id": "MIG-128",
       "source": "X:\\Pi Coding Harness\\schemas\\task-flow.schema.json",
       "destination": "schemas/task-flow.schema.json",
       "source_sha256": "A32DEC87B13D1731C92FB23BFCBD847EFACE2EA13948FCC70003A8D7F469A104",
@@ -1530,7 +1542,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-128",
+      "id": "MIG-129",
       "source": "X:\\Pi Coding Harness\\schemas\\tool-result-projection.schema.json",
       "destination": "schemas/tool-result-projection.schema.json",
       "source_sha256": "F9C82493A5E870A9C19739A69D0C984AA05E13695B78495EB79E12C6B9C57074",
@@ -1542,7 +1554,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-129",
+      "id": "MIG-130",
       "source": "X:\\Pi Coding Harness\\schemas\\tool-surface-plan.schema.json",
       "destination": "schemas/tool-surface-plan.schema.json",
       "source_sha256": "A59AE0CE52761750FCA9AAE92DEFEC9A8430A10A5E6F0D91D1BF4302FB3B8F4D",
@@ -1554,7 +1566,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-130",
+      "id": "MIG-131",
       "source": "X:\\Pi Coding Harness\\schemas\\user-function-release-gate.schema.json",
       "destination": "schemas/user-function-release-gate.schema.json",
       "source_sha256": "6D8CCAE1DE0FD54ACEF0A22534389EE773BB845280078C88BE4F4C3BC2BFF7A1",
@@ -1566,7 +1578,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-131",
+      "id": "MIG-132",
       "source": "X:\\Pi Coding Harness\\scripts\\doctor.ps1",
       "destination": "scripts/doctor.ps1",
       "source_sha256": "79A3B592C02B0A3674B94287E806D3A4A54D02D0DE9B15CBFDCE998128067A0C",
@@ -1578,23 +1590,11 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-132",
+      "id": "MIG-133",
       "source": "X:\\Pi Coding Harness\\scripts\\generate-migration-manifest.ps1",
       "destination": "scripts/generate-migration-manifest.ps1",
-      "source_sha256": "A0C64C2F4A1A8244BE97D93D34C8040805CF2149D6582C37D4B36831FD677618",
-      "destination_sha256": "A0C64C2F4A1A8244BE97D93D34C8040805CF2149D6582C37D4B36831FD677618",
-      "category": "CODE",
-      "purpose": "Required self-contained release closure.",
-      "disposition": "COPIED",
-      "rewritten": false,
-      "reason": "Copied byte-for-byte into the renamed release root."
-    },
-    {
-      "id": "MIG-133",
-      "source": "X:\\Pi Coding Harness\\scripts\\generate-source-hashes.ps1",
-      "destination": "scripts/generate-source-hashes.ps1",
-      "source_sha256": "C63FF7ADEB7A5DD40D19DF46D2D3CD4044E3948CE0A461D96C3DA119A102C14C",
-      "destination_sha256": "C63FF7ADEB7A5DD40D19DF46D2D3CD4044E3948CE0A461D96C3DA119A102C14C",
+      "source_sha256": "159688616C5ACCDFA05F2C4070B96365F8A4062E29674A3ADEBD01929BE9FF3E",
+      "destination_sha256": "159688616C5ACCDFA05F2C4070B96365F8A4062E29674A3ADEBD01929BE9FF3E",
       "category": "CODE",
       "purpose": "Required self-contained release closure.",
       "disposition": "COPIED",
@@ -1603,6 +1603,18 @@
     },
     {
       "id": "MIG-134",
+      "source": "X:\\Pi Coding Harness\\scripts\\generate-source-hashes.ps1",
+      "destination": "scripts/generate-source-hashes.ps1",
+      "source_sha256": "A1D3A1643F1F555523B77D8E36DBDD7EBA3BCABCDD0FC0D9039347A221031575",
+      "destination_sha256": "A1D3A1643F1F555523B77D8E36DBDD7EBA3BCABCDD0FC0D9039347A221031575",
+      "category": "CODE",
+      "purpose": "Required self-contained release closure.",
+      "disposition": "COPIED",
+      "rewritten": false,
+      "reason": "Copied byte-for-byte into the renamed release root."
+    },
+    {
+      "id": "MIG-135",
       "source": "X:\\Pi Coding Harness\\scripts\\install.ps1",
       "destination": "scripts/install.ps1",
       "source_sha256": "BEB2EA5543641B4329A79BD1E870C8AC5EFB5AF3EFC4DA2EE33AB195F336019E",
@@ -1614,7 +1626,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-135",
+      "id": "MIG-136",
       "source": "X:\\Pi Coding Harness\\scripts\\invoke-lifecycle.ps1",
       "destination": "scripts/invoke-lifecycle.ps1",
       "source_sha256": "71A5243F1359092299954EF116DE6634E9B06A6B0B8CE12DE086203A43AAEC0D",
@@ -1626,7 +1638,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-136",
+      "id": "MIG-137",
       "source": "X:\\Pi Coding Harness\\scripts\\measure-cache-evidence.ps1",
       "destination": "scripts/measure-cache-evidence.ps1",
       "source_sha256": "1399C24EF13705C841728495DB7423DD3B5C0F4AF21B0D48CEC77130C670E8E9",
@@ -1638,7 +1650,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-137",
+      "id": "MIG-138",
       "source": "X:\\Pi Coding Harness\\scripts\\show-resume-context.ps1",
       "destination": "scripts/show-resume-context.ps1",
       "source_sha256": "836D1C5DFAD0803FEA0732EEF902A72D5887BD07873E5E15812F2A41516E8022",
@@ -1650,7 +1662,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-138",
+      "id": "MIG-139",
       "source": "X:\\Pi Coding Harness\\scripts\\uninstall.ps1",
       "destination": "scripts/uninstall.ps1",
       "source_sha256": "DF0BBD868698C763B6D02988D6BE2BA742B9B4FF5E8E1C478E12CFE16D5A1073",
@@ -1662,11 +1674,11 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-139",
+      "id": "MIG-140",
       "source": "X:\\Pi Coding Harness\\scripts\\update-project-state.ps1",
       "destination": "scripts/update-project-state.ps1",
-      "source_sha256": "95F406D858D93AA43E131D2934BB858031AC70FA977A789A46B4445E5C7A2FC5",
-      "destination_sha256": "95F406D858D93AA43E131D2934BB858031AC70FA977A789A46B4445E5C7A2FC5",
+      "source_sha256": "8FEF6C20342A3F9F708903FF8C3B101946A922291F23513767F52A642B37F350",
+      "destination_sha256": "8FEF6C20342A3F9F708903FF8C3B101946A922291F23513767F52A642B37F350",
       "category": "CODE",
       "purpose": "Required self-contained release closure.",
       "disposition": "COPIED",
@@ -1674,7 +1686,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-140",
+      "id": "MIG-141",
       "source": "X:\\Pi Coding Harness\\scripts\\upgrade.ps1",
       "destination": "scripts/upgrade.ps1",
       "source_sha256": "667BCAAF3B367F4501113040A1C1911B18E2397AB1B4E0368D47D3E5BF23740B",
@@ -1686,7 +1698,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-141",
+      "id": "MIG-142",
       "source": "X:\\Pi Coding Harness\\scripts\\validate-json.mjs",
       "destination": "scripts/validate-json.mjs",
       "source_sha256": "D25757A3308C05AB8643B270E4D690D3E3923FBDCF14F85E0B3CA24CE513B97E",
@@ -1698,7 +1710,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-142",
+      "id": "MIG-143",
       "source": "X:\\Pi Coding Harness\\scripts\\validate-json.py",
       "destination": "scripts/validate-json.py",
       "source_sha256": "ED8C60EEC9C0D90D2F6D5AE98D5847ED68B32ED9EC001EDF00825F16F7CBA74B",
@@ -1710,7 +1722,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-143",
+      "id": "MIG-144",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-lifecycle.ps1",
       "destination": "scripts/verify-lifecycle.ps1",
       "source_sha256": "18B98EBAAC84978DF6866B7F18F43206450453D1D142E54C4AE1D7994009AFC6",
@@ -1722,7 +1734,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-144",
+      "id": "MIG-145",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-markdown.mjs",
       "destination": "scripts/verify-markdown.mjs",
       "source_sha256": "FB04145EFEE4AF42FE20E69C0F5C24D35743A09CC0DA754D1D18C1100389D2D0",
@@ -1734,7 +1746,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-145",
+      "id": "MIG-146",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-performance-baseline.ps1",
       "destination": "scripts/verify-performance-baseline.ps1",
       "source_sha256": "F9BDB95AAE741970CC5D98BDFACCAAB422F75C11D2A3A054F5A59F87CD10E8CD",
@@ -1746,7 +1758,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-146",
+      "id": "MIG-147",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-project.ps1",
       "destination": "scripts/verify-project.ps1",
       "source_sha256": "D95DAEA1CC5C3E8C2E834771AE7B67D352000A14DB1E34BC0AB936B2DAEBB8F4",
@@ -1758,7 +1770,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-147",
+      "id": "MIG-148",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-provider-backed-compaction.mjs",
       "destination": "scripts/verify-provider-backed-compaction.mjs",
       "source_sha256": "0273B3317499A0B22A2B02ADBE5A046BCC9EFFAC8B6BF08993141B35EB326B23",
@@ -1770,7 +1782,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-148",
+      "id": "MIG-149",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-self-contained.ps1",
       "destination": "scripts/verify-self-contained.ps1",
       "source_sha256": "C44BEDBBA6A40FD8B0C428BDEA43E00E7731DA0138BDAF4EAB6294D8CF9E4B1C",
@@ -1782,7 +1794,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-149",
+      "id": "MIG-150",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-sql.mjs",
       "destination": "scripts/verify-sql.mjs",
       "source_sha256": "16A93C03BD79C6210AEC2E4841DEBEDCE451A11FBC374905E93EADB061429FE8",
@@ -1794,7 +1806,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-150",
+      "id": "MIG-151",
       "source": "X:\\Pi Coding Harness\\scripts\\verify-state-update.ps1",
       "destination": "scripts/verify-state-update.ps1",
       "source_sha256": "2228369DA20FB4A9EF5E891B3FD8FB812FB158D260ECBBB2B95F9FA92082FC86",
@@ -1806,7 +1818,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-151",
+      "id": "MIG-152",
       "source": "X:\\Pi Coding Harness\\SECURITY.md",
       "destination": "SECURITY.md",
       "source_sha256": "B8D64B4219D324B4FF5B430598F0D94DB9B5318B5D477BD2583AA3B50A76342A",
@@ -1818,7 +1830,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-152",
+      "id": "MIG-153",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\completion-repository.ts",
       "destination": "src/acceptance-v2/completion-repository.ts",
       "source_sha256": "D330E0A9B5D1B67571D11F39DB202EFE8254D3211DF5ABCFB9F12A5FA0124AD7",
@@ -1830,7 +1842,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-153",
+      "id": "MIG-154",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\delivery-repository.ts",
       "destination": "src/acceptance-v2/delivery-repository.ts",
       "source_sha256": "C7CDA7D882B9C547D012B1D185505957B7842B41DD307F1125C1289A3000DD1A",
@@ -1842,7 +1854,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-154",
+      "id": "MIG-155",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\domain.ts",
       "destination": "src/acceptance-v2/domain.ts",
       "source_sha256": "50E8D1D62BEFB0B0A9D55AB4739F9C413AF6D028B871871ED55C9B1E32B5A18B",
@@ -1854,7 +1866,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-155",
+      "id": "MIG-156",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\evidence-repository.ts",
       "destination": "src/acceptance-v2/evidence-repository.ts",
       "source_sha256": "204C8D559DEB37C2895869E242D2F403420689B11E6255F2B07D913533693C4A",
@@ -1866,7 +1878,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-156",
+      "id": "MIG-157",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\execution-lineage.ts",
       "destination": "src/acceptance-v2/execution-lineage.ts",
       "source_sha256": "1BAFC5C3E3166B698ACC26A6B2073561B2316E9898893F499875C131A7D9A43C",
@@ -1878,7 +1890,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-157",
+      "id": "MIG-158",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\finalize.ts",
       "destination": "src/acceptance-v2/finalize.ts",
       "source_sha256": "F5D4012FD27CD7AFFA0D28D06F1CBE0E7ED72AB56114CB9B26255644012D6CF7",
@@ -1890,7 +1902,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-158",
+      "id": "MIG-159",
       "source": "X:\\Pi Coding Harness\\src\\acceptance-v2\\repository.ts",
       "destination": "src/acceptance-v2/repository.ts",
       "source_sha256": "78548996B6DD7F91214C6837BA2D4DE442910D8CA886767BE165A3D0247C46B2",
@@ -1902,7 +1914,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-159",
+      "id": "MIG-160",
       "source": "X:\\Pi Coding Harness\\src\\artifacts\\artifact-store.ts",
       "destination": "src/artifacts/artifact-store.ts",
       "source_sha256": "27200E6C231064464B91A5BA1A9FCBC379E218B679EE66A41CD85AB755FF7BCF",
@@ -1914,7 +1926,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-160",
+      "id": "MIG-161",
       "source": "X:\\Pi Coding Harness\\src\\artifacts\\atomic-file.ts",
       "destination": "src/artifacts/atomic-file.ts",
       "source_sha256": "E668082CC0FFC3399BF6501E009E4691F4DA4FC01D0854428CB776DF09205766",
@@ -1926,7 +1938,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-161",
+      "id": "MIG-162",
       "source": "X:\\Pi Coding Harness\\src\\artifacts\\classify.ts",
       "destination": "src/artifacts/classify.ts",
       "source_sha256": "D4B65729D0A013839C7DB0D0B92FC2B1662ABB13088B86B3752CF4504DA78DFC",
@@ -1938,7 +1950,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-162",
+      "id": "MIG-163",
       "source": "X:\\Pi Coding Harness\\src\\authority\\authority-transaction-kernel.ts",
       "destination": "src/authority/authority-transaction-kernel.ts",
       "source_sha256": "ECC708CF524158D6204082492BD8316931AEC410FC7662633439A8D6C27FC06C",
@@ -1950,7 +1962,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-163",
+      "id": "MIG-164",
       "source": "X:\\Pi Coding Harness\\src\\authority\\canonical-json.ts",
       "destination": "src/authority/canonical-json.ts",
       "source_sha256": "507A84249F531C06B8EE9AB7C59BF375ABA4B3F3695D7687B7A81C5F0234002E",
@@ -1962,7 +1974,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-164",
+      "id": "MIG-165",
       "source": "X:\\Pi Coding Harness\\src\\authority\\database.ts",
       "destination": "src/authority/database.ts",
       "source_sha256": "50B06AE65E9C660BE5CD8DC9CF434E97F0D25E5F5FB86C0509FE59DE632CE5EB",
@@ -1974,7 +1986,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-165",
+      "id": "MIG-166",
       "source": "X:\\Pi Coding Harness\\src\\authority\\event-chain.ts",
       "destination": "src/authority/event-chain.ts",
       "source_sha256": "14B845E9197206C26E5DF32A20A960141FE22FBDDA91FDFADCF81926243F8ADA",
@@ -1986,7 +1998,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-166",
+      "id": "MIG-167",
       "source": "X:\\Pi Coding Harness\\src\\authority\\experiment-migrate.ts",
       "destination": "src/authority/experiment-migrate.ts",
       "source_sha256": "77492B20421FF6034EBD1549F8C77C6C8534BF1EAD01896AA47E18FEE8E2400A",
@@ -1998,7 +2010,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-167",
+      "id": "MIG-168",
       "source": "X:\\Pi Coding Harness\\src\\authority\\lease.ts",
       "destination": "src/authority/lease.ts",
       "source_sha256": "6A2765B8707736C763384719EE6B8F6601439210D2CEC6CFD9D7DF5A7B7C324D",
@@ -2010,7 +2022,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-168",
+      "id": "MIG-169",
       "source": "X:\\Pi Coding Harness\\src\\authority\\memory-migrate.ts",
       "destination": "src/authority/memory-migrate.ts",
       "source_sha256": "E1CC9636B3893262B6A8256902A588E5B64392E504D2F88C49DF6414E0CF567D",
@@ -2022,7 +2034,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-169",
+      "id": "MIG-170",
       "source": "X:\\Pi Coding Harness\\src\\authority\\migrate.ts",
       "destination": "src/authority/migrate.ts",
       "source_sha256": "3662C33C2B38A4E492019DF380B968C938C122E280E347C475FA197EFCA1C869",
@@ -2034,7 +2046,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-170",
+      "id": "MIG-171",
       "source": "X:\\Pi Coding Harness\\src\\authority\\projections.ts",
       "destination": "src/authority/projections.ts",
       "source_sha256": "04E3E1D6B79042DC2670FBC4F79BE92A50B4A1BB37135C500D2DB8D05592B0A0",
@@ -2046,7 +2058,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-171",
+      "id": "MIG-172",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories.ts",
       "destination": "src/authority/repositories.ts",
       "source_sha256": "D1D5495F0714438D246D103D488F7FD541512CEE2954BF4C8D298FE3DF3AF312",
@@ -2058,7 +2070,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-172",
+      "id": "MIG-173",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\checkpoints.ts",
       "destination": "src/authority/repositories/checkpoints.ts",
       "source_sha256": "442B1075FE900092E838EFE1FECED11C14E106B1924D9DBDB30CC3DB2AAA95FB",
@@ -2070,7 +2082,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-173",
+      "id": "MIG-174",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\common.ts",
       "destination": "src/authority/repositories/common.ts",
       "source_sha256": "FCB32C766044EB4AB1984300B0F12F43EDB5DDFF172C300524EFE4C1C5F10A9D",
@@ -2082,7 +2094,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-174",
+      "id": "MIG-175",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\decisions.ts",
       "destination": "src/authority/repositories/decisions.ts",
       "source_sha256": "BA3015749FFE06082D5E4DB4D0F2C1864DD217F04A8AA47D712C90B344F9E3ED",
@@ -2094,7 +2106,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-175",
+      "id": "MIG-176",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\effects.ts",
       "destination": "src/authority/repositories/effects.ts",
       "source_sha256": "53DB5AB07DDBF3D3B78BCA30C77B8131AC88DF7CA3FF1DA9AC55F979D9F6B882",
@@ -2106,7 +2118,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-176",
+      "id": "MIG-177",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\evidence.ts",
       "destination": "src/authority/repositories/evidence.ts",
       "source_sha256": "735B536318AC00CB7A607EFCCA0245DD3C54CD497C473778F5B6CF56BD787C0C",
@@ -2118,7 +2130,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-177",
+      "id": "MIG-178",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\experiments.ts",
       "destination": "src/authority/repositories/experiments.ts",
       "source_sha256": "E143BB96A7AB9B00E109F3A344F1C7CFA8F582E5753F925246A974FF9CF19A4C",
@@ -2130,7 +2142,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-178",
+      "id": "MIG-179",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\memory-capture-v31.ts",
       "destination": "src/authority/repositories/memory-capture-v31.ts",
       "source_sha256": "43A000D8580CF5B086F84324D716B5DB3519D34CB6E5A21DD21693D2020BEB04",
@@ -2142,7 +2154,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-179",
+      "id": "MIG-180",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\memory-v3.ts",
       "destination": "src/authority/repositories/memory-v3.ts",
       "source_sha256": "4715759B3A8A331B81ACD109CAF473DE8DEB49D633C700D6AD4FC266E7C3FFAB",
@@ -2154,7 +2166,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-180",
+      "id": "MIG-181",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\memory.ts",
       "destination": "src/authority/repositories/memory.ts",
       "source_sha256": "60595D6F13EC30DFA829B815E3484E91809B0C7BFF7ED2B81C0506B3A047E327",
@@ -2166,7 +2178,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-181",
+      "id": "MIG-182",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\plan-health.ts",
       "destination": "src/authority/repositories/plan-health.ts",
       "source_sha256": "50E3427E021A86A39F1E3FB1EC56C11815A74039236429E463EEEA8CD468DC83",
@@ -2178,7 +2190,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-182",
+      "id": "MIG-183",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\plans.ts",
       "destination": "src/authority/repositories/plans.ts",
       "source_sha256": "127532E20F96CCBCBBB67CC24DBE01CF3B7E1CBF17236611531EB53ACF4E1813",
@@ -2190,7 +2202,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-183",
+      "id": "MIG-184",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\receipts.ts",
       "destination": "src/authority/repositories/receipts.ts",
       "source_sha256": "808BC4E5F9AEFE6D300EB9D391A1833A2904085D555256E1F365A64537FFA895",
@@ -2202,7 +2214,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-184",
+      "id": "MIG-185",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\recovery.ts",
       "destination": "src/authority/repositories/recovery.ts",
       "source_sha256": "90BB2C926A553781A035A917E284E5A94CE3214A20BC6164A53703C82C7B58A5",
@@ -2214,7 +2226,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-185",
+      "id": "MIG-186",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\requirements.ts",
       "destination": "src/authority/repositories/requirements.ts",
       "source_sha256": "AC3F4DDD62DA98031E23121A692FB7DEA33E2325721F4F3EFC1BCAEC0FD17D81",
@@ -2226,7 +2238,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-186",
+      "id": "MIG-187",
       "source": "X:\\Pi Coding Harness\\src\\authority\\repositories\\workflow.ts",
       "destination": "src/authority/repositories/workflow.ts",
       "source_sha256": "92BB380BE8EFDBACF8D159BB9E37C8CD226AC2BC89F53966AE246C25E5811FB4",
@@ -2238,7 +2250,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-187",
+      "id": "MIG-188",
       "source": "X:\\Pi Coding Harness\\src\\authority\\sqlite-runtime.ts",
       "destination": "src/authority/sqlite-runtime.ts",
       "source_sha256": "E54517A1D98482B25494C7BB7ADA9D0EA8F0B8F1C29E41FFEA79667A7DB03B13",
@@ -2250,7 +2262,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-188",
+      "id": "MIG-189",
       "source": "X:\\Pi Coding Harness\\src\\authority\\state-machines.ts",
       "destination": "src/authority/state-machines.ts",
       "source_sha256": "D3908B5787E6F77F6DDCCB51B038D6786F3AD724CB8E77CF581F32780A703221",
@@ -2262,7 +2274,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-189",
+      "id": "MIG-190",
       "source": "X:\\Pi Coding Harness\\src\\authority\\transactions.ts",
       "destination": "src/authority/transactions.ts",
       "source_sha256": "4077D223706079DEE049A361AB87FBB0C6BBD3B463D0E4BBBFABDA7B5F3524ED",
@@ -2274,7 +2286,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-190",
+      "id": "MIG-191",
       "source": "X:\\Pi Coding Harness\\src\\benchmarks\\orchbench\\simulator.ts",
       "destination": "src/benchmarks/orchbench/simulator.ts",
       "source_sha256": "F33CFF15B8848967D6AFBCE9531275B1C7A11C81B978E3ACCB8AEAA3135AC95A",
@@ -2286,7 +2298,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-191",
+      "id": "MIG-192",
       "source": "X:\\Pi Coding Harness\\src\\bridge\\register.ts",
       "destination": "src/bridge/register.ts",
       "source_sha256": "AD673CC2D20C53E91E55CA56B150B86E7BD18B2A01F3408169900E63CE41F429",
@@ -2298,7 +2310,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-192",
+      "id": "MIG-193",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\codex-local-openai-responses.ts",
       "destination": "src/cache-v2/codex-local-openai-responses.ts",
       "source_sha256": "8A79B51CC72B6D252611173AD131537AB6F56C910CCD050D965B3A3EA2C509DB",
@@ -2310,7 +2322,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-193",
+      "id": "MIG-194",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\domain.ts",
       "destination": "src/cache-v2/domain.ts",
       "source_sha256": "42B46EC0277E3E65639638A152206C62779B51E9731EDE2893910BD0732945D1",
@@ -2322,7 +2334,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-194",
+      "id": "MIG-195",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\geekspace-openai-completions.ts",
       "destination": "src/cache-v2/geekspace-openai-completions.ts",
       "source_sha256": "46F75F4036E33C43FA84552013780841AC0DA3A962E60B49A10BEFBA94CECD93",
@@ -2334,7 +2346,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-195",
+      "id": "MIG-196",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\provider-contract.ts",
       "destination": "src/cache-v2/provider-contract.ts",
       "source_sha256": "57D535DD48130FF61B755FA54594DBBDE602663157ACAACEFB3BC6497A332DD1",
@@ -2346,7 +2358,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-196",
+      "id": "MIG-197",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\provider-contracts.ts",
       "destination": "src/cache-v2/provider-contracts.ts",
       "source_sha256": "60B128D8B9E62C6D49425066110E3575D045D809F4B0D369B13D5B4F5350C84B",
@@ -2358,7 +2370,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-197",
+      "id": "MIG-198",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\repository.ts",
       "destination": "src/cache-v2/repository.ts",
       "source_sha256": "4793EFDB5DF1E1374DD027C42F89710AE48C0D107B2D325C8D4706A49D4DC14F",
@@ -2370,7 +2382,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-198",
+      "id": "MIG-199",
       "source": "X:\\Pi Coding Harness\\src\\cache-v2\\runtime.ts",
       "destination": "src/cache-v2/runtime.ts",
       "source_sha256": "061D2714676616C4DF6AE851A40E85F0F7206C6CC5AE4D7BF24AFDE10B313EB7",
@@ -2382,7 +2394,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-199",
+      "id": "MIG-200",
       "source": "X:\\Pi Coding Harness\\src\\cache\\eligibility.ts",
       "destination": "src/cache/eligibility.ts",
       "source_sha256": "4575777A693307F202BD4FCF7B97A458927E298FCB5C9E3E9665E4850B4C395B",
@@ -2394,7 +2406,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-200",
+      "id": "MIG-201",
       "source": "X:\\Pi Coding Harness\\src\\cache\\prefix-governance.ts",
       "destination": "src/cache/prefix-governance.ts",
       "source_sha256": "B63F1C226FE214978BD10EE6EA08E13974058F0A76E0CB34EF106EE020054C05",
@@ -2406,7 +2418,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-201",
+      "id": "MIG-202",
       "source": "X:\\Pi Coding Harness\\src\\cache\\provider-prompt-extractor.ts",
       "destination": "src/cache/provider-prompt-extractor.ts",
       "source_sha256": "7DE8CD14BC2E74839496B84A608A14D78163871EC681F89535A3AB2574EA3A77",
@@ -2418,7 +2430,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-202",
+      "id": "MIG-203",
       "source": "X:\\Pi Coding Harness\\src\\cache\\retention.ts",
       "destination": "src/cache/retention.ts",
       "source_sha256": "0757E44F27741B48F5E357594339FA4A406EA05A952CC6192EE268C8878CB197",
@@ -2430,7 +2442,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-203",
+      "id": "MIG-204",
       "source": "X:\\Pi Coding Harness\\src\\cache\\telemetry.ts",
       "destination": "src/cache/telemetry.ts",
       "source_sha256": "E75A1166CF7E021BD47665B1EB104A6A9992C193612BF601412F337BFCA69EEA",
@@ -2442,7 +2454,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-204",
+      "id": "MIG-205",
       "source": "X:\\Pi Coding Harness\\src\\config\\load-config.ts",
       "destination": "src/config/load-config.ts",
       "source_sha256": "9A4E4ECB0A4CC23277422798FCE16C53E822951A7626D455F3BF6A50C66DE659",
@@ -2454,7 +2466,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-205",
+      "id": "MIG-206",
       "source": "X:\\Pi Coding Harness\\src\\config\\runtime-resolution.ts",
       "destination": "src/config/runtime-resolution.ts",
       "source_sha256": "9E90B984E49AA272BF791B331FDAD59C29EB34C1E05E4B0347DCD64C92C0726A",
@@ -2466,7 +2478,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-206",
+      "id": "MIG-207",
       "source": "X:\\Pi Coding Harness\\src\\config\\types.ts",
       "destination": "src/config/types.ts",
       "source_sha256": "E7C0A2AF1CAA47698D31C79F31B04C3A33FEEAD0AF25FE34E320C8C6C41C393D",
@@ -2478,7 +2490,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-207",
+      "id": "MIG-208",
       "source": "X:\\Pi Coding Harness\\src\\context\\compaction-v21\\domain.ts",
       "destination": "src/context/compaction-v21/domain.ts",
       "source_sha256": "2333B4270760CA8DC74CD5E07ECC3BF3898465FB9B42B8A377FCF21F7A63655A",
@@ -2490,7 +2502,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-208",
+      "id": "MIG-209",
       "source": "X:\\Pi Coding Harness\\src\\context\\compaction-v21\\repository.ts",
       "destination": "src/context/compaction-v21/repository.ts",
       "source_sha256": "DA239B21FEE368BC7BCCA74E93C03872A8FC52580108991F72CCCE869665C314",
@@ -2502,7 +2514,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-209",
+      "id": "MIG-210",
       "source": "X:\\Pi Coding Harness\\src\\context\\prompt-generation.ts",
       "destination": "src/context/prompt-generation.ts",
       "source_sha256": "99313B095722AC5F19F9D3FFCA10D744A6144C8B7406CCEA8628E19C74DF8EFE",
@@ -2514,7 +2526,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-210",
+      "id": "MIG-211",
       "source": "X:\\Pi Coding Harness\\src\\context\\prompt-request.ts",
       "destination": "src/context/prompt-request.ts",
       "source_sha256": "2122965738B7BA655063C76B2FBEBAC1A7F0CAD01A2C94AC827EC652324C908F",
@@ -2526,7 +2538,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-211",
+      "id": "MIG-212",
       "source": "X:\\Pi Coding Harness\\src\\context\\protected-projection.ts",
       "destination": "src/context/protected-projection.ts",
       "source_sha256": "68B7CB2F09E702E0CA05FEFBDDD4D5FB9EDE8AEE7CD6C77C2428D0E1A243F56A",
@@ -2538,7 +2550,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-212",
+      "id": "MIG-213",
       "source": "X:\\Pi Coding Harness\\src\\context\\provider-prompt-prefix.ts",
       "destination": "src/context/provider-prompt-prefix.ts",
       "source_sha256": "57EC367B216282C8B8E2200AF2D1C6FD884958BDACC72A1BFDDE222AAD8E6E0A",
@@ -2550,7 +2562,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-213",
+      "id": "MIG-214",
       "source": "X:\\Pi Coding Harness\\src\\control\\control-frame.ts",
       "destination": "src/control/control-frame.ts",
       "source_sha256": "6FA5C81EB9F4F841EDBDACA0D5F6A13F023E30F8DFAF56FAA2EB41DA057F0C97",
@@ -2562,7 +2574,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-214",
+      "id": "MIG-215",
       "source": "X:\\Pi Coding Harness\\src\\control\\generation-governor.ts",
       "destination": "src/control/generation-governor.ts",
       "source_sha256": "C05204DFE1F2423C48F1B9A9BB91DC5B485D4AC64064E106014FE74255BA2C98",
@@ -2574,7 +2586,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-215",
+      "id": "MIG-216",
       "source": "X:\\Pi Coding Harness\\src\\effects\\bounded-command.ts",
       "destination": "src/effects/bounded-command.ts",
       "source_sha256": "FA285B8DD48427ADF4952EC0850E0426E0CCFCD212ED7CC6D4C29DBC43221044",
@@ -2586,7 +2598,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-216",
+      "id": "MIG-217",
       "source": "X:\\Pi Coding Harness\\src\\effects\\normalize.ts",
       "destination": "src/effects/normalize.ts",
       "source_sha256": "D7C9B3CD925A08867462E2B5DB1A939FAABD153D61245652D0B89DDC0384904E",
@@ -2598,7 +2610,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-217",
+      "id": "MIG-218",
       "source": "X:\\Pi Coding Harness\\src\\effects\\oracle-policy.ts",
       "destination": "src/effects/oracle-policy.ts",
       "source_sha256": "EAD842282FA3068A5A46D576663814D9238ACB124187E9ED08B40FFB6E5AFFC1",
@@ -2610,7 +2622,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-218",
+      "id": "MIG-219",
       "source": "X:\\Pi Coding Harness\\src\\effects\\patch-transaction.ts",
       "destination": "src/effects/patch-transaction.ts",
       "source_sha256": "33362E0C935410BB54754C6B2E438DA69E1CF9A60D1DA8D66E01E73E6E5B6E43",
@@ -2622,7 +2634,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-219",
+      "id": "MIG-220",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\clock.ts",
       "destination": "src/foundation/clock.ts",
       "source_sha256": "80598854CD1E181BA864B71A5B200C9DADCF313947C31EBA4833A2943C6EE42E",
@@ -2634,7 +2646,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-220",
+      "id": "MIG-221",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\crypto.ts",
       "destination": "src/foundation/crypto.ts",
       "source_sha256": "938EEB1EBA810EF61A3542DD4E8E8DD81744376210F81EF5662201F68B4D0BD9",
@@ -2646,7 +2658,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-221",
+      "id": "MIG-222",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\errors.ts",
       "destination": "src/foundation/errors.ts",
       "source_sha256": "1DCE02983C03EAA333FD2E44E973D91AE378FD22DB1C5991A46AE4A4DB26D194",
@@ -2658,7 +2670,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-222",
+      "id": "MIG-223",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\ids.ts",
       "destination": "src/foundation/ids.ts",
       "source_sha256": "7AD4E1583AA559EB1EF6B7E069ECD89011F92508F817B32D0AD3AF30E2271034",
@@ -2670,7 +2682,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-223",
+      "id": "MIG-224",
       "source": "X:\\Pi Coding Harness\\src\\foundation\\validation.ts",
       "destination": "src/foundation/validation.ts",
       "source_sha256": "3C9B73F470DB53F97AFE32BA9BCB110B86399F496B46951B2724055A508E6B17",
@@ -2682,7 +2694,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-224",
+      "id": "MIG-225",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\dynamic-multi-proposal.ts",
       "destination": "src/harness-v2/dynamic-multi-proposal.ts",
       "source_sha256": "8D6CDF4D60B5748607D55DA01E48056B28884C7DFBD444E9C352D493D60C79C9",
@@ -2694,7 +2706,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-225",
+      "id": "MIG-226",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\dynamic-multi-simulation.ts",
       "destination": "src/harness-v2/dynamic-multi-simulation.ts",
       "source_sha256": "84460EA66B0C1D9601D036BF9F47432E38A1D634270040573C4606D5C5AEF330",
@@ -2706,7 +2718,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-226",
+      "id": "MIG-227",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\strong-single-rollout.ts",
       "destination": "src/harness-v2/strong-single-rollout.ts",
       "source_sha256": "D462A5C9048AED9BBFA20491BC54A4CA6A18A0A4FBCFEB0AF68FC31C0B285795",
@@ -2718,7 +2730,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-227",
+      "id": "MIG-228",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\topology-gate.ts",
       "destination": "src/harness-v2/topology-gate.ts",
       "source_sha256": "418333D07B15CC2DB09AAA58C7B68BFCE66D2F8B3414C50F37FA6C315DB96C5A",
@@ -2730,7 +2742,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-228",
+      "id": "MIG-229",
       "source": "X:\\Pi Coding Harness\\src\\harness-v2\\workload-comparability.ts",
       "destination": "src/harness-v2/workload-comparability.ts",
       "source_sha256": "1C6A51E31D927ECE71F67064A7C2F93D0678CBC2ABDD3FDB451395CB1183F260",
@@ -2742,7 +2754,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-229",
+      "id": "MIG-230",
       "source": "X:\\Pi Coding Harness\\src\\harness\\commands.ts",
       "destination": "src/harness/commands.ts",
       "source_sha256": "7EC4579AC38AAFEC1CEC12917593C2D0139F1BC64F75C543BB5154994F8C3E72",
@@ -2754,7 +2766,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-230",
+      "id": "MIG-231",
       "source": "X:\\Pi Coding Harness\\src\\harness\\domain.ts",
       "destination": "src/harness/domain.ts",
       "source_sha256": "1F81B38FD8BA96DC02CD46B7D396B6F3944A66A0CAE461D261FC258BE46560FD",
@@ -2766,7 +2778,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-231",
+      "id": "MIG-232",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\commands.ts",
       "destination": "src/harness/execution-v2/commands.ts",
       "source_sha256": "218AD75604AA04468550A401C0D78C033590BD6C1139029C66B9260A9F770D6D",
@@ -2778,7 +2790,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-232",
+      "id": "MIG-233",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\coordinator.ts",
       "destination": "src/harness/execution-v2/coordinator.ts",
       "source_sha256": "52836E94C97FB73B422965A84CE1C40DF9938E32F4BB24E3175D348CA528E05C",
@@ -2790,7 +2802,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-233",
+      "id": "MIG-234",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\dag.ts",
       "destination": "src/harness/execution-v2/dag.ts",
       "source_sha256": "F407E755057838CEA87E1762CC1759328170D6221AB885BB1FCEC9ABAE90848D",
@@ -2802,7 +2814,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-234",
+      "id": "MIG-235",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\domain.ts",
       "destination": "src/harness/execution-v2/domain.ts",
       "source_sha256": "B6F19FFDDECCFD8C389A24E51F2860DF6601587DF78C0CEC0F2084B14F633C3B",
@@ -2814,7 +2826,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-235",
+      "id": "MIG-236",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\integration-journal.ts",
       "destination": "src/harness/execution-v2/integration-journal.ts",
       "source_sha256": "E561E8D6E8900DE24F4CBE30B95E768B0C12EE1884EAAB77D987A81153F96193",
@@ -2826,7 +2838,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-236",
+      "id": "MIG-237",
       "source": "X:\\Pi Coding Harness\\src\\harness\\execution-v2\\repository.ts",
       "destination": "src/harness/execution-v2/repository.ts",
       "source_sha256": "8603EAE219544822D88608EA24A34857BDE4A3A76E9C6F05D3599A1D104B9672",
@@ -2838,7 +2850,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-237",
+      "id": "MIG-238",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\application-protocol.ts",
       "destination": "src/harness/host/application-protocol.ts",
       "source_sha256": "C8B192ACC0BD2207E6CDD4329C9A5796BF7A9D12125D17034EC8378855840130",
@@ -2850,7 +2862,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-238",
+      "id": "MIG-239",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\client.ts",
       "destination": "src/harness/host/client.ts",
       "source_sha256": "E55B49C52F85F3054318F0CB11418978949E13C465057B53B77B1F9D26237B76",
@@ -2862,7 +2874,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-239",
+      "id": "MIG-240",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\context-runtime.ts",
       "destination": "src/harness/host/context-runtime.ts",
       "source_sha256": "91CE0E4C287C519069C9BA8FD1CF26EC36FCE754ACE61FAF85EA18C5C5D54ADB",
@@ -2874,7 +2886,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-240",
+      "id": "MIG-241",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\decision-inbox.ts",
       "destination": "src/harness/host/decision-inbox.ts",
       "source_sha256": "D506BBB27278D04E3013343457516DC9A557EB93F98ABFED4A051217D8D14D56",
@@ -2886,7 +2898,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-241",
+      "id": "MIG-242",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\dynamic-multi-lowering.ts",
       "destination": "src/harness/host/dynamic-multi-lowering.ts",
       "source_sha256": "9444C96D7DAC1297932C518714B91B0C8AC4CF1D05F86EDE3B12A1D85E6D3AD7",
@@ -2898,7 +2910,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-242",
+      "id": "MIG-243",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\entry.ts",
       "destination": "src/harness/host/entry.ts",
       "source_sha256": "A723F926B75EBE7D1A95961A45B70088CB7BEB38507E5C9997BCD89321C6B2F3",
@@ -2910,7 +2922,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-243",
+      "id": "MIG-244",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\production-dynamic-multi.ts",
       "destination": "src/harness/host/production-dynamic-multi.ts",
       "source_sha256": "6E99727FFECB5DA072C27301CE656542C6617BEB9092062E81BB22A1B269AD13",
@@ -2922,7 +2934,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-244",
+      "id": "MIG-245",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\protocol.ts",
       "destination": "src/harness/host/protocol.ts",
       "source_sha256": "12F1A08FCBBD3ACFAC2C1F1E0A007303641C01E8683E16B2DACB37630755F6C1",
@@ -2934,7 +2946,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-245",
+      "id": "MIG-246",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\runtime.ts",
       "destination": "src/harness/host/runtime.ts",
       "source_sha256": "B04431F93046BABE40C83BB521BCD50F5FE616D7B3A15040531B2A6F3B97773B",
@@ -2946,7 +2958,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-246",
+      "id": "MIG-247",
       "source": "X:\\Pi Coding Harness\\src\\harness\\host\\server.ts",
       "destination": "src/harness/host/server.ts",
       "source_sha256": "B290BDC983C10813EA0EE30793E8EA8837CA22663CDF01D5882FDE0AE051C66C",
@@ -2958,7 +2970,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-247",
+      "id": "MIG-248",
       "source": "X:\\Pi Coding Harness\\src\\harness\\migrate.ts",
       "destination": "src/harness/migrate.ts",
       "source_sha256": "F48A0B1D35E0F3EDDE89FA76E5A993FA9907C687A971EAA67908D59D364E097E",
@@ -2970,7 +2982,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-248",
+      "id": "MIG-249",
       "source": "X:\\Pi Coding Harness\\src\\harness\\output-policy.ts",
       "destination": "src/harness/output-policy.ts",
       "source_sha256": "73DAB298359485E39F098F43EAA7E29364C89E5750EDDF1FF05973C5AA5FF970",
@@ -2982,7 +2994,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-249",
+      "id": "MIG-250",
       "source": "X:\\Pi Coding Harness\\src\\harness\\post-migrate.ts",
       "destination": "src/harness/post-migrate.ts",
       "source_sha256": "FD61D0BEAD4DB50CC694770EA204AF6A1E64BCB787CD9E810A5D559EF0AEAE93",
@@ -2994,7 +3006,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-250",
+      "id": "MIG-251",
       "source": "X:\\Pi Coding Harness\\src\\harness\\repository.ts",
       "destination": "src/harness/repository.ts",
       "source_sha256": "1F7311968A226F7FEE056D1F71187D00470974DA6D71F8A5A91371F6E4CB19B0",
@@ -3006,7 +3018,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-251",
+      "id": "MIG-252",
       "source": "X:\\Pi Coding Harness\\src\\harness\\runtime-fingerprint.ts",
       "destination": "src/harness/runtime-fingerprint.ts",
       "source_sha256": "10E865178C22D179051BB3287CE00593A0C3D0BA107591647C89C8E168EED368",
@@ -3018,7 +3030,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-252",
+      "id": "MIG-253",
       "source": "X:\\Pi Coding Harness\\src\\harness\\scope-path.ts",
       "destination": "src/harness/scope-path.ts",
       "source_sha256": "D9F9C0DBF288487330D1E1626C15E14F98B86821D2CB5FF3EC69D5EEB9576896",
@@ -3030,7 +3042,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-253",
+      "id": "MIG-254",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\attempt-executor-v2.ts",
       "destination": "src/harness/worker/attempt-executor-v2.ts",
       "source_sha256": "150ADBA3D4565B6C0B2FC3D94C261484295E989E1377C6B7BAA31877B29ABA35",
@@ -3042,7 +3054,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-254",
+      "id": "MIG-255",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\executor.ts",
       "destination": "src/harness/worker/executor.ts",
       "source_sha256": "795690D97029E60C448088DFCDF10558DEE70C6BF5C32118E9C71BD07989B9C0",
@@ -3054,7 +3066,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-255",
+      "id": "MIG-256",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\runtime-policy.ts",
       "destination": "src/harness/worker/runtime-policy.ts",
       "source_sha256": "498BA0C85F61D333DFBF678FE17F5ED11C6034AF8072FD9BAD7D5AEA38CA4AD2",
@@ -3066,7 +3078,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-256",
+      "id": "MIG-257",
       "source": "X:\\Pi Coding Harness\\src\\harness\\worker\\scoped-mirror.ts",
       "destination": "src/harness/worker/scoped-mirror.ts",
       "source_sha256": "2D8A5041F00F371E5203D2534FFF9846A3FEC8F852E6DFAC5B11D8AB3EC333FC",
@@ -3078,7 +3090,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-257",
+      "id": "MIG-258",
       "source": "X:\\Pi Coding Harness\\src\\index.ts",
       "destination": "src/index.ts",
       "source_sha256": "1B430523B77829026FBDC70BDAAAF349B1385B93D652CAC83396B2E91F9441B5",
@@ -3090,7 +3102,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-258",
+      "id": "MIG-259",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\batch-rehydrator.ts",
       "destination": "src/input-context/batch-rehydrator.ts",
       "source_sha256": "3E03CC9767C0980B849102A72F147FBE605AC520B3E1FAF995F24C19ECB6FDAF",
@@ -3102,7 +3114,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-259",
+      "id": "MIG-260",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\budget.ts",
       "destination": "src/input-context/budget.ts",
       "source_sha256": "A42BA455B517CFB48E2A38BCADC604EF6BCCE28575AA40005BF10FFA4FF60580",
@@ -3114,7 +3126,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-260",
+      "id": "MIG-261",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\canonical.ts",
       "destination": "src/input-context/canonical.ts",
       "source_sha256": "3CB9E252A790FBBA1AC25D116F31036143D24D6B23E25A8EA41CAB956BD66798",
@@ -3126,7 +3138,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-261",
+      "id": "MIG-262",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\capture-adapters.ts",
       "destination": "src/input-context/capture-adapters.ts",
       "source_sha256": "9B523D45877142B4EAB00BAF972E0B42BA3391280DE024866135F4A283EF2C18",
@@ -3138,7 +3150,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-262",
+      "id": "MIG-263",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\context-compiler.ts",
       "destination": "src/input-context/context-compiler.ts",
       "source_sha256": "F8903A873DF982232CFB2D944BE33BE1754F42446455A16CAA917AFB85B31467",
@@ -3150,7 +3162,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-263",
+      "id": "MIG-264",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\context-tool.ts",
       "destination": "src/input-context/context-tool.ts",
       "source_sha256": "CFE3D2D4267B08BA67C7B7DD9ECD2DDE22A046FF104D13F1D421CBA2E769F06F",
@@ -3162,7 +3174,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-264",
+      "id": "MIG-265",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\coverage.ts",
       "destination": "src/input-context/coverage.ts",
       "source_sha256": "3C9A34300C15C1BB79DB359AB46E6B32D0CC65992FACBED0E570425EB2001860",
@@ -3174,7 +3186,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-265",
+      "id": "MIG-266",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\delivery.ts",
       "destination": "src/input-context/delivery.ts",
       "source_sha256": "3800DD13B84ADA0F589F481E0EF67526B5DC51D8516F46A62B533F8713D5D09D",
@@ -3186,7 +3198,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-266",
+      "id": "MIG-267",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\domain.ts",
       "destination": "src/input-context/domain.ts",
       "source_sha256": "98F65EA56DC3192CAC01D2733A9A18B05E5B735F05C42EEC0BCEDEC8FC844960",
@@ -3198,7 +3210,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-267",
+      "id": "MIG-268",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\evidence-catalog.ts",
       "destination": "src/input-context/evidence-catalog.ts",
       "source_sha256": "A7407C8502344E51D6DA2789A37DA3ABE695FC9B3B5C84D9A15A55842515C8E3",
@@ -3210,7 +3222,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-268",
+      "id": "MIG-269",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\integration-contracts.ts",
       "destination": "src/input-context/integration-contracts.ts",
       "source_sha256": "D2AD5C14F0E37A55EFBEF338EEACCFBD1F9AF0E3FA9CDA0148B03E3A1DA28BA5",
@@ -3222,7 +3234,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-269",
+      "id": "MIG-270",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\invalidation.ts",
       "destination": "src/input-context/invalidation.ts",
       "source_sha256": "2AC86EE1FA95BC4D1553C3A7ED97A5F76F744463766875CC940AF95556F56058",
@@ -3234,7 +3246,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-270",
+      "id": "MIG-271",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\migrate.ts",
       "destination": "src/input-context/migrate.ts",
       "source_sha256": "3E30F7EA3808FC6FC5F0892A7608DCCED5A53C64387D09B64C2336B8CE29640E",
@@ -3246,7 +3258,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-271",
+      "id": "MIG-272",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\mutation-guard.ts",
       "destination": "src/input-context/mutation-guard.ts",
       "source_sha256": "97FA9458927F37034EF8804FB649881A053FBDB39CFD83E2C4B04E44987AC304",
@@ -3258,7 +3270,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-272",
+      "id": "MIG-273",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\pi-context-projector.ts",
       "destination": "src/input-context/pi-context-projector.ts",
       "source_sha256": "BCE8F167907A6063F00D5726E6B8576705411A2E6298B849C158A886E5B79E05",
@@ -3270,7 +3282,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-273",
+      "id": "MIG-274",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\projection-delta.ts",
       "destination": "src/input-context/projection-delta.ts",
       "source_sha256": "3C725E2D493D108FFC0DDE36181C71AA60016BE26C5ECAAD0BCFAD1238D3E9F6",
@@ -3282,7 +3294,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-274",
+      "id": "MIG-275",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\projection-saga.ts",
       "destination": "src/input-context/projection-saga.ts",
       "source_sha256": "B087D64BDE05CD73C9C5B7DCDFEDD6B2353DE60E9606CBC62CED720D550D405E",
@@ -3294,7 +3306,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-275",
+      "id": "MIG-276",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\prompt-layout.ts",
       "destination": "src/input-context/prompt-layout.ts",
       "source_sha256": "E2DF4420C153F0E01F9CCDE7015216D65C454E35EB3C3E8CD887CE45FB92A7C8",
@@ -3306,7 +3318,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-276",
+      "id": "MIG-277",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\provider-turn-ledger.ts",
       "destination": "src/input-context/provider-turn-ledger.ts",
       "source_sha256": "DC67DF13765694AEAC64F76DC28F7C9B2C7164391ED58C81301AD129DBEDFA44",
@@ -3318,7 +3330,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-277",
+      "id": "MIG-278",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\repository.ts",
       "destination": "src/input-context/repository.ts",
       "source_sha256": "E2A34806B36C243C29A8F46E11F32A9267C3792662523CCD4AADB42C15EE8BCD",
@@ -3330,7 +3342,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-278",
+      "id": "MIG-279",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\retained-ledger.ts",
       "destination": "src/input-context/retained-ledger.ts",
       "source_sha256": "049EC6FBC1AAB699F9A49C5C3F452C765DDF4BCA4A108C372DA6DAEA18FBBB83",
@@ -3342,7 +3354,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-279",
+      "id": "MIG-280",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\runtime.ts",
       "destination": "src/input-context/runtime.ts",
       "source_sha256": "557A638314FDC1C6E76AB89936F67945F7F38604780FA8CABE750D88912C6E33",
@@ -3354,7 +3366,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-280",
+      "id": "MIG-281",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\adapters.ts",
       "destination": "src/input-context/structural/adapters.ts",
       "source_sha256": "2E2B7A7462EE44FBCBDA5D699BC0E24542E6B1F2DB79E77E9DD51CD3CDE43579",
@@ -3366,7 +3378,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-281",
+      "id": "MIG-282",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\domain.ts",
       "destination": "src/input-context/structural/domain.ts",
       "source_sha256": "C7234BC4FCFC82AABF1BE4B2E02EDD571813FB57E01155EC356E44CDB88455A3",
@@ -3378,7 +3390,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-282",
+      "id": "MIG-283",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\lookup-index.ts",
       "destination": "src/input-context/structural/lookup-index.ts",
       "source_sha256": "F808E2EF87FF4EBA6B57DD477BB57C9CC415A70B456C22AA2E8CFB609CF715DD",
@@ -3390,7 +3402,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-283",
+      "id": "MIG-284",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\structural\\service.ts",
       "destination": "src/input-context/structural/service.ts",
       "source_sha256": "22764D01FF57DCF1340D85AA58DA809985619444F3DD8B973536DE4FCE0849D8",
@@ -3402,7 +3414,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-284",
+      "id": "MIG-285",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\tool-surface.ts",
       "destination": "src/input-context/tool-surface.ts",
       "source_sha256": "F42A028F6327B54A314E7E713829F520F1311A66141550C2F326527EB32EA90E",
@@ -3414,7 +3426,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-285",
+      "id": "MIG-286",
       "source": "X:\\Pi Coding Harness\\src\\input-context\\validity.ts",
       "destination": "src/input-context/validity.ts",
       "source_sha256": "1A09465E08762595CCDCCEC84813C6214640CCDE0E5367907B0DFC2D128E351C",
@@ -3426,7 +3438,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-286",
+      "id": "MIG-287",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\domain.ts",
       "destination": "src/intake-v2/domain.ts",
       "source_sha256": "1BB7456D5D9EC1CCA01FF4A9B6382E83F08742F882F1ADF075823B008A9324F0",
@@ -3438,7 +3450,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-287",
+      "id": "MIG-288",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\finalize.ts",
       "destination": "src/intake-v2/finalize.ts",
       "source_sha256": "D86E2497D77C7C2E5C9FADA893405967D4749A905663EA9E45D2B9B1AACD2018",
@@ -3450,7 +3462,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-288",
+      "id": "MIG-289",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\initial-draft.ts",
       "destination": "src/intake-v2/initial-draft.ts",
       "source_sha256": "3117D94B18D5E8A663A88D7B976FCC94B7D7CAD7025E8A86807E6856406902BE",
@@ -3462,7 +3474,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-289",
+      "id": "MIG-290",
       "source": "X:\\Pi Coding Harness\\src\\intake-v2\\repository.ts",
       "destination": "src/intake-v2/repository.ts",
       "source_sha256": "EA622A4F1626D0A72B3E8951D2F6D2778780A0CAD624BB356562E19DC91AFF5E",
@@ -3474,7 +3486,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-290",
+      "id": "MIG-291",
       "source": "X:\\Pi Coding Harness\\src\\memory\\admission.ts",
       "destination": "src/memory/admission.ts",
       "source_sha256": "57906A03E69EDB8D56833A15F7384959C13E3BB780E82C1841418A6FA4601F45",
@@ -3486,7 +3498,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-291",
+      "id": "MIG-292",
       "source": "X:\\Pi Coding Harness\\src\\memory\\capture-signal.ts",
       "destination": "src/memory/capture-signal.ts",
       "source_sha256": "9E75EBDEC7D92291F5B4E0E11BB42CAD594BDD54098547F5108690055955FEA3",
@@ -3498,7 +3510,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-292",
+      "id": "MIG-293",
       "source": "X:\\Pi Coding Harness\\src\\memory\\capture.ts",
       "destination": "src/memory/capture.ts",
       "source_sha256": "56A6086F3350E26C1CDB790AEA485FD2B71B4E81693C617BD167D40652A72738",
@@ -3510,7 +3522,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-293",
+      "id": "MIG-294",
       "source": "X:\\Pi Coding Harness\\src\\memory\\checkpoint.ts",
       "destination": "src/memory/checkpoint.ts",
       "source_sha256": "5254F804CC2699CFD726243B7BB668BD9C34F314998EE26AB0A3069673D9D54B",
@@ -3522,7 +3534,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-294",
+      "id": "MIG-295",
       "source": "X:\\Pi Coding Harness\\src\\memory\\cjk.ts",
       "destination": "src/memory/cjk.ts",
       "source_sha256": "3C2A569A430B87D252A8E9F0103BE817C44CBA851B7BC1A8F7EC156667E70236",
@@ -3534,7 +3546,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-295",
+      "id": "MIG-296",
       "source": "X:\\Pi Coding Harness\\src\\memory\\commands.ts",
       "destination": "src/memory/commands.ts",
       "source_sha256": "3BFF9A326702859682081027146B63EA56940492AB99AEB6B875808428FD18EA",
@@ -3546,7 +3558,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-296",
+      "id": "MIG-297",
       "source": "X:\\Pi Coding Harness\\src\\memory\\context-projector.ts",
       "destination": "src/memory/context-projector.ts",
       "source_sha256": "F1FF6A3A77E903516CF9A80DACD53A33089983F995CC8B377D509588BAD1FF73",
@@ -3558,7 +3570,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-297",
+      "id": "MIG-298",
       "source": "X:\\Pi Coding Harness\\src\\memory\\engine.ts",
       "destination": "src/memory/engine.ts",
       "source_sha256": "67C521DD50DAC796D00B2ACC67A5D0CF5BEC5A3629A69DE324E1EE953939E835",
@@ -3570,7 +3582,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-298",
+      "id": "MIG-299",
       "source": "X:\\Pi Coding Harness\\src\\memory\\index-drainer.ts",
       "destination": "src/memory/index-drainer.ts",
       "source_sha256": "B76ADD7F06A8616837573A76180B29745B8690FB66FC7BD4411BA4A24EC756FE",
@@ -3582,7 +3594,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-299",
+      "id": "MIG-300",
       "source": "X:\\Pi Coding Harness\\src\\memory\\ranking.ts",
       "destination": "src/memory/ranking.ts",
       "source_sha256": "A17D3B3B2128EBA3367BF945122CF2469648A760B18C18A045B0D61E3018CDA7",
@@ -3594,7 +3606,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-300",
+      "id": "MIG-301",
       "source": "X:\\Pi Coding Harness\\src\\memory\\retrieval-merge.ts",
       "destination": "src/memory/retrieval-merge.ts",
       "source_sha256": "39BB7539CC78B5601E403D7E2AC4A455DC2858395F5B14FAEC8F26892EA5E298",
@@ -3606,7 +3618,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-301",
+      "id": "MIG-302",
       "source": "X:\\Pi Coding Harness\\src\\memory\\retrieval.ts",
       "destination": "src/memory/retrieval.ts",
       "source_sha256": "30A4CA044412F9EEA1FB7079D1887E3ECD2D382FA0E66A0D25F37CC9451516ED",
@@ -3618,7 +3630,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-302",
+      "id": "MIG-303",
       "source": "X:\\Pi Coding Harness\\src\\memory\\security.ts",
       "destination": "src/memory/security.ts",
       "source_sha256": "6804C96A252C57448213E19AC43577F9ABC2AD20E8F42DEE12D7D12448DF9C21",
@@ -3630,7 +3642,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-303",
+      "id": "MIG-304",
       "source": "X:\\Pi Coding Harness\\src\\memory\\source-resolvers.ts",
       "destination": "src/memory/source-resolvers.ts",
       "source_sha256": "E712EE28FD00D75E80BC7976DDC60C42E6CC4AEAE3ECC5868189E3EC8F24C7D2",
@@ -3642,7 +3654,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-304",
+      "id": "MIG-305",
       "source": "X:\\Pi Coding Harness\\src\\memory\\telemetry.ts",
       "destination": "src/memory/telemetry.ts",
       "source_sha256": "A4781BE25528ED90F5AC234655308EA969E28DC923795F813E891F319102AEFC",
@@ -3654,7 +3666,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-305",
+      "id": "MIG-306",
       "source": "X:\\Pi Coding Harness\\src\\memory\\types.ts",
       "destination": "src/memory/types.ts",
       "source_sha256": "0B2457064D1B4C516CF02CA3810ECB8B09816C95B5E1BD19205E0AD4B6967C9D",
@@ -3666,7 +3678,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-306",
+      "id": "MIG-307",
       "source": "X:\\Pi Coding Harness\\src\\memory\\v3-engine.ts",
       "destination": "src/memory/v3-engine.ts",
       "source_sha256": "1E892D4931F4A7B91EA801860F34EECCA9FAC8A06F7E50FCB03E22D46CB531A8",
@@ -3678,7 +3690,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-307",
+      "id": "MIG-308",
       "source": "X:\\Pi Coding Harness\\src\\memory\\v3-retrieval.ts",
       "destination": "src/memory/v3-retrieval.ts",
       "source_sha256": "9F7CCC5C0DEC0966999EB2822D304F4CF680EF1554B98BB0D927A757D6F96B3D",
@@ -3690,7 +3702,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-308",
+      "id": "MIG-309",
       "source": "X:\\Pi Coding Harness\\src\\memory\\vault.ts",
       "destination": "src/memory/vault.ts",
       "source_sha256": "F0646CF20D8C834C0BFCABC79B35DB49D03F1180DC1F7C3320DB99D300AF3566",
@@ -3702,7 +3714,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-309",
+      "id": "MIG-310",
       "source": "X:\\Pi Coding Harness\\src\\output\\response-contract.ts",
       "destination": "src/output/response-contract.ts",
       "source_sha256": "D5E95712CE18EF2672DB0434EB79158044AA166505C68922A3448FCADB84FD7F",
@@ -3714,7 +3726,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-310",
+      "id": "MIG-311",
       "source": "X:\\Pi Coding Harness\\src\\output\\stable-policy.ts",
       "destination": "src/output/stable-policy.ts",
       "source_sha256": "A82E9BF7BA66B836AC1E83A98913AD8A7A337534DB7CAB72A25F6494838136A7",
@@ -3726,7 +3738,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-311",
+      "id": "MIG-312",
       "source": "X:\\Pi Coding Harness\\src\\performance\\benchmark-harness.ts",
       "destination": "src/performance/benchmark-harness.ts",
       "source_sha256": "283F4F19639997496CA715F5B49C2EC61EEB975B313C56482F6E10088448635D",
@@ -3738,7 +3750,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-312",
+      "id": "MIG-313",
       "source": "X:\\Pi Coding Harness\\src\\performance\\contract.ts",
       "destination": "src/performance/contract.ts",
       "source_sha256": "FEA2FA6187DB9EC331B05CFD0F4B49C7E1A29DB2140B0B75C9D7A840030204F5",
@@ -3750,7 +3762,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-313",
+      "id": "MIG-314",
       "source": "X:\\Pi Coding Harness\\src\\performance\\opportunities.ts",
       "destination": "src/performance/opportunities.ts",
       "source_sha256": "46CBA6570A6B2CBC7B4623B4C94F037563BAC9D3367BF022B6D5D784BDE1C29B",
@@ -3762,7 +3774,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-314",
+      "id": "MIG-315",
       "source": "X:\\Pi Coding Harness\\src\\performance\\task-flow-measurements.ts",
       "destination": "src/performance/task-flow-measurements.ts",
       "source_sha256": "E33ED3C4B0DDBEB9D98EB2CFC492F94ED755C1833904FCD557F240E92571E288",
@@ -3774,7 +3786,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-315",
+      "id": "MIG-316",
       "source": "X:\\Pi Coding Harness\\src\\performance\\task-flow-policy.ts",
       "destination": "src/performance/task-flow-policy.ts",
       "source_sha256": "58CEBE4B4D0EBF546942C4D235DFF6209C59601E83C1342B23DE3E69AB6B4FEB",
@@ -3786,7 +3798,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-316",
+      "id": "MIG-317",
       "source": "X:\\Pi Coding Harness\\src\\performance\\task-flow-repository.ts",
       "destination": "src/performance/task-flow-repository.ts",
       "source_sha256": "6270918D63BDA9EA3FA98691B7EA8C95E2661D18456B08816BEC1F4821D7E055",
@@ -3798,7 +3810,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-317",
+      "id": "MIG-318",
       "source": "X:\\Pi Coding Harness\\src\\performance\\trial-types.ts",
       "destination": "src/performance/trial-types.ts",
       "source_sha256": "95001E458CFF21057D67032ACBD039B5133A48019E65A0F9580286E37404795F",
@@ -3810,7 +3822,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-318",
+      "id": "MIG-319",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\active-goal-input.ts",
       "destination": "src/plan-v2/active-goal-input.ts",
       "source_sha256": "03C33FD82B5F6282754A84A17D3E3412DF117FCEC19924315A110AA78ED363B8",
@@ -3822,7 +3834,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-319",
+      "id": "MIG-320",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\change-acceptance.ts",
       "destination": "src/plan-v2/change-acceptance.ts",
       "source_sha256": "646DCBF4A3DA823EDB20DA338CB7C529AAEF88BC6771A51F040273376DA220BA",
@@ -3834,7 +3846,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-320",
+      "id": "MIG-321",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\change-impact.ts",
       "destination": "src/plan-v2/change-impact.ts",
       "source_sha256": "BAC7915FB006EB07CC89609BEA7A87D2BC5D4F9FFB6BA3DDF820C27BD08F5651",
@@ -3846,7 +3858,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-321",
+      "id": "MIG-322",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\change-request.ts",
       "destination": "src/plan-v2/change-request.ts",
       "source_sha256": "342B9FF6CDE48A991F223B9850E5C7EE657C33B1EA1BC77E41AFBB986A8E0793",
@@ -3858,7 +3870,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-322",
+      "id": "MIG-323",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\correction-budget.ts",
       "destination": "src/plan-v2/correction-budget.ts",
       "source_sha256": "13EBFD62E31F87658F90FA0964AD1091B0DDF2F06B3E67A400164057EDD4889A",
@@ -3870,7 +3882,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-323",
+      "id": "MIG-324",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\finalize.ts",
       "destination": "src/plan-v2/finalize.ts",
       "source_sha256": "80DAFF9202732144877EA031A91589F1535F11CAE5BF1E7A8F49E695D037EA64",
@@ -3882,7 +3894,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-324",
+      "id": "MIG-325",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\graph.ts",
       "destination": "src/plan-v2/graph.ts",
       "source_sha256": "FC9FF45E3FB645AE991DD330B2B9670EE76CD030EAAC2C55244BBB7202291679",
@@ -3894,7 +3906,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-325",
+      "id": "MIG-326",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\repository.ts",
       "destination": "src/plan-v2/repository.ts",
       "source_sha256": "04C9CDA3812C12C82C87DB0BC51656C6E1A226C0084522955E681F9A813F57BC",
@@ -3906,7 +3918,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-326",
+      "id": "MIG-327",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\revision-delta.ts",
       "destination": "src/plan-v2/revision-delta.ts",
       "source_sha256": "9CF20DAA7D80941C85A3583B76A95A74380F8227674ECBD5B1E135F3A238A4A2",
@@ -3918,7 +3930,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-327",
+      "id": "MIG-328",
       "source": "X:\\Pi Coding Harness\\src\\plan-v2\\stage-gate.ts",
       "destination": "src/plan-v2/stage-gate.ts",
       "source_sha256": "378818F2BEE6A6B2DAE5795A81E55CEED86BB48A7876F4021C15F408CD6C6CC5",
@@ -3930,7 +3942,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-328",
+      "id": "MIG-329",
       "source": "X:\\Pi Coding Harness\\src\\planning\\clarification.ts",
       "destination": "src/planning/clarification.ts",
       "source_sha256": "DC4169432A23307216D02BDB5ED72CDC2A6E50DA7E2D43449FD2EC98DE65DB0F",
@@ -3942,7 +3954,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-329",
+      "id": "MIG-330",
       "source": "X:\\Pi Coding Harness\\src\\planning\\intake-classifier.ts",
       "destination": "src/planning/intake-classifier.ts",
       "source_sha256": "1AF1F74722E43FCB8CE491B449C686AA9769085F6BA655AD677FBD4041140387",
@@ -3954,7 +3966,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-330",
+      "id": "MIG-331",
       "source": "X:\\Pi Coding Harness\\src\\planning\\plan-continuation.ts",
       "destination": "src/planning/plan-continuation.ts",
       "source_sha256": "D7FD3B7A0C781096EB7CD903798FC5EF0326E78DE28A26AA6B2DE0B316767445",
@@ -3966,7 +3978,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-331",
+      "id": "MIG-332",
       "source": "X:\\Pi Coding Harness\\src\\planning\\plan-finalization.ts",
       "destination": "src/planning/plan-finalization.ts",
       "source_sha256": "0AD71AC89B86208CE6FDBFB38A467035BC22A68AF4D2E0500074CE7276D802CE",
@@ -3978,7 +3990,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-332",
+      "id": "MIG-333",
       "source": "X:\\Pi Coding Harness\\src\\planning\\plan-health.ts",
       "destination": "src/planning/plan-health.ts",
       "source_sha256": "3070BE3582D87A40D4709C27FDCA90F47A1F7EFDFA7909ED6A69011AF05CAFDD",
@@ -3990,7 +4002,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-333",
+      "id": "MIG-334",
       "source": "X:\\Pi Coding Harness\\src\\planning\\route-classifier.ts",
       "destination": "src/planning/route-classifier.ts",
       "source_sha256": "3E42DF56F08E594AE85E745544798775B0A9BC3E967C139B56E4DEACCEDCBCBA",
@@ -4002,7 +4014,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-334",
+      "id": "MIG-335",
       "source": "X:\\Pi Coding Harness\\src\\planning\\types.ts",
       "destination": "src/planning/types.ts",
       "source_sha256": "954CE4378CB829978C898AD3EBFE1888C1B3BFA588BE2470D62ED59CBA7D2416",
@@ -4014,7 +4026,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-335",
+      "id": "MIG-336",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\domain.ts",
       "destination": "src/provider-v2/domain.ts",
       "source_sha256": "FBD965177C68113CE15E3B2D3EDFBE05E2A02CFD5D83C0129688624D3400808B",
@@ -4026,7 +4038,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-336",
+      "id": "MIG-337",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\invocation.ts",
       "destination": "src/provider-v2/invocation.ts",
       "source_sha256": "B55589351FAEB4F299891FC6BDB0D77C85121B10ACF459362524C6D188EE49BD",
@@ -4038,7 +4050,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-337",
+      "id": "MIG-338",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\repository.ts",
       "destination": "src/provider-v2/repository.ts",
       "source_sha256": "E1901B2BB3E935719AEC2277E0D70D782F42781CDBF5BF7E37BE1988FC3B9807",
@@ -4050,7 +4062,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-338",
+      "id": "MIG-339",
       "source": "X:\\Pi Coding Harness\\src\\provider-v2\\worker-plan.ts",
       "destination": "src/provider-v2/worker-plan.ts",
       "source_sha256": "4B88098D0C8C6CBB509B59749B294E4F03AAAE8CEB01AE73265B334B13C32154",
@@ -4062,7 +4074,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-339",
+      "id": "MIG-340",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\active-goal.ts",
       "destination": "src/runtime/active-goal.ts",
       "source_sha256": "60742C39CF03A65641009233FE42DCB80F729A90BBE9B296BD75C2A597E0EA2E",
@@ -4074,7 +4086,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-340",
+      "id": "MIG-341",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\coding-harness-services.ts",
       "destination": "src/runtime/coding-harness-services.ts",
       "source_sha256": "3CD56264EF69FB6F5E07B77363927B496BCDD4BC29C7E4AF5DC9530E89405E70",
@@ -4086,7 +4098,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-341",
+      "id": "MIG-342",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\lifecycle.ts",
       "destination": "src/runtime/lifecycle.ts",
       "source_sha256": "35E2E85757AE50570F2748C3896D67EA7C4AB28AC2FC0C928E9BDB765D259942",
@@ -4098,7 +4110,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-342",
+      "id": "MIG-343",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\recovery.ts",
       "destination": "src/runtime/recovery.ts",
       "source_sha256": "267A1BE3146950131AB4D3D6C10C2987611341F0AE59457441B4C5892CC9318F",
@@ -4110,7 +4122,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-343",
+      "id": "MIG-344",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\task-flow-session.ts",
       "destination": "src/runtime/task-flow-session.ts",
       "source_sha256": "7EF664003E4CFE5A93B574124F5AB2D664993B13BCA6F64C2F3FEBB7F3A90796",
@@ -4122,7 +4134,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-344",
+      "id": "MIG-345",
       "source": "X:\\Pi Coding Harness\\src\\runtime\\task-flow-view.ts",
       "destination": "src/runtime/task-flow-view.ts",
       "source_sha256": "1110F94E5B5D5E655A37F5B0884B2700ACF66ECFD703F8148443A1208A6E7535",
@@ -4134,7 +4146,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-345",
+      "id": "MIG-346",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\acceptance-ledger.ts",
       "destination": "src/task-flow/acceptance-ledger.ts",
       "source_sha256": "6257EA444D1236140AB598A895E00D815B087CD6CA2836D31B094377F7AC3350",
@@ -4146,7 +4158,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-346",
+      "id": "MIG-347",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\admission.ts",
       "destination": "src/task-flow/admission.ts",
       "source_sha256": "4CAF4990209797E963C8846B1F4A8FF0D23CF0A1A0A455495EB70B0621175BFB",
@@ -4158,7 +4170,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-347",
+      "id": "MIG-348",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\commands.ts",
       "destination": "src/task-flow/commands.ts",
       "source_sha256": "3577A87DE0502A7B7DAE36EAAF36D9BF42BE9D636992FCCCCDA8A5C18CCFF4CF",
@@ -4170,7 +4182,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-348",
+      "id": "MIG-349",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\domain.ts",
       "destination": "src/task-flow/domain.ts",
       "source_sha256": "49364AF7CF99D5D30A4AFB72A84A1F36D3CC23C01229A37DEF968A2DAFA83672",
@@ -4182,7 +4194,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-349",
+      "id": "MIG-350",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\finalize.ts",
       "destination": "src/task-flow/finalize.ts",
       "source_sha256": "480AF906DC5D744C79B6F65CA933C77E5F0C7E7380D019CC5CDEA185A76C4C5E",
@@ -4194,7 +4206,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-350",
+      "id": "MIG-351",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\health.ts",
       "destination": "src/task-flow/health.ts",
       "source_sha256": "4EB727262F63C4975F775A4AD368DFFC4137DA257ED4641F475D92C81C16979A",
@@ -4206,7 +4218,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-351",
+      "id": "MIG-352",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\kernel.ts",
       "destination": "src/task-flow/kernel.ts",
       "source_sha256": "75C6DE7719467BA9F03C1424E72700DB4ADF504D495DF464CFC68A4B6FE4DC09",
@@ -4218,7 +4230,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-352",
+      "id": "MIG-353",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\migrate.ts",
       "destination": "src/task-flow/migrate.ts",
       "source_sha256": "26F7EBCA3E3548525C59E745C818C7BC614553571106FE9C1948DF24246D59AC",
@@ -4230,7 +4242,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-353",
+      "id": "MIG-354",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\operation-lifecycle.ts",
       "destination": "src/task-flow/operation-lifecycle.ts",
       "source_sha256": "6F7265FB2B7826B11C4AA2E94EB0310D6192708140B59A14CA99F7D5915CF51B",
@@ -4242,7 +4254,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-354",
+      "id": "MIG-355",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\oracles.ts",
       "destination": "src/task-flow/oracles.ts",
       "source_sha256": "64276BD1CEE936E6281A2F834341A36DFD6BF76A0B5292EE3E05632A38DCA7A9",
@@ -4254,7 +4266,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-355",
+      "id": "MIG-356",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\repository.ts",
       "destination": "src/task-flow/repository.ts",
       "source_sha256": "BD49D3C8D68E7B0B51DFF06395228937DEACE505A4AD6E8CA80C431C740B4A05",
@@ -4266,7 +4278,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-356",
+      "id": "MIG-357",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\route-revision.ts",
       "destination": "src/task-flow/route-revision.ts",
       "source_sha256": "1174CB9BDBF5E5D1C67FA0D3B382714FD8098E274C3FEB59D825E92376DF773C",
@@ -4278,7 +4290,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-357",
+      "id": "MIG-358",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\session-binding.ts",
       "destination": "src/task-flow/session-binding.ts",
       "source_sha256": "88EC2D42B62045F56DCF63CE61981D72051F758A18FD8039229B52AF1C91E65F",
@@ -4290,7 +4302,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-358",
+      "id": "MIG-359",
       "source": "X:\\Pi Coding Harness\\src\\task-flow\\workspace-baseline.ts",
       "destination": "src/task-flow/workspace-baseline.ts",
       "source_sha256": "E2E201390C43381D67977E911BA87D0752F0343B7FA420795B744D64778825DD",
@@ -4302,7 +4314,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-359",
+      "id": "MIG-360",
       "source": "X:\\Pi Coding Harness\\tests\\acceptance\\memory-quality.test.ts",
       "destination": "tests/acceptance/memory-quality.test.ts",
       "source_sha256": "BDF35D55AF1A03FCCBBC1E162D2A891A959ABBB4F6A47D4A833E2C3586FEAA6A",
@@ -4314,7 +4326,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-360",
+      "id": "MIG-361",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\harness-migration.test.ts",
       "destination": "tests/fault/harness-migration.test.ts",
       "source_sha256": "4CA23FCD82E8586F39D8DB47030BF4A11E3CE50E43D2144893563EB6CABFD82C",
@@ -4326,7 +4338,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-361",
+      "id": "MIG-362",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\harness-post-migration.test.ts",
       "destination": "tests/fault/harness-post-migration.test.ts",
       "source_sha256": "7238E6900F22A47FD01C680555F95F96CB9EA30C3E725002E0914C916A7CF327",
@@ -4338,7 +4350,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-362",
+      "id": "MIG-363",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\input-context-migration.test.ts",
       "destination": "tests/fault/input-context-migration.test.ts",
       "source_sha256": "57891E783DC2B0CB5D58A74CEDF8528A16A4F3E9B24A0589559C8C254B0F2F15",
@@ -4350,7 +4362,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-363",
+      "id": "MIG-364",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\intake-v2-authority.test.ts",
       "destination": "tests/fault/intake-v2-authority.test.ts",
       "source_sha256": "57904F5CAF5A0455E93767987C5B35405035FA1A0CE1A0C33C01A94BFD18D2F0",
@@ -4362,7 +4374,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-364",
+      "id": "MIG-365",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\memory-authority.test.ts",
       "destination": "tests/fault/memory-authority.test.ts",
       "source_sha256": "A2D33DBF73340B7C2A2D7B9AD99F855FE20CAC45327A77FFC451754AEC3816E2",
@@ -4374,7 +4386,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-365",
+      "id": "MIG-366",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\patch-transaction-recovery.test.ts",
       "destination": "tests/fault/patch-transaction-recovery.test.ts",
       "source_sha256": "2830F466B941202B184AC02ECF555A410352B24829FEF793531B3DB13B01A24D",
@@ -4386,7 +4398,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-366",
+      "id": "MIG-367",
       "source": "X:\\Pi Coding Harness\\tests\\fault\\runtime-schema-upgrade-gate.test.ts",
       "destination": "tests/fault/runtime-schema-upgrade-gate.test.ts",
       "source_sha256": "1018C2F9C4B22DA0107D31EB90E27B7C167459A39FDA76191085979F7FD832FB",
@@ -4398,7 +4410,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-367",
+      "id": "MIG-368",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\acceptance-v2.ts",
       "destination": "tests/helpers/acceptance-v2.ts",
       "source_sha256": "A749D69599082B3C50ED02A37D2B221E599F96AA75381DDB640694495B90BE3D",
@@ -4410,7 +4422,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-368",
+      "id": "MIG-369",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\authority.ts",
       "destination": "tests/helpers/authority.ts",
       "source_sha256": "6FF38AC13D5040E20CFA5D399417E4801621DBA2FFB0CA95376F2AAE8FBCBC0F",
@@ -4422,7 +4434,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-369",
+      "id": "MIG-370",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\execution-v2.ts",
       "destination": "tests/helpers/execution-v2.ts",
       "source_sha256": "551C42907FD195FD6565CA4B7F0EBA8944BEA0D73884C3A61D604DC22C0B821C",
@@ -4434,7 +4446,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-370",
+      "id": "MIG-371",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\goal-fit.ts",
       "destination": "tests/helpers/goal-fit.ts",
       "source_sha256": "3746D28F558EF825AA67A82F4DA6D821E606EFBF707FAB1D09ED740D5AF11527",
@@ -4446,7 +4458,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-371",
+      "id": "MIG-372",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\harness.ts",
       "destination": "tests/helpers/harness.ts",
       "source_sha256": "24ED6AD59D0D8A66BFA5758DF6B53472278FA80F3C0AA6CD18CDD93D8B65C9CB",
@@ -4458,7 +4470,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-372",
+      "id": "MIG-373",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\performance-root.ts",
       "destination": "tests/helpers/performance-root.ts",
       "source_sha256": "4DC60C888AA96914A66F1483A7FF527CC0C877DE620CB053380769C8D6B98C8A",
@@ -4470,7 +4482,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-373",
+      "id": "MIG-374",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\phase2.ts",
       "destination": "tests/helpers/phase2.ts",
       "source_sha256": "0BD420B722B4B47BB87B1C98A3EB82F74E69B15DA6D6BAAD39FC613FE2DD925B",
@@ -4482,7 +4494,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-374",
+      "id": "MIG-375",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\phase6.ts",
       "destination": "tests/helpers/phase6.ts",
       "source_sha256": "D9FF96E59C006AC4E2F713C1BC94E250B1E62BCDBBE37911D022196C4EF49987",
@@ -4494,7 +4506,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-375",
+      "id": "MIG-376",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\task-flow-session.ts",
       "destination": "tests/helpers/task-flow-session.ts",
       "source_sha256": "2C072397BF3F68C1C60A6C71AF9AFE1215A69FFB2524C0DFCF922198C1C47BE5",
@@ -4506,7 +4518,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-376",
+      "id": "MIG-377",
       "source": "X:\\Pi Coding Harness\\tests\\helpers\\task-flow.ts",
       "destination": "tests/helpers/task-flow.ts",
       "source_sha256": "028E3F3F857B61F6A161A7C2B06551D65E9DE44CCC97E05E2D6CE5A94222A904",
@@ -4518,7 +4530,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-377",
+      "id": "MIG-378",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\authority-crash.test.ts",
       "destination": "tests/integration/authority-crash.test.ts",
       "source_sha256": "D56951896C7C5C34021574943873C9146D433E8DC7D5EFD7D55CC49EA3170486",
@@ -4530,7 +4542,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-378",
+      "id": "MIG-379",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\cache-v2-harness.test.ts",
       "destination": "tests/integration/cache-v2-harness.test.ts",
       "source_sha256": "D1E67DA222D0CB56EA55B8854CA684218B8D4DCEE392EE29EE50D78945B694C0",
@@ -4542,7 +4554,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-379",
+      "id": "MIG-380",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\cas.test.ts",
       "destination": "tests/integration/cas.test.ts",
       "source_sha256": "5E0A6AC80DEFF54C5C46E4AB2A588F6DEDB572CE79D45EEC84CA1D97051CF702",
@@ -4554,11 +4566,11 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-380",
+      "id": "MIG-381",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\execution-v2-authority.test.ts",
       "destination": "tests/integration/execution-v2-authority.test.ts",
-      "source_sha256": "39223EF6ECEED1618FD00F244AFB3E76A84E6CC812B516444EAA1C47B662C038",
-      "destination_sha256": "39223EF6ECEED1618FD00F244AFB3E76A84E6CC812B516444EAA1C47B662C038",
+      "source_sha256": "6298DD053C7B2E1EA778B2B02B945054E046DD80B1045CAF674492E35BA079E1",
+      "destination_sha256": "6298DD053C7B2E1EA778B2B02B945054E046DD80B1045CAF674492E35BA079E1",
       "category": "VALIDATION",
       "purpose": "Required self-contained release closure.",
       "disposition": "COPIED",
@@ -4566,7 +4578,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-381",
+      "id": "MIG-382",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\execution-v2-coordinator.test.ts",
       "destination": "tests/integration/execution-v2-coordinator.test.ts",
       "source_sha256": "E1C116417A42D9E27CACE2482AA5C942AE48DE64CFE1BF7E53CF8FB3D096BD49",
@@ -4578,7 +4590,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-382",
+      "id": "MIG-383",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-authority.test.ts",
       "destination": "tests/integration/harness-authority.test.ts",
       "source_sha256": "20FC28C0453710DBE0A6FC5ACD69FC85394ED540A61DEA0432AB34CD0F4DA754",
@@ -4590,7 +4602,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-383",
+      "id": "MIG-384",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-host-execution-v2.test.ts",
       "destination": "tests/integration/harness-host-execution-v2.test.ts",
       "source_sha256": "D3D331EC28EAF59752FB5566E3B2011F29E73AD6A566E95322D1ABAED29A152B",
@@ -4602,7 +4614,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-384",
+      "id": "MIG-385",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-host-runtime.test.ts",
       "destination": "tests/integration/harness-host-runtime.test.ts",
       "source_sha256": "788979B2FCD44AD9191650642BD3E6691EAFED6288F429FBB597CD0181EFE0DD",
@@ -4614,7 +4626,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-385",
+      "id": "MIG-386",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-worker-executor.test.ts",
       "destination": "tests/integration/harness-worker-executor.test.ts",
       "source_sha256": "D433BC7CEEA41C4481B1170D37A1E47743F8D668C1639DE8A28292DCF4509336",
@@ -4626,7 +4638,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-386",
+      "id": "MIG-387",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\harness-worker-lifecycle.test.ts",
       "destination": "tests/integration/harness-worker-lifecycle.test.ts",
       "source_sha256": "C2AC04266B58D2876BA73070F898423637247C9094244509B782945074E17909",
@@ -4638,7 +4650,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-387",
+      "id": "MIG-388",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\input-context-authority.test.ts",
       "destination": "tests/integration/input-context-authority.test.ts",
       "source_sha256": "30AE32020A07D1DD4BFFAAD514F7240C8FFDA2B082E993CC67E3C996CE31B4FD",
@@ -4650,7 +4662,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-388",
+      "id": "MIG-389",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\input-context-evidence.test.ts",
       "destination": "tests/integration/input-context-evidence.test.ts",
       "source_sha256": "1260DDE982F9B5D224547F23365A22E6557DEB65ACC038A42DC2C479DA3BA4C1",
@@ -4662,7 +4674,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-389",
+      "id": "MIG-390",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\lease-fencing.test.ts",
       "destination": "tests/integration/lease-fencing.test.ts",
       "source_sha256": "61D54C2325C5383EC9BC9A3419B749E793F912D3F8FA719CE858619484A2CB3F",
@@ -4674,7 +4686,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-390",
+      "id": "MIG-391",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\lifecycle-authority-integrity.test.ts",
       "destination": "tests/integration/lifecycle-authority-integrity.test.ts",
       "source_sha256": "1B77ED03DDAA6DC7FCB96544CF3214E30B6D65F24E6FE9C8CB0867499AE646AE",
@@ -4686,7 +4698,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-391",
+      "id": "MIG-392",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-index-recovery.test.ts",
       "destination": "tests/integration/memory-index-recovery.test.ts",
       "source_sha256": "38D64F1C614080AB334EA54C39EC9C434ADF58B9867F636491A7D7B2D2117B50",
@@ -4698,7 +4710,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-392",
+      "id": "MIG-393",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-migration.test.ts",
       "destination": "tests/integration/memory-migration.test.ts",
       "source_sha256": "B5BB6F7B7D8455ABCAAA3F8586F35F25579D776F72C7DF2A4A493F6B5CCFCA71",
@@ -4710,7 +4722,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-393",
+      "id": "MIG-394",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-privacy.test.ts",
       "destination": "tests/integration/memory-privacy.test.ts",
       "source_sha256": "DD0990AA2D304778186BF6599EFFCB1114A0DE1AE22EACBBE358EE00BD8C0BBA",
@@ -4722,7 +4734,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-394",
+      "id": "MIG-395",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-tamper.test.ts",
       "destination": "tests/integration/memory-tamper.test.ts",
       "source_sha256": "0B66A83BEFDFABBAD23FD150102399CFC88757873078AC7017FE1C18A3D80C21",
@@ -4734,7 +4746,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-395",
+      "id": "MIG-396",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v3-authority.test.ts",
       "destination": "tests/integration/memory-v3-authority.test.ts",
       "source_sha256": "00F3450202177552720FFDBCA05D28564A4FF56666DD5F34582F8B4FEDFCAC58",
@@ -4746,7 +4758,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-396",
+      "id": "MIG-397",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v3-engine.test.ts",
       "destination": "tests/integration/memory-v3-engine.test.ts",
       "source_sha256": "68F3867F635EF9FE3D6F1A986DA81DA6D404ED2E182045B3702EB0AD4B41C184",
@@ -4758,7 +4770,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-397",
+      "id": "MIG-398",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v3-lifecycle.test.ts",
       "destination": "tests/integration/memory-v3-lifecycle.test.ts",
       "source_sha256": "653CB22813F6D4FF0A5DB96CCB2FD746B23BE52FDAADFE5D6348844A2A365981",
@@ -4770,7 +4782,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-398",
+      "id": "MIG-399",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\memory-v31-capture-authority.test.ts",
       "destination": "tests/integration/memory-v31-capture-authority.test.ts",
       "source_sha256": "1A95C651A1B0098B918D9724C8FC28F7628355E3DAF81B171029588F589C093A",
@@ -4782,7 +4794,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-399",
+      "id": "MIG-400",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\migration.test.ts",
       "destination": "tests/integration/migration.test.ts",
       "source_sha256": "86CF149B93D086023380589D378480D76D7D13B6B322B16E0AEFC963AC27D700",
@@ -4794,7 +4806,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-400",
+      "id": "MIG-401",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\performance-fixtures.test.ts",
       "destination": "tests/integration/performance-fixtures.test.ts",
       "source_sha256": "2761AD193DBEA3C49CDF01A1A65F13B90609B31F0155008882B6895335BDF8B4",
@@ -4806,7 +4818,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-401",
+      "id": "MIG-402",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\plan-v2-authority.test.ts",
       "destination": "tests/integration/plan-v2-authority.test.ts",
       "source_sha256": "EF9AC7379A467528BE665C385D6B082C098C0BB0FC422B73258E87AC8CBC1407",
@@ -4818,7 +4830,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-402",
+      "id": "MIG-403",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\projection-rebuild.test.ts",
       "destination": "tests/integration/projection-rebuild.test.ts",
       "source_sha256": "719E01F8621DC857529BDF151B15D32E64851834FB8A724EE83FE676F492F382",
@@ -4830,7 +4842,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-403",
+      "id": "MIG-404",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\prompt-generation.test.ts",
       "destination": "tests/integration/prompt-generation.test.ts",
       "source_sha256": "ADF77F3DA823053FC534D25FFC90859E7C2510EBF87CB2A42757B9FB37A63A46",
@@ -4842,7 +4854,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-404",
+      "id": "MIG-405",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\prompt-request-chain.test.ts",
       "destination": "tests/integration/prompt-request-chain.test.ts",
       "source_sha256": "E249775DF722FF697013D5BC5A31B21268AA0999A0D718C7F47182139B0A0FEE",
@@ -4854,7 +4866,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-405",
+      "id": "MIG-406",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\provider-call-plan-v2-authority.test.ts",
       "destination": "tests/integration/provider-call-plan-v2-authority.test.ts",
       "source_sha256": "C47A2290A11420D2EA7BE106A30C34B1E9B84A3F23AA17382761254A7C123850",
@@ -4866,7 +4878,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-406",
+      "id": "MIG-407",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\strong-single-provider-usage.test.ts",
       "destination": "tests/integration/strong-single-provider-usage.test.ts",
       "source_sha256": "9B4B8E47256A15335262E69FFA08338CA0A18207358103922B5D6A423540D1B7",
@@ -4878,7 +4890,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-407",
+      "id": "MIG-408",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\task-flow-authority.test.ts",
       "destination": "tests/integration/task-flow-authority.test.ts",
       "source_sha256": "DAF595D15A84EE5032F93D6064A1B19A9EB8B658AAB502AD2355ED4C782A3F2D",
@@ -4890,7 +4902,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-408",
+      "id": "MIG-409",
       "source": "X:\\Pi Coding Harness\\tests\\integration\\task-flow-session.test.ts",
       "destination": "tests/integration/task-flow-session.test.ts",
       "source_sha256": "A60CEC88FFDF4F2BB86A6F1B79EAD2A02FCE5CDBC086229C00675A7C1510E659",
@@ -4902,7 +4914,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-409",
+      "id": "MIG-410",
       "source": "X:\\Pi Coding Harness\\tests\\lifecycle\\install.test.ps1",
       "destination": "tests/lifecycle/install.test.ps1",
       "source_sha256": "A93B5CF2F85416941972E43EA5948A85387E29689A7A29B96848B9B952CD77BE",
@@ -4914,7 +4926,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-410",
+      "id": "MIG-411",
       "source": "X:\\Pi Coding Harness\\tests\\lifecycle\\uninstall.test.ps1",
       "destination": "tests/lifecycle/uninstall.test.ps1",
       "source_sha256": "FB0D5537FFEB59DA5487314CBF57A70D13D2CFCE1F136149B9D72CDA031BDEC0",
@@ -4926,7 +4938,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-411",
+      "id": "MIG-412",
       "source": "X:\\Pi Coding Harness\\tests\\lifecycle\\upgrade.test.ps1",
       "destination": "tests/lifecycle/upgrade.test.ps1",
       "source_sha256": "32358A8986E2F19F143EA327451281C02D0CBFFF59CC3AC33BA27C697C4513F0",
@@ -4938,7 +4950,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-412",
+      "id": "MIG-413",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\cache-v2.test.ts",
       "destination": "tests/performance/cache-v2.test.ts",
       "source_sha256": "869DD3F75F2671369DABC84A6217FC540573E28D75C75221056A692F3525BC90",
@@ -4950,7 +4962,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-413",
+      "id": "MIG-414",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\long.ts",
       "destination": "tests/performance/long.ts",
       "source_sha256": "C03D62C299C9EAFD020D9681BCBD3B8A55ED053E3E6496B899F47D7CFDA13C31",
@@ -4962,7 +4974,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-414",
+      "id": "MIG-415",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\memory-v2.test.ts",
       "destination": "tests/performance/memory-v2.test.ts",
       "source_sha256": "BBDB1191163E6C364D954BDA894DC54C48D7B47547EACF5FF6B55BFE54C540D8",
@@ -4974,7 +4986,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-415",
+      "id": "MIG-416",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\memory-v3.test.ts",
       "destination": "tests/performance/memory-v3.test.ts",
       "source_sha256": "E1824664E19F656C420588BA92E29BE1DB523EE80979218F349712452D94FB85",
@@ -4986,7 +4998,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-416",
+      "id": "MIG-417",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\orchbench-v2.test.ts",
       "destination": "tests/performance/orchbench-v2.test.ts",
       "source_sha256": "99A5A75CB3B2BA91F83DAC6725EB1DCE37115B02A61F0929B02F5CF13D1B18A5",
@@ -4998,7 +5010,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-417",
+      "id": "MIG-418",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\phase-1.test.ts",
       "destination": "tests/performance/phase-1.test.ts",
       "source_sha256": "2A2A6E32B44D88850E180828A412A76B241F737EA1C71DC86D71359C6A98F034",
@@ -5010,7 +5022,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-418",
+      "id": "MIG-419",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\phase-6.test.ts",
       "destination": "tests/performance/phase-6.test.ts",
       "source_sha256": "1AD1BAA10E47D16F9A1D20C2630BC10F9C484EE99ADAB40221C0792DC1A4D392",
@@ -5022,7 +5034,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-419",
+      "id": "MIG-420",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\short.ts",
       "destination": "tests/performance/short.ts",
       "source_sha256": "761883F0DA42A0A753198041420D2C9B04428560B53AC735637F8E605CC2FFC7",
@@ -5034,7 +5046,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-420",
+      "id": "MIG-421",
       "source": "X:\\Pi Coding Harness\\tests\\performance\\task-flow.test.ts",
       "destination": "tests/performance/task-flow.test.ts",
       "source_sha256": "DCD0AA60F79AE23BFDED234257609D6AB08668C7098C4D0D828C45E17A116225",
@@ -5046,7 +5058,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-421",
+      "id": "MIG-422",
       "source": "X:\\Pi Coding Harness\\tests\\pi\\coding-harness-bridge.test.ts",
       "destination": "tests/pi/coding-harness-bridge.test.ts",
       "source_sha256": "1CDC1EE399FEB7A8294A4BD05F3F8145289746A9477FB26F34F8133E1FC51030",
@@ -5058,7 +5070,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-422",
+      "id": "MIG-423",
       "source": "X:\\Pi Coding Harness\\tests\\pi\\memory-commands.test.ts",
       "destination": "tests/pi/memory-commands.test.ts",
       "source_sha256": "9BFE5134C37250A9E96B203377E2973A34CA2FE778782886801F13D229C50331",
@@ -5070,7 +5082,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-423",
+      "id": "MIG-424",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-authority-v2.test.ts",
       "destination": "tests/unit/acceptance-authority-v2.test.ts",
       "source_sha256": "F996B80BA264A67B0AD217A3FD8E37A82859A26014E0A988ACDEF1461458467E",
@@ -5082,7 +5094,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-424",
+      "id": "MIG-425",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-evidence-v2.test.ts",
       "destination": "tests/unit/acceptance-evidence-v2.test.ts",
       "source_sha256": "F1C39507CF5ECE3585D49F7D1FE297A207CE032F9C6D7992E4DADBF879C00432",
@@ -5094,7 +5106,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-425",
+      "id": "MIG-426",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-ledger.test.ts",
       "destination": "tests/unit/acceptance-ledger.test.ts",
       "source_sha256": "F1652354D16EAA62EC8DEBCD25E24A71DFE6971D2DABC3126DC2CB3CC91FF65D",
@@ -5106,7 +5118,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-426",
+      "id": "MIG-427",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\acceptance-v2.test.ts",
       "destination": "tests/unit/acceptance-v2.test.ts",
       "source_sha256": "951CD15F312D0D69C1790E5315296262873025AFF0CDDC878F33E368710C1F9B",
@@ -5118,7 +5130,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-427",
+      "id": "MIG-428",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\active-goal-input-v2.test.ts",
       "destination": "tests/unit/active-goal-input-v2.test.ts",
       "source_sha256": "CCFD5A09CEF6C19B4E11EB6D7CD240164A6BC959A9D4B2BE1DB9DF50A49C1157",
@@ -5130,7 +5142,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-428",
+      "id": "MIG-429",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\architecture-dependencies.test.ts",
       "destination": "tests/unit/architecture-dependencies.test.ts",
       "source_sha256": "A4378FBD17F75ACEA6E9877E890ABEB22BAC852B5FE45FEDDF2DDAC7B3ACBD81",
@@ -5142,7 +5154,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-429",
+      "id": "MIG-430",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\benchmark-harness.test.ts",
       "destination": "tests/unit/benchmark-harness.test.ts",
       "source_sha256": "81679E76CCD92B09175388C80AD3597F6A3FA4B0A042791B033286157537380D",
@@ -5154,7 +5166,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-430",
+      "id": "MIG-431",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\bounded-command.test.ts",
       "destination": "tests/unit/bounded-command.test.ts",
       "source_sha256": "6A40F886D152C84DD3E38A9C497E8545F70D2A7B4E9FACA15C2FC7C417374238",
@@ -5166,7 +5178,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-431",
+      "id": "MIG-432",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\cache-v2-codex-local.test.ts",
       "destination": "tests/unit/cache-v2-codex-local.test.ts",
       "source_sha256": "5E2668FA88245A0FA8DE61DAB55F22CEFCA52ACDB56B72CA7F4FAEF9FB247573",
@@ -5178,7 +5190,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-432",
+      "id": "MIG-433",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\cache-v2-geekspace.test.ts",
       "destination": "tests/unit/cache-v2-geekspace.test.ts",
       "source_sha256": "54E10111E57CAB3603CBBBDBFA8007761D73FFAE03E536BF49C8E9F0BFF7636E",
@@ -5190,7 +5202,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-433",
+      "id": "MIG-434",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\canonical-json.test.ts",
       "destination": "tests/unit/canonical-json.test.ts",
       "source_sha256": "4FCA3507937DEDD1631807D73C83291CD94BC6CF008EE574A5EC237C0C0DBC34",
@@ -5202,7 +5214,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-434",
+      "id": "MIG-435",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\change-acceptance-v2.test.ts",
       "destination": "tests/unit/change-acceptance-v2.test.ts",
       "source_sha256": "4E33590B149B6AD07A7C08BDC050C8183CCA98BEC269AF07CCEEB4625511746E",
@@ -5214,7 +5226,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-435",
+      "id": "MIG-436",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\cjk.test.ts",
       "destination": "tests/unit/cjk.test.ts",
       "source_sha256": "47CEE6F430457528AD547CE2FF8605E6A8108D58AA1404FA6AA1151B48F6E06C",
@@ -5226,7 +5238,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-436",
+      "id": "MIG-437",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\clarification.test.ts",
       "destination": "tests/unit/clarification.test.ts",
       "source_sha256": "5049B4485D31918799A4638B2DB6B2E79BBC00388A94CDB9C3AA7AB4DFDC3551",
@@ -5238,7 +5250,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-437",
+      "id": "MIG-438",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\config.test.ts",
       "destination": "tests/unit/config.test.ts",
       "source_sha256": "5425D72917C71C083EF3BBD4EF13F8C898E9CFC70C520F4007150B98E230C453",
@@ -5250,7 +5262,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-438",
+      "id": "MIG-439",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\control-plane-v2.test.ts",
       "destination": "tests/unit/control-plane-v2.test.ts",
       "source_sha256": "8D7C1D04288DF01C0C1FEDA1EDC0F89C64B7052C4CD8FA2A188E8BEEA2151987",
@@ -5262,7 +5274,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-439",
+      "id": "MIG-440",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\decision-inbox-v2.test.ts",
       "destination": "tests/unit/decision-inbox-v2.test.ts",
       "source_sha256": "9287D390A26D1A2855FCEF5B7E7CEFF66C85CFCCA0502B15E6B274E16AAF1E17",
@@ -5274,7 +5286,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-440",
+      "id": "MIG-441",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\dynamic-multi-proposal.test.ts",
       "destination": "tests/unit/dynamic-multi-proposal.test.ts",
       "source_sha256": "A8D8882AD891EE6CF27E919D7B6DB1F2170A75A578C7CCA4FBC05B7B5E780D8F",
@@ -5286,7 +5298,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-441",
+      "id": "MIG-442",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\dynamic-multi-simulation.test.ts",
       "destination": "tests/unit/dynamic-multi-simulation.test.ts",
       "source_sha256": "0944A83A9CA41734D27F738FA7B25995A5C1DD32CE53317483B045425174DB89",
@@ -5298,7 +5310,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-442",
+      "id": "MIG-443",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\effects-normalize.test.ts",
       "destination": "tests/unit/effects-normalize.test.ts",
       "source_sha256": "024D23A45B693CDCFFB26F46D6046F05E2B781521D19122D3633A58FF72ED717",
@@ -5310,7 +5322,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-443",
+      "id": "MIG-444",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\event-chain.test.ts",
       "destination": "tests/unit/event-chain.test.ts",
       "source_sha256": "8C9177BB0895751C99642929407B5BAB18FFCD0CDF9142928601F345F909D4FC",
@@ -5322,7 +5334,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-444",
+      "id": "MIG-445",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\execution-v2-domain.test.ts",
       "destination": "tests/unit/execution-v2-domain.test.ts",
       "source_sha256": "3E751884E694C84FF6996AD3AE5DFBBCC56D907C4DF6481F9F0855F4E4A65DD3",
@@ -5334,7 +5346,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-445",
+      "id": "MIG-446",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\generation-governor.test.ts",
       "destination": "tests/unit/generation-governor.test.ts",
       "source_sha256": "F45523B46E6F4CBB21840FE751EA51D3730D7431EDA152A385AD4F3804068AE0",
@@ -5346,7 +5358,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-446",
+      "id": "MIG-447",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-domain.test.ts",
       "destination": "tests/unit/harness-domain.test.ts",
       "source_sha256": "2421EF517766073E464F28E958CDF1CB36C0A2941C84F6BF5AB736DA1D451989",
@@ -5358,7 +5370,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-447",
+      "id": "MIG-448",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-host-protocol.test.ts",
       "destination": "tests/unit/harness-host-protocol.test.ts",
       "source_sha256": "9D4BF768C3EB5E1776745587C7EC5CD8A67C2A6DF6F577B63946AA662BDB1200",
@@ -5370,7 +5382,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-448",
+      "id": "MIG-449",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-output-policy.test.ts",
       "destination": "tests/unit/harness-output-policy.test.ts",
       "source_sha256": "C479077AFD2673C731B7183322BA7E9F86BBCCB096F0856FAC9E642A098FCBE3",
@@ -5382,7 +5394,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-449",
+      "id": "MIG-450",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-scope-path.test.ts",
       "destination": "tests/unit/harness-scope-path.test.ts",
       "source_sha256": "403E3901CA58D7F73AEA5AFCC80F02E866ABD7E0FDA4A0E93B39A0296BB9DBF5",
@@ -5394,7 +5406,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-450",
+      "id": "MIG-451",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\harness-worker-runtime-policy.test.ts",
       "destination": "tests/unit/harness-worker-runtime-policy.test.ts",
       "source_sha256": "D42BF28BBD814C271A8A347D7CF716962F88AA23EEFD7BD79F804B5CB6815253",
@@ -5406,7 +5418,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-451",
+      "id": "MIG-452",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\host-dynamic-multi-lowering.test.ts",
       "destination": "tests/unit/host-dynamic-multi-lowering.test.ts",
       "source_sha256": "CFFE79DA3DB834B5F49DF9172104001946009FDE820B7E493504982255FF284A",
@@ -5418,7 +5430,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-452",
+      "id": "MIG-453",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-budget.test.ts",
       "destination": "tests/unit/input-context-budget.test.ts",
       "source_sha256": "8EBF2254AB2448072C1AB6709A8A02AC13FFB318C52E16264CFAE02A0AB916E3",
@@ -5430,7 +5442,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-453",
+      "id": "MIG-454",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-compiler.test.ts",
       "destination": "tests/unit/input-context-compiler.test.ts",
       "source_sha256": "27B802886854BE2A894DF13F4A22EF22306839689A4CC195A5024286D46FB5B8",
@@ -5442,7 +5454,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-454",
+      "id": "MIG-455",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-context-tool.test.ts",
       "destination": "tests/unit/input-context-context-tool.test.ts",
       "source_sha256": "855BEC6131A8191F86C02DFB88367941C9486D1AD0E79F662C18759D7EB70670",
@@ -5454,7 +5466,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-455",
+      "id": "MIG-456",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-domain.test.ts",
       "destination": "tests/unit/input-context-domain.test.ts",
       "source_sha256": "9000B5FE82641541E0C7E763042D417B2D999BC4149E125B07D1ED23500FEE7D",
@@ -5466,7 +5478,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-456",
+      "id": "MIG-457",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-integrations.test.ts",
       "destination": "tests/unit/input-context-integrations.test.ts",
       "source_sha256": "42E09345764CD49AF1A45A1AA5DCBB5DB69491CAD4F8F2C4DD22F08D68CE139A",
@@ -5478,7 +5490,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-457",
+      "id": "MIG-458",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-projector.test.ts",
       "destination": "tests/unit/input-context-projector.test.ts",
       "source_sha256": "A6C20796828AA8045BAB8E6AB23F90AF019AEAE7BDBB6668F0935A39DB9B1705",
@@ -5490,7 +5502,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-458",
+      "id": "MIG-459",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-provider-turn.test.ts",
       "destination": "tests/unit/input-context-provider-turn.test.ts",
       "source_sha256": "BDA64C9ED40BD9A0F7BE50E08B8F80A6F7CE6A83381FAC584A864E20ECD724DD",
@@ -5502,7 +5514,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-459",
+      "id": "MIG-460",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-structural.test.ts",
       "destination": "tests/unit/input-context-structural.test.ts",
       "source_sha256": "36AF21DA4A66951A85C4725E03535910D2891581527FD90D7E3A5F6754B56420",
@@ -5514,7 +5526,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-460",
+      "id": "MIG-461",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\input-context-validity.test.ts",
       "destination": "tests/unit/input-context-validity.test.ts",
       "source_sha256": "30A30049A7C167593F05EADD37C5D868AB5499964114AAF0187D6A3496E81CD9",
@@ -5526,7 +5538,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-461",
+      "id": "MIG-462",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\intake-classifier.test.ts",
       "destination": "tests/unit/intake-classifier.test.ts",
       "source_sha256": "C4F60FF9968BE7A27D5B44469E9A913EB5DD4E9368374A4B34D43457B66F7906",
@@ -5538,7 +5550,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-462",
+      "id": "MIG-463",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\intake-v2.test.ts",
       "destination": "tests/unit/intake-v2.test.ts",
       "source_sha256": "F96019D115FE568E93644900FAFE6BDA21F3E29D98768378BD2BD34A4D2FF541",
@@ -5550,7 +5562,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-463",
+      "id": "MIG-464",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\memory-admission.test.ts",
       "destination": "tests/unit/memory-admission.test.ts",
       "source_sha256": "5DFB0C980A8E4EBEF08D62BB500A5787C42A6AAC4DA4EE5A66DB2FE339D10B15",
@@ -5562,7 +5574,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-464",
+      "id": "MIG-465",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\memory-capture.test.ts",
       "destination": "tests/unit/memory-capture.test.ts",
       "source_sha256": "DE97D53B1DF6DD5C21FB91C54161397ABC9D62D4392B685E927DA9D2BC928F61",
@@ -5574,7 +5586,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-465",
+      "id": "MIG-466",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\memory-vault.test.ts",
       "destination": "tests/unit/memory-vault.test.ts",
       "source_sha256": "440008F7E64C7C5F7607D1931495A0AEE6D5AA23E3DA88DD2EB6547142DF8723",
@@ -5586,7 +5598,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-466",
+      "id": "MIG-467",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\migration-manifest-contract.test.ts",
       "destination": "tests/unit/migration-manifest-contract.test.ts",
       "source_sha256": "73ADB59C7279C35348171235C0EF220148615153C54C6202291B8C20316FB94A",
@@ -5598,7 +5610,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-467",
+      "id": "MIG-468",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\performance-contract.test.ts",
       "destination": "tests/unit/performance-contract.test.ts",
       "source_sha256": "71F3AFCA4D17B0B9A25648F98D46BB498BE00A65BCFA1253A5B4836E92B3F2E2",
@@ -5610,7 +5622,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-468",
+      "id": "MIG-469",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-change-impact-v2.test.ts",
       "destination": "tests/unit/plan-change-impact-v2.test.ts",
       "source_sha256": "D33EB861BB6F383D882054DD19BEB460BBA9C60CEE00A01D50EBCD1A9AE5CF2D",
@@ -5622,7 +5634,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-469",
+      "id": "MIG-470",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-health.test.ts",
       "destination": "tests/unit/plan-health.test.ts",
       "source_sha256": "5C85653FD91873F77B8AE73102690CC1854A1A17A33469056B98354D00456A06",
@@ -5634,7 +5646,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-470",
+      "id": "MIG-471",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-revision-delta-v2.test.ts",
       "destination": "tests/unit/plan-revision-delta-v2.test.ts",
       "source_sha256": "F6C4940150D4D23605A4B6F3A2C70687F8013A1E8540C7C6F064B3838EF3144F",
@@ -5646,7 +5658,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-471",
+      "id": "MIG-472",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\plan-revision-v2.test.ts",
       "destination": "tests/unit/plan-revision-v2.test.ts",
       "source_sha256": "8DAFFE96159A17032EF4A0DBDFE861AF9D9E986188A49E15ED1E7CBF8B8CEC6F",
@@ -5658,7 +5670,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-472",
+      "id": "MIG-473",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\production-dynamic-multi.test.ts",
       "destination": "tests/unit/production-dynamic-multi.test.ts",
       "source_sha256": "F97A02A2E8B1A8B99AF2AD7BCADF7D051F93483DE7B34CB65E823B52DE7DE2F9",
@@ -5670,7 +5682,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-473",
+      "id": "MIG-474",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\provider-call-plan-v2.test.ts",
       "destination": "tests/unit/provider-call-plan-v2.test.ts",
       "source_sha256": "310E94DDD8EB12812BB31AC944B5162CC3CC917DB48D96CFC73948BEFC7B1D28",
@@ -5682,7 +5694,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-474",
+      "id": "MIG-475",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\ranking.test.ts",
       "destination": "tests/unit/ranking.test.ts",
       "source_sha256": "4F3CA7123D4A5406609DC5657425AEA0616CD4CB09AB239AE49DD9B7EDFEBD29",
@@ -5694,7 +5706,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-475",
+      "id": "MIG-476",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\response-contract.test.ts",
       "destination": "tests/unit/response-contract.test.ts",
       "source_sha256": "6758A8551C22961E6B7F1D5A37E8175D9C7D8C815538B90A3589DF39CCCB6359",
@@ -5706,7 +5718,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-476",
+      "id": "MIG-477",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\route-classifier.test.ts",
       "destination": "tests/unit/route-classifier.test.ts",
       "source_sha256": "378DBBAD072D031FA4E409C4DEE67CCC4ADDA0C5177F8BF9526B47EBC98DFE42",
@@ -5718,7 +5730,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-477",
+      "id": "MIG-478",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\runtime-build-surface.test.ts",
       "destination": "tests/unit/runtime-build-surface.test.ts",
       "source_sha256": "621B0246E9B6374A2C6BB8698D82B3008B9F4166F3C04CF332A301424217446E",
@@ -5730,7 +5742,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-478",
+      "id": "MIG-479",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\scoped-worker-mirror.test.ts",
       "destination": "tests/unit/scoped-worker-mirror.test.ts",
       "source_sha256": "8E6A1E92AA6B844C8DBB9725D0920ACC39F31A2074267ECA112390F198D99326",
@@ -5742,7 +5754,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-479",
+      "id": "MIG-480",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\sqlite-runtime.test.ts",
       "destination": "tests/unit/sqlite-runtime.test.ts",
       "source_sha256": "541F368DDBE6164040F7ACC516C9184145CFDFB7CA19A00264B8E5002484E239",
@@ -5754,7 +5766,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-480",
+      "id": "MIG-481",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\state-machines.test.ts",
       "destination": "tests/unit/state-machines.test.ts",
       "source_sha256": "530E81586416EB76FF9D147787373B5AEE33805A4E41FF6BFEFA85E7486932E3",
@@ -5766,7 +5778,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-481",
+      "id": "MIG-482",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\strong-single-comparability.test.ts",
       "destination": "tests/unit/strong-single-comparability.test.ts",
       "source_sha256": "73BB48C5A3C671F919E2CC11A4703E4ED72472F38BA417358ADECB585D7AC2A7",
@@ -5778,7 +5790,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-482",
+      "id": "MIG-483",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\target-performance-measurements.test.ts",
       "destination": "tests/unit/target-performance-measurements.test.ts",
       "source_sha256": "B41167CEF2F8604560A88448AFBC3338388296A6A175D5AB16E860BED609D5A1",
@@ -5790,7 +5802,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-483",
+      "id": "MIG-484",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\target-performance-task-flow.test.ts",
       "destination": "tests/unit/target-performance-task-flow.test.ts",
       "source_sha256": "E538ECFC762E039DE7EF58FE69FD569CF4B2C5A67B0600C992200E54026DBA8C",
@@ -5802,7 +5814,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-484",
+      "id": "MIG-485",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\task-flow-finalization-v2.test.ts",
       "destination": "tests/unit/task-flow-finalization-v2.test.ts",
       "source_sha256": "E474BDA48757AAFB17BA0D1FCBF0AE8C26A732741EE02B27AFCEFC3272065F53",
@@ -5814,7 +5826,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-485",
+      "id": "MIG-486",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\task-flow-policy.test.ts",
       "destination": "tests/unit/task-flow-policy.test.ts",
       "source_sha256": "FBC5BA402BC558058E252110633FAF13A522B7925BDF55F7BCAA79F46A912246",
@@ -5826,7 +5838,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-486",
+      "id": "MIG-487",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\topology-gate-v2.test.ts",
       "destination": "tests/unit/topology-gate-v2.test.ts",
       "source_sha256": "5350524225B8C6073D4D013C623416DA2E7C353C8CEE8ED0E5596C20E859FE2C",
@@ -5838,7 +5850,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-487",
+      "id": "MIG-488",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\verification-order.test.ts",
       "destination": "tests/unit/verification-order.test.ts",
       "source_sha256": "0AFEF337AFC221DC91001839F32F48C59CD516E58D1F56C0FE39EF67C922F1D8",
@@ -5850,7 +5862,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-488",
+      "id": "MIG-489",
       "source": "X:\\Pi Coding Harness\\tests\\unit\\worker-attempt-executor-v2.test.ts",
       "destination": "tests/unit/worker-attempt-executor-v2.test.ts",
       "source_sha256": "E99219AC1FBB20358DDAF5262E289709443C3A0031ED9F51445E3D34F40076B4",
@@ -5862,7 +5874,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-489",
+      "id": "MIG-490",
       "source": "X:\\Pi Coding Harness\\THIRD_PARTY_NOTICES.md",
       "destination": "THIRD_PARTY_NOTICES.md",
       "source_sha256": "6554B0ED359DA27CF4EEA3023B8FB8FBC9FB1C55E69494A9142618A02542F9EF",
@@ -5874,7 +5886,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-490",
+      "id": "MIG-491",
       "source": "X:\\Pi Coding Harness\\tsconfig.json",
       "destination": "tsconfig.json",
       "source_sha256": "3C72598CE21DEF4D570D370B9F0BDA7F3EC64B1FFDB3814BCB6F5CD6229B6EDF",
@@ -5886,7 +5898,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-491",
+      "id": "MIG-492",
       "source": "X:\\Pi Coding Harness\\tsconfig.runtime.json",
       "destination": "tsconfig.runtime.json",
       "source_sha256": "AE9D001393BE2CB19FC864BD80B73CD953B3CCBEE038878929A02C781F3AE82C",
@@ -5898,7 +5910,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-492",
+      "id": "MIG-493",
       "source": "X:\\Pi Coding Harness\\vitest.config.ts",
       "destination": "vitest.config.ts",
       "source_sha256": "ED26ED3BE2CBB0571861EE93E81EA79447387C37F430B7D21A009D66CBA1DF60",
@@ -5910,7 +5922,7 @@
       "reason": "Copied byte-for-byte into the renamed release root."
     },
     {
-      "id": "MIG-493",
+      "id": "MIG-494",
       "source": "X:\\Pi Coding Harness\\manifests\\PROJECT-STATE.json",
       "destination": "manifests/PROJECT-STATE.json",
       "source_sha256": null,
@@ -5922,7 +5934,7 @@
       "reason": "Final verification and artifact hashes are written after migration; both directions omit hashes to prevent a transitive self-reference."
     },
     {
-      "id": "MIG-494",
+      "id": "MIG-495",
       "source": "X:\\Pi Coding Harness\\PROJECT-STATUS.md",
       "destination": "PROJECT-STATUS.md",
       "source_sha256": null,
@@ -5934,7 +5946,7 @@
       "reason": "Final verification and artifact hashes are written after migration; both directions omit hashes to prevent a transitive self-reference."
     },
     {
-      "id": "MIG-495",
+      "id": "MIG-496",
       "source": "generated:manifests/MIGRATION-MANIFEST.json",
       "destination": "manifests/MIGRATION-MANIFEST.json",
       "source_sha256": null,
@@ -5946,7 +5958,7 @@
       "reason": "Generated from the final selected closure; self-referential hashes are intentionally prohibited."
     },
     {
-      "id": "MIG-496",
+      "id": "MIG-497",
       "source": "generated:manifests/SOURCE-HASHES.json",
       "destination": "manifests/SOURCE-HASHES.json",
       "source_sha256": null,
@@ -5958,7 +5970,7 @@
       "reason": "Generated from the final selected closure; self-referential hashes are intentionally prohibited."
     },
     {
-      "id": "MIG-497",
+      "id": "MIG-498",
       "source": "X:\\Pi Coding Harness\\node_modules",
       "destination": null,
       "source_sha256": null,
@@ -5970,7 +5982,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-498",
+      "id": "MIG-499",
       "source": "X:\\Pi Coding Harness\\dist",
       "destination": null,
       "source_sha256": null,
@@ -5982,7 +5994,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-499",
+      "id": "MIG-500",
       "source": "X:\\Pi Coding Harness\\.tmp",
       "destination": null,
       "source_sha256": null,
@@ -5994,7 +6006,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-500",
+      "id": "MIG-501",
       "source": "X:\\Pi Coding Harness\\tmp",
       "destination": null,
       "source_sha256": null,
@@ -6006,7 +6018,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-501",
+      "id": "MIG-502",
       "source": "X:\\Pi Coding Harness\\reports",
       "destination": null,
       "source_sha256": null,
@@ -6018,7 +6030,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-502",
+      "id": "MIG-503",
       "source": "X:\\Pi Coding Harness\\.git",
       "destination": null,
       "source_sha256": null,
@@ -6030,7 +6042,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-503",
+      "id": "MIG-504",
       "source": "X:\\Pi Coding Harness\\coverage",
       "destination": null,
       "source_sha256": null,
@@ -6042,7 +6054,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-504",
+      "id": "MIG-505",
       "source": "X:\\Pi Coding Harness\\.cache",
       "destination": null,
       "source_sha256": null,
@@ -6054,7 +6066,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-505",
+      "id": "MIG-506",
       "source": "X:\\Pi Coding Harness\\.playwright-cli",
       "destination": null,
       "source_sha256": null,
@@ -6066,7 +6078,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-506",
+      "id": "MIG-507",
       "source": "X:\\Pi Coding Harness\\.audit-temp",
       "destination": null,
       "source_sha256": null,
@@ -6078,7 +6090,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-507",
+      "id": "MIG-508",
       "source": "X:\\Pi Coding Harness\\output",
       "destination": null,
       "source_sha256": null,
@@ -6090,7 +6102,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-508",
+      "id": "MIG-509",
       "source": "X:\\Pi Coding Harness\\.coding-harness",
       "destination": null,
       "source_sha256": null,
@@ -6102,7 +6114,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-509",
+      "id": "MIG-510",
       "source": "X:\\Pi Coding Harness\\artifacts",
       "destination": null,
       "source_sha256": null,
@@ -6114,7 +6126,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-510",
+      "id": "MIG-511",
       "source": "X:\\Pi Coding Harness\\telemetry",
       "destination": null,
       "source_sha256": null,
@@ -6126,7 +6138,7 @@
       "reason": "Recreated or intentionally absent in the clean target; not part of the self-contained source closure."
     },
     {
-      "id": "MIG-511",
+      "id": "MIG-512",
       "source": "X:\\Pi Coding Harness\\*.tsbuildinfo",
       "destination": null,
       "source_sha256": null,
@@ -6139,8 +6151,8 @@
     }
   ],
   "summary": {
-    "candidate_count": 511,
-    "copied_count": 492,
+    "candidate_count": 512,
+    "copied_count": 493,
     "rewritten_count": 2,
     "generated_count": 2,
     "excluded_count": 15

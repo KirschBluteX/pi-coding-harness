@@ -145,7 +145,7 @@ if (-not $RegenerateOnly) {
     $state.state_generation = [int]$state.state_generation + 1
     $state.updated_at = [DateTimeOffset]::Now.ToString('o')
     Assert-State $state
-    Write-Atomic $statePath (($state | ConvertTo-Json -Depth 40) + "`n")
+    Write-Atomic $statePath ((($state | ConvertTo-Json -Depth 40) -replace "\r\n?", "`n") + "`n")
 }
 Assert-State $state
 Write-Atomic $statusPath (Render-Status $state)
