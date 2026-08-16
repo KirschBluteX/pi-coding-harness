@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/source-hashes.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-08-16T05:51:26.5078139-07:00",
+  "generated_at": "2026-08-16T06:07:19.9615184-07:00",
   "algorithm": "SHA-256",
   "target_root": ".",
   "input_sources": [
@@ -14,7 +14,7 @@
     {
       "migration_id": "MIG-002",
       "source": "X:\\Pi Coding Harness\\.github\\workflows\\ci.yml",
-      "sha256": "81496471229A1CE98D7F60E1C45278642FF30ECF1A5111833CB6C93DFAA7818E",
+      "sha256": "8C0444857F767F50E4DD495DA45AA574AA9994FC05E3FDC3A40D717F090909AE",
       "disposition": "COPIED"
     },
     {
@@ -2972,8 +2972,8 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "sha256": "81496471229A1CE98D7F60E1C45278642FF30ECF1A5111833CB6C93DFAA7818E",
-      "bytes": 847
+      "sha256": "8C0444857F767F50E4DD495DA45AA574AA9994FC05E3FDC3A40D717F090909AE",
+      "bytes": 867
     },
     {
       "path": ".gitignore",
@@ -3162,7 +3162,7 @@
     },
     {
       "path": "manifests/MIGRATION-MANIFEST.json",
-      "sha256": "BC87B56D19C3658F391171DF22A2D0415C8CF7FC9831E82C21F83DFD25107BF1",
+      "sha256": "31776CCFBA7F62E3D898A4ADA97E01B4593C279957CCE74E788D8BBB4338813F",
       "bytes": 294982
     },
     {

@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/migration-manifest.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-08-16T05:51:16.8916948-07:00",
+  "generated_at": "2026-08-16T06:07:08.6775949-07:00",
   "target_root": ".",
   "selection_policy": "Project-owned source, tests, schemas, current documentation, lifecycle scripts and license evidence are copied; dependencies, known generated files, build output, reports, runtime state and version-control metadata are excluded.",
   "entries": [
@@ -21,8 +21,8 @@
       "id": "MIG-002",
       "source": "X:\\Pi Coding Harness\\.github\\workflows\\ci.yml",
       "destination": ".github/workflows/ci.yml",
-      "source_sha256": "81496471229A1CE98D7F60E1C45278642FF30ECF1A5111833CB6C93DFAA7818E",
-      "destination_sha256": "81496471229A1CE98D7F60E1C45278642FF30ECF1A5111833CB6C93DFAA7818E",
+      "source_sha256": "8C0444857F767F50E4DD495DA45AA574AA9994FC05E3FDC3A40D717F090909AE",
+      "destination_sha256": "8C0444857F767F50E4DD495DA45AA574AA9994FC05E3FDC3A40D717F090909AE",
       "category": "CODE",
       "purpose": "Required self-contained release closure.",
       "disposition": "COPIED",
