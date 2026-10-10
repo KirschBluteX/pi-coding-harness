@@ -1,5 +1,4 @@
 import { isAbsolute, resolve } from "node:path";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { canonicalJsonSha256, type CanonicalJson } from "../../authority/canonical-json.js";
 import { assertWalRuntimeSafe } from "../../authority/sqlite-runtime.js";
 import { loadConfig } from "../../config/load-config.js";
@@ -712,12 +711,8 @@ export class CodingHarnessHostRuntime {
     });
   }
 
-  private sessionContext(cwd: string, sessionId: string): Pick<ExtensionContext, "cwd" | "sessionManager" | "ui"> {
-    return {
-      cwd,
-      sessionManager: { getSessionId: () => sessionId },
-      ui: { notify: () => undefined },
-    } as unknown as Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">;
+  private sessionContext(cwd: string, sessionId: string): { readonly cwd: string; readonly sessionId: string } {
+    return { cwd, sessionId };
   }
 
   private discoverGoals(value: unknown): HostResult<"discover_goals"> {
@@ -860,6 +855,7 @@ export class CodingHarnessHostRuntime {
   }
 
   private status(): HostStatus {
+    this.session?.keepActiveLeaseAlive();
     const configuredCache = this.runtimeResolution?.config.modules.cache;
     const effectiveCache = this.cacheRuntime && this.entered
       ? this.cacheRuntime.effective(this.entered.runtime)

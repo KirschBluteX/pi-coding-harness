@@ -4,11 +4,11 @@
   "version": "1.3.0",
   "authority_schema": 35,
   "status": "VERIFYING",
-  "state_generation": 105,
-  "current_phase": "P13",
-  "current_stage": "SINGLE_CODE_VERIFIED_PERFORMANCE_OPEN",
-  "updated_at": "2026-10-10T04:45:38.1553738-07:00",
-  "goal": "Complete the supported Single edition of PCH: remove Multi execution, preserve historical authority, reduce unnecessary control overhead and verify the real Single lifecycle before updating GitHub. No GitHub Release is authorized for this delivery.",
+  "state_generation": 110,
+  "current_phase": "P14",
+  "current_stage": "INDEPENDENT_SINGLE_CODE_VERIFIED_PERFORMANCE_OPEN",
+  "updated_at": "2026-10-10T09:01:04.6540811-07:00",
+  "goal": "Implement a Pi-free PCH Single CLI, model adapter and controlled tool loop on the existing Host authority; keep historical Multi retired and requalify correctness and deployment performance before declaring a formal version.",
   "completed_receipts": [
     {
       "id": "PCH-REC-CODE-BASELINE",
@@ -469,12 +469,42 @@
       "id": "PCH-SINGLE-LOCAL-PERFORMANCE-LIMIT",
       "result": "EXTERNAL_LIMIT",
       "evidence": "Task Flow and Memory v3 gates passed. Phase-1 persistence and Cache C1 latency gates failed on X with budgets and WAL/FULL unchanged. P95: event commit 63.8433 ms, CAS 74.4372 ms, C1 round trip 154.9261 ms. A separate bare SQLite WAL/FULL commit was 111.2775 ms and fsync 50.1713 ms; this diagnoses the I/O boundary, not the exact environmental cause. No provider requests were issued. Failed gates remain failed."
+    },
+    {
+      "id": "PCH-P14-CORE-PI-DECOUPLING",
+      "result": "PASS",
+      "evidence": "Focused architecture test first failed on three Pi imports, then passed after removing Pi types and UI wrappers from Single core/Host; TypeScript compile passed; architecture, TaskFlowSession and Host suites passed 97/97."
+    },
+    {
+      "id": "PCH-P14-DETERMINISTIC-SINGLE-LOOP",
+      "result": "PASS",
+      "evidence": "Pi-free CLI source, explicit X-drive data root, optional Pi peer, OpenAI-compatible streaming adapter, checked transcript and Host-controlled sequential tools compile. Eight focused unit checks pass. A real Host with scripted model completed USER Contract review, managed edit, npm test validation and terminal Goal closure in 8.3 seconds. Built CLI help/doctor work from another X-drive cwd. Installed package without Pi, crash recovery, actual gateway and release performance are not yet verified."
+    },
+    {
+      "id": "PCH-P14-REFENCED-RECOVERY-AND-ISOLATED-CLI",
+      "result": "PASS",
+      "evidence": "A real Host integration test reproduced completion refusal after an interrupted edit and controller restart: the new lease fenced an old running WorkCell authorization. A Host RUNTIME-only refencing transition now revokes that authorization, preserves the committed edit, reauthorizes the same WorkCell, and requires fresh validation. The interrupted-transcript recovery and existing Single lifecycle passed with pinned Node 24.19.0; compile and lint passed. A packed package installed without the optional Pi peer; CLI help, doctor and status passed from an unrelated X-drive cwd, and doctor created no data root. Active installed-loop and actual gateway smokes are still open."
+    },
+    {
+      "id": "PCH-P14-INDEPENDENT-SINGLE-FUNCTIONAL-CLOSURE",
+      "result": "PASS",
+      "evidence": "Before the final bounded-command repair, a fresh serial Vitest run on pinned Node 24.19.0 passed 834 tests in 105 files with 6 opt-in performance skips. After that narrow repair, the affected two unit files passed 8 tests, the standalone Host integration file passed 2, and compile/ESLint passed. SQL, JSON, Markdown, state-update, lifecycle and self-contained checks passed; source closure covers 490 files. These targeted reruns are separate from the 834-test full-suite count."
+    },
+    {
+      "id": "PCH-P14-PI-FREE-INSTALLED-CLI",
+      "result": "PASS",
+      "evidence": "The final packed 1.3.0 runtime, refreshed after the process-tree repair, installed without the optional Pi peer. Help, doctor and status worked from an unrelated X-drive cwd. The installed CLI made exactly one local SSE request, displayed model text and stopped at user review. An earlier bounded actual-gateway turn reached Host and returned [empty directory], leaving a recoverable Goal; it did not complete a task or measure cost."
+    },
+    {
+      "id": "PCH-P14-BOUNDED-SHELL-TREE",
+      "result": "PASS",
+      "evidence": "Focused tests first reproduced that aborting a standalone npm test left a child able to write later. The CLI now reuses the existing process-tree-safe bounded command runner with exact argv and filtered environment. After repair, 8 affected unit checks and 2 standalone Host integration checks passed; compile and ESLint passed. The full suite was not repeated for this isolated helper change."
     }
   ],
   "authoritative_artifacts": [
     {
       "path": "docs/PI-CODING-HARNESS-BLUEPRINT.md",
-      "sha256": "C91D4660DAA3E923C7E070EF67A655F536ADD6EE04251189D642EE427817249F",
+      "sha256": "DBF7143F1AEB8B1C624D610C7ED88E75D4727C5A434876A9FF64D148BBD121C9",
       "role": "sole architecture authority"
     },
     {
@@ -489,12 +519,12 @@
     },
     {
       "path": "manifests/MIGRATION-MANIFEST.json",
-      "sha256": "750C23921B4884AA4A10FCC42D6070F124EC78B74E047355E93D023120EAAE81",
+      "sha256": "511C59CE72705DC0D6A75D492B2A9F36D39E7DA75B83B0E30F5C5A44502F2A86",
       "role": "current source provenance manifest"
     },
     {
       "path": "manifests/SOURCE-HASHES.json",
-      "sha256": "A062822DAF56878797C870B27F0789CAB3DFACC705766C9E52FCD9B2942354B5",
+      "sha256": "74ADC302AF17C14AE3AD0A3BB685621791E8AD979D20E1B020E0970465629F10",
       "role": "current source integrity manifest"
     },
     {
@@ -524,7 +554,7 @@
     },
     {
       "path": "reports/self-contained.json",
-      "sha256": "C00ECE03D81E7CF3E4DC090093D8B748C4517C46BCB0C54358BA90633FA4C776",
+      "sha256": "3D5C8D82298D913F15B8387FBBBE154238F92DBBE6E623131CB50F0006E71C1D",
       "role": "current source closure evidence"
     },
     {
@@ -829,13 +859,18 @@
     },
     {
       "path": "docs/VALIDATION.md",
-      "sha256": "3101B65DEC44D75DBB32DC6A5910AC59A5FA03617511C10E739E1181BB4AD3D9",
+      "sha256": "4482CA0F2F4A6C4433D2E89703FD30AFB9156B8551DB511A856B3484C8C4B091",
       "role": "Single 1.3 validation observations and limits"
     },
     {
       "path": "reports/single-validation-summary.json",
       "sha256": "9E221EB8198B14CB2BBA95C3ED16730E428A4FEA005F14A83A1FA03B83CE5962",
       "role": "Single functional, installation, provider and performance composite receipt"
+    },
+    {
+      "path": "reports/independent-cli-validation.json",
+      "sha256": "BFC38952999D96E5A61B7A659584433920CBBFACD88CAD98EEB1353EE18849B1",
+      "role": "independent Single functional, installed-package and remaining performance evidence"
     }
   ],
   "decisions": [
@@ -996,11 +1031,14 @@
     "Use the existing current Pi Agent for all work and keep USER contract review, lease/fencing, readback, fresh acceptance and unknown-outcome reconciliation.",
     "Deliver Single code to the authorized GitHub main branch without creating a Release or tag. Local performance qualification remains explicitly open.",
     "Retain the existing performance budgets and durable-write guarantees; do not trade authority safety for a timing pass.",
-    "Count final functional assertions by whole-file replacement of affected reruns, preserving distinct parameterized cases without repeating the full suite."
+    "Count final functional assertions by whole-file replacement of affected reruns, preserving distinct parameterized cases without repeating the full suite.",
+    "Independent Single uses the existing SQLite/CAS Host as sole task and effect authority; the Pi Bridge remains a compatibility adapter while the CLI is built.",
+    "Use a bounded PCH Single loop and a directly instrumented OpenAI-compatible adapter, not @cline/agents 0.0.92; the latter's nominal tool hook worked, but 146445224 installed bytes across 19821 files and built-in retry/transcript behavior do not reduce the required PCH authorization and recovery work.",
+    "Deliver the independently runnable Single code to the authorized GitHub main branch without creating a Release or tag; preserve the failed X-drive performance gate as an explicit formal-release blocker."
   ],
   "latest_correction": {
-    "id": "PCH-COR-WORKTREE-SOURCE-CLOSURE",
-    "summary": "The JSON source-closure walker now uses the declared excluded-file patterns, preventing a Git worktree .git pointer from being treated as missing product source. The final code and functional evidence are complete; durable-write performance qualification remains open."
+    "id": "PCH-COR-STANDALONE-SHELL-TREE",
+    "summary": "An independent CLI shell timeout or cancellation now terminates and waits for the whole process tree before the Host observes the result; an orphaned validation descendant was reproduced before the fix and eliminated after it."
   },
   "failed_routes": [
     {
@@ -1112,27 +1150,29 @@
     "Do not derive recoverable Goals only from schema-35 binding heads; pre-binding active Task Flow authority must remain discoverable without fabricating binding receipts.",
     "Do not rely on Pi before_agent_start to refresh phase guidance between tool cycles; return changed guidance with the current transition and preserve authority validation.",
     "Do not assume prepending Node to PATH changes npm.ps1's colocated runtime. Invoke npm through the pinned Node CLI when verifying SQLite-backed commands.",
-    "Do not rerun the same failed X-drive persistence benchmark to fish for a pass; requalify after a relevant deployment-environment change and retain the failed samples."
+    "Do not rerun the same failed X-drive persistence benchmark to fish for a pass; requalify after a relevant deployment-environment change and retain the failed samples.",
+    "Do not reinstall or re-probe @cline/agents 0.0.92 without new evidence that its dependency footprint and built-in retry/transcript boundary materially changed."
   ],
   "open_risks": [
-    "Local phase-1 durable-write and Cache C1 latency budgets are not met on the tested X-drive environment. Functional correctness is verified, but the full performance/release gate is not passed.",
+    "Phase-1 durable-write and Cache C1 latency budgets are not met on the tested X-drive volume; the full performance/release gate has not passed.",
     "Historical unfinished requested/effective Multi Goals require 1.2.1 reconciliation/cancellation before workspace reuse; 1.3 preserves their authority but does not execute them.",
-    "The isolated real-model smoke does not establish matched native-Pi cost savings, production-length natural compaction or long-running reliability; gateway dollar pricing is unknown."
+    "The isolated real-model smoke and bounded independent gateway turn do not establish matched native-Pi cost savings, production-length natural compaction or long-running reliability; gateway dollar pricing is unknown."
   ],
-  "blockers": [],
-  "next_action": "Requalify the phase-1 persistence and Cache C1 gates on the intended data volume after a relevant storage-environment change. Keep Multi retired. Creating a Release requires a new user instruction and successful release gates.",
+  "blockers": [
+    "Formal release qualification is blocked by the existing phase-1 durable-write and Cache C1 latency budgets on the tested X-drive deployment volume."
+  ],
+  "next_action": "Requalify phase-1 persistence and Cache C1 on the intended data volume after a relevant storage-environment change; keep Multi retired and create no Release without a new user instruction and passing gates.",
   "verification": {
     "result": "FAIL",
     "commands": [
-      "npm run compile; npm run lint; npm run build:runtime: PASS; final schema-fixture edit also passed compile and affected lint",
-      "vitest run --no-file-parallelism --testTimeout=30000 plus final Host/Bridge/protocol and schema-upgrade whole-file reruns: 819 passed, 0 remaining functional failures, 6 opt-in performance skips",
-      "npm run verify:sql; npm run verify:json; npm run verify:markdown; npm run verify:state-update; npm run verify:lifecycle; npm run verify:self-contained: PASS",
-      "Real pi install and unrelated-cwd installed-extension smoke with local deterministic SSE: PASS",
-      "Real Pi / authorized gateway single-WorkCell CSV smoke: PASS, 7 holdout assertions, 9 provider turns, 96415 ms",
-      "npm run verify:performance plus the remaining current performance files: Task Flow/Memory v3 PASS; phase-1 persistence/Cache C1 FAIL on the declared X-drive volume"
+      "Pinned Node 24.19.0: fresh serial Vitest before final narrow repair PASS, 105 files and 834 tests, 6 opt-in performance skips",
+      "After bounded-command repair: two affected unit files 8/8 PASS, standalone Host integration 2/2 PASS, compile and ESLint PASS",
+      "Final packed Pi-free package from unrelated X-drive cwd: one-request local SSE active-loop PASS; bounded actual-gateway one-turn probe passed earlier within its limited scope",
+      "verify:sql, verify:json, verify:markdown, verify:state-update, verify:lifecycle and verify:self-contained PASS with regenerated 490-file source manifest",
+      "Previously measured X-drive phase-1 persistence and Cache C1 performance gates FAIL; unchanged environment, benchmark not repeated"
     ],
-    "tests_passed": 819,
+    "tests_passed": 834,
     "tests_skipped": 6,
-    "report_sha256": "9E221EB8198B14CB2BBA95C3ED16730E428A4FEA005F14A83A1FA03B83CE5962"
+    "report_sha256": "BFC38952999D96E5A61B7A659584433920CBBFACD88CAD98EEB1353EE18849B1"
   }
 }

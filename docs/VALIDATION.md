@@ -23,18 +23,25 @@ a new control lease. See [the upgrade instructions](USER-GUIDE.md#upgrading-from
 | Check | Observed result |
 |---|---|
 | TypeScript, ESLint and runtime build | PASS; the final schema-fixture edit also passed compile and affected lint |
-| Serial Vitest suite plus affected-file reruns | 105 files, 819 passed, 0 remaining functional failures, 6 opt-in performance cases skipped |
+| Fresh serial Vitest suite | 105 files, 834 passed, 0 functional failures, 6 opt-in performance cases skipped |
 | Host, Bridge and IPC regression set | 89 passed, including phase guidance after tool transitions and automatic WorkCell advancement |
 | Runtime schema upgrade gate | 36 passed; each old schema is isolated and remains unchanged after refused runtime opening |
 | Lifecycle | Install, upgrade and uninstall test files passed; installation tests also exercise doctor, WhatIf, configured data roots and explicit overrides |
 | SQL | All 35 migrations passed; integrity `ok`, no foreign-key failures |
 | Clean package installation | `npm ci` succeeded; real `pi install` and automatic extension discovery succeeded from an unrelated working directory |
+| Pi-free package installation | A fresh 1.3.0 tarball installed without the optional Pi peer; the CLI active-loop smoke from an unrelated X-drive working directory made one local SSE request, displayed model text, and left the Goal recoverable |
 
-The first full Vitest run recorded 813 passed, 6 failed and 6 skipped. Five failures were schema fixture cases
+An earlier full Vitest run recorded 813 passed, 6 failed and 6 skipped. Five failures were schema fixture cases
 exceeding their existing 15-second case limit; the sixth was the new WorkCell guidance regression before its fix.
-The final count replaces the affected **whole files** with their successful reruns, without summing duplicate runs
-or claiming a second full-suite execution. Parameterized cases with identical display names remain separate cases.
-The six opt-in cases are not functional passes; four current performance gates were then exercised separately below.
+The final fresh full-suite run passed 834 tests after those fixes and the independent CLI additions. Parameterized
+cases with identical display names remain separate cases. The six opt-in cases are not functional passes; four
+current performance gates were exercised separately below.
+
+A later final review found that shell cancellation ended only the direct CLI child process. New focused tests first
+reproduced an orphaned validation descendant and missing direct-argument execution. The standalone shell now uses
+the existing bounded process-tree runner. After that change, both affected unit files passed (8 tests), the
+standalone Host integration file passed (2 tests), and TypeScript compile and ESLint passed. The 834-test full-suite
+count is from before this narrow final fix; these later checks are separate and are not added to that count.
 The historical Memory v2/phase-6 performance cases were not enabled.
 
 Schema fixtures now build each migration prefix once, checkpoint it and copy it into an isolated database per case.
@@ -46,6 +53,14 @@ rejected Multi entry create neither authority data nor provider requests; defaul
 Host, honors the configured X-drive data root and exposes only `coding_flow`, `coding_clarify` and `coding_context`.
 Schema-35 integrity and foreign-key checks passed. The stub's text authorized no mutation. This check verifies
 installation and transport, while the next check separately exercises a real model.
+
+The independent CLI was also packed and installed with no Pi peer. `help`, `doctor` and `status` ran from an unrelated
+X-drive working directory. The final installed-package active-loop smoke used a local SSE provider, observed exactly
+one request with Host-controlled tools, displayed its text and stopped at a user review without applying changes.
+The earlier bounded actual-gateway one-turn probe reached the Host through the independent CLI; an empty-directory
+`ls` result is now represented as `[empty directory]` so the Host receives a valid nonempty tool result. That probe
+left a recoverable Goal and is not a completed task or a cost/performance benchmark. It was not repeated after the
+later display-only CLI change.
 
 Local evidence files, intentionally excluded from Git:
 

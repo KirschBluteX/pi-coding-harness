@@ -18,16 +18,17 @@
 - 唯一架构权威是 `docs/PI-CODING-HARNESS-BLUEPRINT.md`。
 - SQLite WAL、不可变 event/receipt、lease、fencing token 和 CAS 是产品权威。Pi JSONL、聊天、
   Widget、状态 Markdown 和 Worker 文本均不可授权副作用。
-- `/coding` 是唯一公开入口。不得恢复旧名称、旧命令或兼容别名。
-- 未显式进入时不得启动 Host、读取配置、打开 SQLite、注入 prompt、发送 RPC 或增加模型请求。
-- provider、model、thinking level 和 context window 只来自当前 Pi 配置。禁止调用 `setModel`、
-  `setThinkingLevel` 或写死具体模型、thinking level、窗口与 provider。
+- Pi 适配器的唯一公开入口是 `/coding`；独立 Single 的公开入口是 `pch` CLI。不得恢复旧名称或兼容别名。
+- 未显式进入时不得启动 Host、打开 SQLite、注入 prompt、发送 RPC 或增加模型请求；CLI 帮助不得读取运行配置，`doctor` 只作本地检查。
+- Pi 适配器的 provider、model、thinking level 和 context window 只来自当前 Pi 配置；独立 CLI 只从用户显式配置取得网关、模型和窗口。禁止调用 `setModel`、
+  `setThinkingLevel` 或写死具体模型、窗口与 provider。
+- 独立运行的工作区、会话、临时文件、缓存与权威数据须在用户选定的非系统盘；本机使用 X 盘，不得静默回落到 C 盘。
 
 ## Single 正式版边界
 
 - 当前版本仅支持 Single 的 Plan、Build、澄清、路线纠错、恢复、Memory、Input Context、
   Compaction、Output、Cache telemetry 和性能门。
-- Single 由 Supervisor 在真实工作区执行；所有 mutation 经过 operation prepare/observe/commit/reconcile。
+- Single 在真实工作区执行；Pi Supervisor 或独立 CLI 均须让所有 mutation 经过 Host 的 operation prepare/observe/commit/reconcile。
 - Multi 的菜单、工具、RPC、Worker 执行器和调度已移除，不得通过隐式回退重新启用。
 - 保留 schema 35 及更早的不可变历史格式；旧 Multi Goal 在获取控制 lease 前拒绝恢复，不能解释成 Single。
 - 历史 Worker 配置只在读取 1.2 配置时丢弃，不进入运行配置或模型请求。

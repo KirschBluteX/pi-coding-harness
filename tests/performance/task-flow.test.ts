@@ -2,7 +2,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { cpus, hostname, totalmem } from "node:os";
 import { performance } from "node:perf_hooks";
 import { parse, resolve } from "node:path";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 import type { AuthorityStore, MutationMeta, TransactionFaultPoint } from "../../src/authority/transactions.js";
 import type { CodingHarnessConfig } from "../../src/config/types.js";
@@ -48,11 +47,7 @@ describe.skipIf(!enabled)("Task Flow Kernel critical-path performance", () => {
     mkdirSync(resolve(cwd, "src"), { recursive: true });
     writeFileSync(resolve(cwd, "src", "example.ts"), "export const value = 1;\n", "utf8");
     const config = loadDevelopmentConfig();
-    const context = {
-      cwd,
-      sessionManager: { getSessionId: () => "SESSION-TASK-FLOW-PERF" } as ExtensionContext["sessionManager"],
-      ui: { notify: () => undefined } as unknown as ExtensionContext["ui"],
-    };
+    const context = { cwd, sessionId: "SESSION-TASK-FLOW-PERF" };
     const session = new TaskFlowSession({
       config, packageRoot: resolve("."), migrationPath: resolve("schemas", "sql", "001_core.sql"),
       dataRoot: resolve(root, "data"), now: () => Date.parse("2026-07-24T12:00:00.000Z"),

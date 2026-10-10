@@ -700,6 +700,42 @@ export class TaskFlowRepository {
     return false;
   }
 
+  refenceWorkCell(
+    goalId: string, workCellId: string, authorizationId: string,
+    leaseGeneration: number, fencingToken: number, eventSequence: number, nowMs: number,
+  ): void {
+    this.assertAvailable();
+    const current = this.connection.prepare(`SELECT h.status,h.next_action_code,h.current_work_cell_id,
+        c.status AS cell_status,z.authorization_id,z.lease_generation,z.fencing_token,z.expires_at_ms,
+        z.contract_id,z.route_id,h.current_contract_id,h.current_route_id
+      FROM task_flow_goal_heads_v1 h JOIN work_cell_heads_v1 c ON c.goal_id=h.goal_id
+      JOIN execution_authorizations_v1 z ON z.goal_id=h.goal_id AND z.work_cell_id=c.work_cell_id
+      WHERE h.goal_id=? AND c.work_cell_id=? AND z.authorization_id=? AND z.revoked_at_ms IS NULL`)
+      .get(goalId, workCellId, authorizationId) as Record<string, unknown> | undefined;
+    if (!current || current.status !== "BUILDING" || current.next_action_code !== "EXECUTE_WORK"
+      || current.current_work_cell_id !== workCellId || current.cell_status !== "RUNNING"
+      || current.contract_id !== current.current_contract_id || current.route_id !== current.current_route_id) {
+      throw new AuthorityIntegrityError("Refencing requires the exact current running WorkCell authorization");
+    }
+    if (Number(current.lease_generation) === leaseGeneration && Number(current.fencing_token) === fencingToken
+      && Number(current.expires_at_ms) > nowMs) {
+      throw new AuthorityIntegrityError("Current WorkCell authorization does not require refencing");
+    }
+    const live = Number((this.connection.prepare(`SELECT count(*) count FROM execution_authorizations_v1
+      WHERE goal_id=? AND revoked_at_ms IS NULL`).get(goalId) as { count: number }).count);
+    const unresolved = Number((this.connection.prepare(`SELECT count(*) count FROM operation_heads_v1
+      WHERE goal_id=? AND state IN ('PREPARED','DISPATCHED','OBSERVED','OUTCOME_UNKNOWN')`)
+      .get(goalId) as { count: number }).count);
+    if (live !== 1 || unresolved !== 0) {
+      throw new AuthorityIntegrityError("Refencing requires one live authorization and no unresolved Operations");
+    }
+    this.connection.prepare("UPDATE execution_authorizations_v1 SET revoked_at_ms=? WHERE authorization_id=? AND revoked_at_ms IS NULL")
+      .run(nowMs, authorizationId);
+    this.transitionWorkCell(workCellId, "RUNNING", "REPAIRING", eventSequence);
+    this.connection.prepare(`UPDATE task_flow_goal_heads_v1 SET status='BUILDING',next_action_code='AUTHORIZE_WORK',
+      current_work_cell_id=NULL,updated_event_sequence=? WHERE goal_id=?`).run(eventSequence, goalId);
+  }
+
   revokeAuthorization(goalId: string, nowMs: number): void {
     this.assertAvailable();
     this.connection.prepare("UPDATE execution_authorizations_v1 SET revoked_at_ms=? WHERE goal_id=? AND revoked_at_ms IS NULL").run(nowMs, goalId);

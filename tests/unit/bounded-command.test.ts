@@ -30,6 +30,19 @@ describe("bounded command", () => {
     })).resolves.toEqual({ exitCode: 0, output: "bounded-ok" });
   });
 
+  it("runs a direct executable with exact arguments and an isolated environment", async () => {
+    const root = temporaryRoot();
+    await expect(runBoundedCommand({
+      command: process.execPath,
+      args: ["-e", "process.stdout.write(process.env.PCH_TEST_VALUE ?? 'missing')"],
+      env: { PCH_TEST_VALUE: "isolated" },
+      cwd: root,
+      timeoutMs: 5_000,
+      maximumOutputBytes: 1_024,
+      signal: new AbortController().signal,
+    })).resolves.toEqual({ exitCode: 0, output: "isolated" });
+  });
+
   it("kills descendants before reporting a timeout", async () => {
     const root = temporaryRoot();
     const sentinel = join(root, "late-side-effect.txt");

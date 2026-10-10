@@ -88,4 +88,18 @@ describe("architecture dependencies", () => {
     const hostRuntime = resolve(sourceRoot, "harness", "host", "runtime.ts");
     expect(staticRuntimeModuleSpecifiers(hostRuntime)).not.toContain("../worker/executor.js");
   });
+
+  it("keeps the Single core and Host independent from Pi", () => {
+    const roots = [
+      `${canonicalPath(resolve(sourceRoot, "runtime"))}/`,
+      `${canonicalPath(resolve(sourceRoot, "harness", "host"))}/`,
+    ];
+    const offenders = sourceFiles().flatMap((path) => {
+      if (!roots.some((root) => canonicalPath(path).startsWith(root))) return [];
+      return staticModuleSpecifiers(path)
+        .filter((specifier) => specifier === "@earendil-works/pi-coding-agent")
+        .map((specifier) => `${relative(projectRoot, path)} -> ${specifier}`);
+    });
+    expect(offenders).toEqual([]);
+  });
 });

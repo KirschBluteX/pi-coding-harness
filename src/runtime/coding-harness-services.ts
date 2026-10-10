@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { ArtifactStore } from "../artifacts/artifact-store.js";
 import { assertContained, prepareSafeRoot, publishAtomicNoReplace } from "../artifacts/atomic-file.js";
 import { canonicalJsonSha256 } from "../authority/canonical-json.js";
@@ -23,6 +22,11 @@ export interface CodingHarnessResources {
   readonly authority: AuthorityStore;
   readonly artifacts: ArtifactStore;
   readonly workspaceSecret: Uint8Array;
+}
+
+export interface HarnessSessionIdentity {
+  readonly cwd: string;
+  readonly sessionId: string;
 }
 
 export interface TaskFlowMemoryContext {
@@ -101,12 +105,12 @@ export class CodingHarnessServices {
     this.now = options.now ?? Date.now;
   }
 
-  initialize(ctx: Pick<ExtensionContext, "cwd" | "sessionManager">): void {
+  initialize(identity: HarnessSessionIdentity): void {
     if (this.resourcesValue) return;
     const configuredRoot = this.options.dataRoot ?? this.options.config.data?.root ?? "~/.pi/agent/coding-harness";
     const root = prepareSafeRoot(expandHome(configuredRoot));
     const key = installKey(root);
-    const cwd = resolve(ctx.cwd);
+    const cwd = resolve(identity.cwd);
     const workspaceHmac = hmacSha256Hex(key, cwd.replaceAll("\\", "/").toLowerCase().normalize("NFC"));
     const workspaceId = idFromSha256("WS", workspaceHmac);
     const workspaceRoot = prepareSafeRoot(resolve(root, "workspaces", workspaceHmac));
@@ -163,7 +167,7 @@ export class CodingHarnessServices {
       key,
     );
     this.cwd = cwd;
-    this.sessionId = ctx.sessionManager.getSessionId();
+    this.sessionId = identity.sessionId;
     this.workspaceId = workspaceId;
   }
 

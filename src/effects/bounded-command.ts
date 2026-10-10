@@ -2,10 +2,12 @@ import { execFile, spawn, type ChildProcess } from "node:child_process";
 
 export interface BoundedCommandInput {
   readonly command: string;
+  readonly args?: readonly string[];
   readonly cwd: string;
   readonly timeoutMs: number;
   readonly maximumOutputBytes: number;
   readonly signal: AbortSignal;
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 export interface BoundedCommandResult {
@@ -82,12 +84,12 @@ export async function runBoundedCommand(input: BoundedCommandInput): Promise<Bou
   boundedPositiveInteger(input.timeoutMs, "Bounded command timeout", 24 * 60 * 60 * 1_000);
   boundedPositiveInteger(input.maximumOutputBytes, "Bounded command output limit", 64 * 1024 * 1024);
 
-  const child = spawn(input.command, {
+  const child = spawn(input.command, [...(input.args ?? [])], {
     cwd: input.cwd,
-    shell: true,
+    shell: input.args === undefined,
     windowsHide: true,
     detached: process.platform !== "win32",
-    env: process.env,
+    env: input.env ?? process.env,
     stdio: ["ignore", "pipe", "pipe"],
   });
   const chunks: Buffer[] = [];

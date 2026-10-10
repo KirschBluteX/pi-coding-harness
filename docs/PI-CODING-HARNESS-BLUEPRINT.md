@@ -1,7 +1,7 @@
 # Pi Coding Harness implementation blueprint
 
 Status: authoritative implementation specification  
-Version: 1.3.0
+Version: 1.3.0 baseline; independent Single candidate in development
 
 Authority schema: 35
 Updated: 2026-10-10
@@ -11,13 +11,14 @@ implementation order, user operation, budgets, or gates, but cannot change a con
 
 ## 1. Product definition
 
-PCH is an opt-in harness outside Pi Coding Agent. It turns one user-selected coding task into a durable,
-evidence-driven software-engineering run. Pi remains the interactive shell and model client; PCH owns task
-authority, execution admission, context additions, recovery and verification closure. Version 1.3 supports Single execution only.
+PCH turns one user-selected coding task into a durable, evidence-driven software-engineering run. The verified
+1.3.0 Pi adapter remains available while an independent Single CLI is implemented. Both use the same Host and
+SQLite/CAS task authority; the CLI owns its model client, user interaction and non-authoritative transcript.
+The independent profile in section 3.3 supersedes Pi-specific shell, provider and history clauses only for CLI runs.
+Neither profile enables retired Multi execution.
 
-PCH is not an autonomous chat replacement, a provider proxy, a server-side cache, or a claim that the model sees
-less native Pi history. Its leverage comes from selecting small additional context, keeping exact local state, and
-reusing the current Pi Agent and fresh local evidence without additional Agent sessions.
+The Pi adapter does not reduce native Pi history. The independent profile can control its complete provider input,
+but any cost or time benefit requires a matched measurement; independence alone is not evidence of improvement.
 
 ### 1.1 Required outcomes
 
@@ -137,6 +138,53 @@ is passed by environment once, deleted immediately in the child, and zeroed on s
 | Compaction | prepare/verify exact semantic capsule | `src/context/compaction-v21` |
 | Cache | provider-specific observe/mutate arm with C0 fallback | `src/cache-v2` |
 | Performance | frozen workloads, paired measurements, verdict | `src/performance` |
+
+### 3.3 Independent Single profile (implementation candidate)
+
+The independent entry is `pch run`, `pch plan`, `pch resume`, `pch status` and `pch doctor`. Help and doctor perform
+no model request; help does not start the Host or read runtime configuration. Run and resume require an explicit
+absolute workspace, non-system data root, gateway base URL, model ID and context window. Credentials come from a
+named environment variable, are never persisted with the conversation, and are removed from tool subprocesses.
+Gateway URLs cannot embed credentials or query secrets. CLI tool subprocesses use temporary and cache roots below
+the selected data root. There is no implicit fallback to the system drive. The Pi peer is optional for an installed
+CLI package. `doctor` checks the embedded SQLite WAL runtime without opening the Host or authority database.
+
+The CLI starts the existing authenticated Host lazily. It calls `enter` before a model request, uses one
+`turn_projection` per active Agent run, and carries the fresh ControlFrame through every authority-changing result.
+The Host remains the only owner of GoalContract, Route, USER decisions, leases, effect preparation, readback,
+reconciliation, acceptance and closure. A model may propose Contract, Route and bounded tools; it cannot approve
+its own Contract, choose Plan continuation or grant a material clarification. The CLI presents those choices and
+records only explicit user selections. A paused, interrupted or crashed run must inspect pending operations and
+reconcile them before dispatching another effect. An unknown effect is never inferred from model text or replayed.
+When a recovered controller acquires a new fencing token, a settled WorkCell's old execution authorization is
+revoked under the current lease and the same WorkCell is reauthorized from a fresh workspace baseline. Committed
+operations remain immutable; acceptance evidence tied to the old authorization cannot satisfy the new closure.
+An unresolved operation must reconcile before this refencing transition, and the transition never fabricates a
+USER control decision.
+
+The independent model adapter uses an explicit OpenAI-compatible endpoint. It has no hidden SDK retries. Every
+actual request is bracketed by `provider_begin`/`provider_settle`; missing usage or gateway price remains unknown,
+not zero. Streaming tool arguments are executable only after a complete, valid final response. A partial stream,
+duplicate tool ID, canceled call or unknown tool outcome cannot authorize a mutation. Tool execution is sequential,
+workspace-contained, bounded, and admitted by `tool_preflight` before the local operation. `tool_result` precedes
+`tool_end`; cancellation, timeout and output overflow terminate the entire shell process tree before the Host
+observes a result. A lost observation stops the run for Host reconciliation.
+
+The conversation file under the selected data root is an atomic, hash-checked context aid, not task authority.
+It may restore model history only after Host Goal identity and effects are checked. Missing tool results from a
+crash are marked unknown in the restored model transcript; the model must inspect fresh workspace evidence. Old
+Multi Goals stay readable but cannot acquire Single control. Cross-Pi conversation replay is not supported.
+
+Deterministic checks cover the CLI entry, stream assembly, denied and observed tools, user review, Host closure,
+shell process-tree cancellation and recovery after a lost tool result. Installed-package help, doctor, status and
+one local-SSE active turn pass from an unrelated X-drive cwd without Pi. A bounded actual-gateway turn passed;
+completed independent real-model tasks, longer-run user experience, natural context management and X-drive
+performance remain release gates. The experimental `@cline/agents` 0.0.92 loop was
+probed once: basic hooks worked, but its roughly
+146 MB installed dependency tree plus built-in retries and transcript ownership did not remove PCH's Host-specific
+admission, accounting and recovery work. A bounded PCH loop with the existing Host is the chosen owner. The Pi
+adapter is a compatibility path until independent lifecycle and migration gates pass; then its removal is a
+separate explicit migration, not an implicit reinterpretation of older sessions.
 
 ## 4. Entry, intent and topology
 

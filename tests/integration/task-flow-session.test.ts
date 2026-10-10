@@ -1,12 +1,12 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { canonicalJsonSha256 } from "../../src/authority/canonical-json.js";
 import { closeAuthorityConnection, openAuthorityConnection } from "../../src/authority/database.js";
 import type { CodingHarnessConfig } from "../../src/config/types.js";
 import { TaskFlowSession } from "../../src/runtime/task-flow-session.js";
+import type { HarnessSessionIdentity } from "../../src/runtime/coding-harness-services.js";
 import { hmacSha256Hex, sha256Hex } from "../../src/foundation/crypto.js";
 import { idFromSha256 } from "../../src/foundation/ids.js";
 import { sealHarnessRecord, type TopologyRevisionRecord } from "../../src/harness/domain.js";
@@ -22,12 +22,8 @@ function config(): CodingHarnessConfig {
   return JSON.parse(readFileSync(resolve("config", "default.json"), "utf8")) as CodingHarnessConfig;
 }
 
-function context(cwd: string, sessionId: string): Pick<ExtensionContext, "cwd" | "sessionManager" | "ui"> {
-  return {
-    cwd,
-    sessionManager: { getSessionId: () => sessionId } as ExtensionContext["sessionManager"],
-    ui: { notify: () => undefined } as unknown as ExtensionContext["ui"],
-  };
+function context(cwd: string, sessionId: string): HarnessSessionIdentity {
+  return { cwd, sessionId };
 }
 
 function withGoalFitAssessment<T extends object>(proposal: T): T & {
@@ -1247,7 +1243,7 @@ describe("Task Flow live session", () => {
   it("revokes BUILD authorization before asking a material question and persists the choice", async () => {
     const { session, cwd, ctx } = fixture("H4");
     admit(session, cwd, ctx);
-    const result = await session.resolveClarifications([{
+    const result = session.resolveClarificationSelections([{
       id: "output-format", question: "Which output format should be authoritative?",
       whyItMatters: "The choice changes acceptance.", changeKind: "ACCEPTANCE", materiality: "HIGH",
       reversible: true, privacyRelated: false,
@@ -1256,11 +1252,8 @@ describe("Task Flow live session", () => {
         { id: "markdown", label: "Markdown", impact: "Human-readable output" },
       ],
       recommendedOptionId: "json", recommendationReason: "The oracle can validate JSON deterministically.",
-      dependsOnDecisionIds: [],
-    }], {
-      hasUI: true, mode: "print",
-      ui: { select: (_title: string, options: string[]) => Promise.resolve(options[0]) } as unknown as ExtensionContext["ui"],
-    });
+      dependsOnDecisionIds: [], selectedOptionId: "json",
+    }]);
     expect(result).toMatch(/Decisions resolved: DECISION-/u);
     expect(session.current()).toMatchObject({ phase: "CONTRACTING", nextAction: "SUBMIT_CONTRACT" });
     expect(session.prepareToolOperation({
@@ -1278,7 +1271,7 @@ describe("Task Flow live session", () => {
     const authority = session.resources()!.authority;
     const lease = authority.acquireLease(
       session.current()!.goalId,
-      ctx.sessionManager.getSessionId(),
+      ctx.sessionId,
       config().execution.lease_ttl_ms,
     );
     let effectRan = false;
@@ -1805,10 +1798,7 @@ describe("Task Flow live session", () => {
     });
     sessions.push(resumed);
     resumed.initialize(context(cwd, "SESSION-PLAN"));
-    const continuation = await resumed.continueFromPlan({
-      hasUI: true, mode: "print",
-      ui: { select: (_title: string, options: string[]) => Promise.resolve(options[0]) } as unknown as ExtensionContext["ui"],
-    });
+    const continuation = resumed.resolvePlanContinuation("BUILD", resumed.planReview()!);
     expect(continuation).toMatch(/BUILD authorized/u);
     expect(resumed.current()).toMatchObject({ phase: "BUILDING", nextAction: "EXECUTE_WORK" });
   });

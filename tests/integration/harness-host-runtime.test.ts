@@ -2,7 +2,6 @@ import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { CodingHarnessHostRuntime } from "../../src/harness/host/runtime.js";
 import type { HostStatus } from "../../src/harness/host/application-protocol.js";
 import { sha256Hex } from "../../src/foundation/crypto.js";
@@ -99,9 +98,7 @@ afterEach(() => {
 describe("Coding Harness Host runtime", () => {
   it.each(["MULTI", "SINGLE"] as const)("preserves retired Multi history with effective %s and refuses recovery", async (effectiveTopology) => {
     const { cwd, options } = fixture();
-    const context = {
-      cwd, sessionManager: { getSessionId: () => "SESSION-LEGACY-MULTI" }, ui: { notify: () => undefined },
-    } as unknown as Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">;
+    const context = { cwd, sessionId: "SESSION-LEGACY-MULTI" };
     const sessionOptions = {
       config: loadConfig(options.configPath), packageRoot,
       migrationPath: resolve(packageRoot, "schemas", "sql", "001_core.sql"),
@@ -197,18 +194,11 @@ describe("Coding Harness Host runtime", () => {
       harnessMigrationPath: resolve(packageRoot, "schemas", "sql", "013_coding_harness_v1.sql"),
       dataRoot: options.dataRoot, now: options.now,
     });
-    legacy.initialize({
-      cwd,
-      sessionManager: { getSessionId: () => sessionId },
-      ui: { notify: () => undefined },
-    } as unknown as Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">, {
+    legacy.initialize({ cwd, sessionId }, {
       recovery: { kind: "NONE" }, runtimeInstanceId: "HOST-LEGACY-PRE-BINDING",
     });
-    expect(legacy.startFromInput("plan: recover a legacy unbound Goal", {
-      cwd,
-      sessionManager: { getSessionId: () => sessionId },
-      ui: { notify: () => undefined },
-    } as unknown as Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">)).toMatchObject({ action: "transform" });
+    expect(legacy.startFromInput("plan: recover a legacy unbound Goal", { cwd, sessionId }))
+      .toMatchObject({ action: "transform" });
     legacy.createHarnessRun({
       topology: "SINGLE", createdByHostHmac: "a".repeat(64),
       configSha256: "b".repeat(64), decisionSha256: "c".repeat(64),

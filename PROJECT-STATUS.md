@@ -6,24 +6,24 @@
 - Version: 1.3.0
 - Authority schema: 35
 - State: VERIFYING
-- Current phase: P13
-- Current stage: SINGLE_CODE_VERIFIED_PERFORMANCE_OPEN
-- State generation: 105
-- Updated: 2026-10-10T04:45:38.1553738-07:00
+- Current phase: P14
+- Current stage: INDEPENDENT_SINGLE_CODE_VERIFIED_PERFORMANCE_OPEN
+- State generation: 110
+- Updated: 2026-10-10T09:01:04.6540811-07:00
 
 ## Goal
 
-Complete the supported Single edition of PCH: remove Multi execution, preserve historical authority, reduce unnecessary control overhead and verify the real Single lifecycle before updating GitHub. No GitHub Release is authorized for this delivery.
+Implement a Pi-free PCH Single CLI, model adapter and controlled tool loop on the existing Host authority; keep historical Multi retired and requalify correctness and deployment performance before declaring a formal version.
 
 ## Evidence
 
-- Completed receipts: 92
-- Authoritative artifacts: 73
+- Completed receipts: 98
+- Authoritative artifacts: 74
 - Verification: FAIL
 
 ## Latest correction
 
-PCH-COR-WORKTREE-SOURCE-CLOSURE: The JSON source-closure walker now uses the declared excluded-file patterns, preventing a Git worktree .git pointer from being treated as missing product source. The final code and functional evidence are complete; durable-write performance qualification remains open.
+PCH-COR-STANDALONE-SHELL-TREE: An independent CLI shell timeout or cancellation now terminates and waits for the whole process tree before the Host observes the result; an orphaned validation descendant was reproduced before the fix and eliminated after it.
 
 ## Do not repeat
 
@@ -123,17 +123,18 @@ PCH-COR-WORKTREE-SOURCE-CLOSURE: The JSON source-closure walker now uses the dec
 - Do not rely on Pi before_agent_start to refresh phase guidance between tool cycles; return changed guidance with the current transition and preserve authority validation.
 - Do not assume prepending Node to PATH changes npm.ps1's colocated runtime. Invoke npm through the pinned Node CLI when verifying SQLite-backed commands.
 - Do not rerun the same failed X-drive persistence benchmark to fish for a pass; requalify after a relevant deployment-environment change and retain the failed samples.
+- Do not reinstall or re-probe @cline/agents 0.0.92 without new evidence that its dependency footprint and built-in retry/transcript boundary materially changed.
 
 ## Open risks
 
-- Local phase-1 durable-write and Cache C1 latency budgets are not met on the tested X-drive environment. Functional correctness is verified, but the full performance/release gate is not passed.
+- Phase-1 durable-write and Cache C1 latency budgets are not met on the tested X-drive volume; the full performance/release gate has not passed.
 - Historical unfinished requested/effective Multi Goals require 1.2.1 reconciliation/cancellation before workspace reuse; 1.3 preserves their authority but does not execute them.
-- The isolated real-model smoke does not establish matched native-Pi cost savings, production-length natural compaction or long-running reliability; gateway dollar pricing is unknown.
+- The isolated real-model smoke and bounded independent gateway turn do not establish matched native-Pi cost savings, production-length natural compaction or long-running reliability; gateway dollar pricing is unknown.
 
 ## Blockers
 
-- None.
+- Formal release qualification is blocked by the existing phase-1 durable-write and Cache C1 latency budgets on the tested X-drive deployment volume.
 
 ## Next action
 
-Requalify the phase-1 persistence and Cache C1 gates on the intended data volume after a relevant storage-environment change. Keep Multi retired. Creating a Release requires a new user instruction and successful release gates.
+Requalify phase-1 persistence and Cache C1 on the intended data volume after a relevant storage-environment change; keep Multi retired and create no Release without a new user instruction and passing gates.

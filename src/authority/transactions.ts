@@ -1051,6 +1051,10 @@ export class AuthorityStore {
     if (command.type === "FINALIZE_GOAL_CONTRACT_INTAKE" || command.type === "FINALIZE_TASK_FLOW_PLAN") {
       assertExactCommandKeys(command as unknown as Readonly<Record<string, unknown>>, ["type", "goalId"], command.type);
     }
+    if (command.type === "REFENCE_WORK_CELL") {
+      assertExactCommandKeys(command as unknown as Readonly<Record<string, unknown>>,
+        ["type", "goalId", "workCellId", "authorizationId"], command.type);
+    }
     const goalId = command.goalId;
     const commandSha256 = canonicalJsonSha256(command);
     return this.transactionKernel.execute(
@@ -1459,6 +1463,10 @@ export class AuthorityStore {
             else if (command.type === "AUTHORIZE_WORK_CELL") {
               if (command.authorization.lease_generation !== meta.lease.generation || command.authorization.fencing_token !== meta.lease.fencingToken) throw new AuthorityIntegrityError("ExecutionAuthorization fencing differs from the current lease");
               this.taskFlow.authorize(command.authorization, sequence);
+            } else if (command.type === "REFENCE_WORK_CELL") {
+              if (meta.actor !== "RUNTIME") throw new AuthorityIntegrityError("WorkCell refencing requires Host RUNTIME authority");
+              this.taskFlow.refenceWorkCell(goalId, command.workCellId, command.authorizationId,
+                meta.lease.generation, meta.lease.fencingToken, sequence, nowMs);
             } else if (command.type === "PREPARE_OPERATION" || command.type === "PREPARE_AND_DISPATCH_OPERATION"
               || command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH") {
               const operations = command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH"
@@ -1575,6 +1583,7 @@ export class AuthorityStore {
               : command.type === "COMMIT_TASK_FLOW_PLAN_GATE" ? "PLAN_FROZEN"
             : command.type === "RECORD_WORKSPACE_BASELINE" ? "WORKSPACE_BASELINE_RECORDED"
               : command.type === "AUTHORIZE_WORK_CELL" ? "WORK_CELL_AUTHORIZED"
+              : command.type === "REFENCE_WORK_CELL" ? "WORK_CELL_REFENCED"
                 : command.type === "PREPARE_OPERATION" ? "OPERATION_PREPARED"
                   : command.type === "PREPARE_AND_DISPATCH_OPERATION" ? "OPERATION_TRANSITIONED"
                     : command.type === "PREPARE_AND_DISPATCH_OPERATION_BATCH" ? "OPERATION_TRANSITIONED"
@@ -1669,6 +1678,7 @@ export class AuthorityStore {
             }
             : command.type === "RECORD_WORKSPACE_BASELINE" ? { baselineId: command.baseline.baseline_id, baselineSha256: command.baseline.record_sha256 }
               : command.type === "AUTHORIZE_WORK_CELL" ? { authorizationId: command.authorization.authorization_id, workCellId: command.authorization.work_cell_id }
+              : command.type === "REFENCE_WORK_CELL" ? { authorizationId: command.authorizationId, workCellId: command.workCellId }
                 : command.type === "PREPARE_OPERATION" ? { attemptId: command.attempt.attempt_id, operationId: command.attempt.operation_id, transitionSha256: command.prepared.transition_sha256, oracleDescriptorIds }
                    : command.type === "PREPARE_AND_DISPATCH_OPERATION" ? {
                      attemptId: command.attempt.attempt_id,

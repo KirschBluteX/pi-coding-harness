@@ -152,6 +152,10 @@ export class TaskFlowKernel {
     return this.authority.transactTaskFlow({ type: "AUTHORIZE_WORK_CELL", goalId, authorization }, mutation);
   }
 
+  refenceWorkCell(goalId: string, workCellId: string, authorizationId: string, mutation: MutationMeta): CommandResult {
+    return this.authority.transactTaskFlow({ type: "REFENCE_WORK_CELL", goalId, workCellId, authorizationId }, mutation);
+  }
+
   prepareOperation(goalId: string, attempt: OperationAttemptRecord, prepared: OperationTransitionRecord, reconcileLocator: OperationReconcileLocatorRecord | null, mutation: MutationMeta): CommandResult {
     return this.authority.transactTaskFlow({
       type: "PREPARE_OPERATION", goalId, attempt, prepared, reconcileLocator, oracleExecution: null,

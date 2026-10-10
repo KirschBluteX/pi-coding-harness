@@ -2,7 +2,6 @@ import {
   existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync,
 } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
-import type { ExtensionCommandContext, ExtensionContext, InputEventResult } from "@earendil-works/pi-coding-agent";
 import { canonicalJson, canonicalJsonSha256, type CanonicalJson } from "../authority/canonical-json.js";
 import type { LeaseToken } from "../authority/lease.js";
 import type { MutationMeta } from "../authority/transactions.js";
@@ -18,6 +17,7 @@ import { createId, idFromSha256 } from "../foundation/ids.js";
 import { recoverPromptGenerationObservation } from "./recovery.js";
 import {
   CodingHarnessServices, type CodingHarnessResources, type CodingHarnessServiceOptions,
+  type HarnessSessionIdentity,
 } from "./coding-harness-services.js";
 import type { PromptGenerationRecord } from "../context/prompt-generation.js";
 import type { ActiveGoalBinding } from "./active-goal.js";
@@ -241,14 +241,14 @@ export class TaskFlowSession {
   }
 
   initialize(
-    ctx: Pick<ExtensionContext, "cwd" | "sessionManager">,
+    identity: HarnessSessionIdentity,
     options: TaskFlowSessionInitializeOptions = {},
   ): void {
     if (this.kernel) return;
-    this.services.initialize(ctx);
+    this.services.initialize(identity);
     const resources = this.requiredResources();
-    this.cwd = resolve(ctx.cwd);
-    this.sessionId = ctx.sessionManager.getSessionId();
+    this.cwd = resolve(identity.cwd);
+    this.sessionId = identity.sessionId;
     this.runtimeInstanceId = options.runtimeInstanceId ?? this.sessionId;
     if (!this.runtimeInstanceId.trim() || this.runtimeInstanceId.length > 256) {
       throw new TypeError("Task Flow runtime instance ID is invalid");
@@ -312,6 +312,7 @@ export class TaskFlowSession {
     const pendingActiveGoalInput = resources.authority.hasPendingActiveGoalUserTurn(existing.goalId);
     if (!openCompaction && !pendingActiveGoalInput) {
       this.reconcilePendingAuthorityTransitions();
+      this.refenceStaleWorkCell();
       if (this.requiredActive().view.nextActionCode === "AUTHORIZE_WORK") this.authorizeNextWork();
     }
     if (pendingActiveGoalInput) {
@@ -609,7 +610,7 @@ export class TaskFlowSession {
     };
   }
 
-  startFromInput(text: string, ctx: Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">): InputEventResult | null {
+  startFromInput(text: string, identity: HarnessSessionIdentity): { readonly action: "transform"; readonly text: string } | null {
     if (this.active && !["SUCCEEDED", "FAILED", "CANCELED"].includes(this.active.view.status)) {
       this.captureActiveGoalInput(text);
       return null;
@@ -619,7 +620,7 @@ export class TaskFlowSession {
       this.services.observeTaskFlowMemoryInput(text, false);
       return null;
     }
-    this.initialize(ctx);
+    this.initialize(identity);
     if (secretPattern.test(classified.taskText)) throw new TypeError("PCH rejected secret-like task text before persistence");
     if (this.active && !["SUCCEEDED", "FAILED", "CANCELED"].includes(this.active.view.status)) {
       throw new TypeError("An active PCH Goal already exists in this workspace; finish or cancel it first");
@@ -902,25 +903,6 @@ export class TaskFlowSession {
     return this.active?.view.intent === "PLAN" && this.active.view.nextActionCode === "PLAN_CONTINUATION";
   }
 
-  async continueFromPlan(ctx: Pick<ExtensionCommandContext, "hasUI" | "mode" | "ui">): Promise<string> {
-    const state = this.requiredActive();
-    const contract = state.view.contract;
-    const route = state.view.route;
-    if (!contract || !route || !this.planContinuationPending()) throw new TypeError("No frozen PLAN continuation is open");
-    if (!ctx.hasUI) return "Plan is frozen. An interactive Pi UI is required to choose BUILD, keep, or revise; no default was applied.";
-    const binding = this.planReview();
-    if (!binding) throw new AuthorityIntegrityError("Plan continuation binding is unavailable");
-    const options = [
-      "[Recommended] Enter BUILD - implement the frozen contract and route now",
-      "Keep plan only - finish without modifying target project files",
-      "Revise route - preserve the contract and replace the technical route",
-    ];
-    const selected = await ctx.ui.select("Plan passed local finalization. What should PCH do next?", options);
-    if (!selected) return "Plan continuation canceled; the frozen contract and route remain unchanged.";
-    const choice = selected === options[0] ? "BUILD" : selected === options[1] ? "KEEP" : "REVISE";
-    return this.resolvePlanContinuation(choice, binding);
-  }
-
   resolvePlanContinuation(
     choice: "BUILD" | "KEEP" | "REVISE",
     expected: PlanContinuationBinding,
@@ -977,7 +959,12 @@ export class TaskFlowSession {
     authorizeNext = true,
   ): string {
     this.requiredActive();
-    return this.requiredOperationLifecycle().reconcile(operationId, authorizeNext);
+    const message = this.requiredOperationLifecycle().reconcile(operationId, false);
+    if (this.requiredActive().view.unresolvedOperationIds.length === 0) {
+      this.refenceStaleWorkCell();
+      if (authorizeNext && this.requiredActive().view.nextActionCode === "AUTHORIZE_WORK") this.authorizeNextWork();
+    }
+    return message;
   }
 
   attest(input: TaskFlowAttestationInput): string {
@@ -1238,7 +1225,7 @@ export class TaskFlowSession {
   }
 
   controlFrame(toolSurfaceSha256: string): CurrentControlFrame {
-    this.ensureLease();
+    this.keepActiveLeaseAlive();
     const state = this.requiredActive();
     return createCurrentControlFrame({
       goal_id: state.goalId, authority_version: state.version,
@@ -1253,6 +1240,7 @@ export class TaskFlowSession {
 
   keepActiveLeaseAlive(): void {
     this.ensureLease();
+    if (this.refenceStaleWorkCell()) this.authorizeNextWork();
   }
 
   memoryProjection(): MemoryContextMessage | null { return this.services.memoryProjection(); }
@@ -1543,25 +1531,6 @@ export class TaskFlowSession {
     state.blocker = `Contract revision requested: ${normalizedReason}`;
     this.refresh();
     return `GoalContract revision opened at authority version ${state.version}. Submit the revised contract before any further BUILD mutation.`;
-  }
-
-  async resolveClarifications(
-    decisions: readonly ClarificationDecision[],
-    ctx: Pick<ExtensionContext, "hasUI" | "mode" | "ui">,
-  ): Promise<string> {
-    this.requiredActive();
-    if (!ctx.hasUI) throw new TypeError("Material clarification requires interactive Pi UI; no recommendation was accepted automatically");
-    const selections: ClarificationSelection[] = [];
-    for (const decision of decisions) {
-      const labels = decision.options.map((option) => option.id === decision.recommendedOptionId
-        ? `[Recommended] ${option.label} - ${option.impact}` : `${option.label} - ${option.impact}`);
-      const selected = await ctx.ui.select(`${decision.question}\n${decision.whyItMatters}`, labels);
-      const selectedIndex = selected === undefined ? -1 : labels.indexOf(selected);
-      const selectedOptionId = selectedIndex < 0 ? null : decision.options[selectedIndex]!.id;
-      selections.push({ ...decision, selectedOptionId });
-      if (selectedOptionId === null) break;
-    }
-    return this.resolveClarificationSelections(selections);
   }
 
   resolveClarificationSelections(
@@ -1970,6 +1939,25 @@ export class TaskFlowSession {
     } else if (state.lease.expiresAtMs - now <= Math.floor(ttlMs / 2)) {
       state.lease = authority.renewLease(state.lease, ttlMs, Math.max(1, state.version));
     }
+  }
+
+  private refenceStaleWorkCell(): boolean {
+    const state = this.requiredActive();
+    const authorization = state.view.authorization;
+    if (!authorization || !state.view.workCellId) return false;
+    if (authorization.lease_generation === state.lease.generation
+      && authorization.fencing_token === state.lease.fencingToken
+      && authorization.expires_at_ms > this.now()) return false;
+    if (state.view.unresolvedOperationIds.length > 0 || this.pendingCompactionAttemptId
+      || this.compactionRecoveryRequired
+      || this.requiredResources().authority.hasPendingActiveGoalUserTurn(state.goalId)) return false;
+    const result = this.requiredKernel().refenceWorkCell(
+      state.goalId, state.view.workCellId, authorization.authorization_id,
+      this.mutation(`task-flow:refence:${authorization.record_sha256}:${state.lease.generation}:${state.lease.fencingToken}`),
+    );
+    state.version = result.goalVersion;
+    this.refresh();
+    return true;
   }
 
   private reconcilePendingAuthorityTransitions(): void {

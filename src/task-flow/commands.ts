@@ -130,6 +130,13 @@ export interface AuthorizeWorkCellCommand {
   readonly authorization: ExecutionAuthorizationRecord;
 }
 
+export interface RefenceWorkCellCommand {
+  readonly type: "REFENCE_WORK_CELL";
+  readonly goalId: string;
+  readonly workCellId: string;
+  readonly authorizationId: string;
+}
+
 export interface OracleExecutionDescriptorProposalV2 {
   readonly command: string;
   readonly policySha256: string;
@@ -255,6 +262,7 @@ export type TaskFlowAuthorityCommand =
   | CommitTaskFlowPlanGateCommand
   | RecordWorkspaceBaselineCommand
   | AuthorizeWorkCellCommand
+  | RefenceWorkCellCommand
   | PrepareOperationCommand
   | PrepareAndDispatchOperationCommand
   | PrepareAndDispatchOperationBatchCommand
