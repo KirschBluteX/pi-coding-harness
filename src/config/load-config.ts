@@ -9,8 +9,6 @@ const intents = new Set(["AUTO", "PLAN_ONLY", "BUILD", "PLAN_THEN_BUILD"]);
 const depths = new Set(["AUTO", "BYPASS", "LIGHT", "STANDARD", "FULL"]);
 const fallbackValues = new Set(["BASELINE", "EMPTY_OPTIONAL_PROJECTION", "NATIVE_PI"]);
 const cacheArms = new Set(["C0", "C1_PREFIX", "C2_PROVIDER", "C3_RETENTION", "C4_COMBINED", "AUTO"]);
-const workerRoles = ["PLANNER", "EXPLORER", "IMPLEMENTER", "VERIFIER", "INTEGRATOR"] as const;
-const workerThinkingLevels = new Set(["INHERIT_SUPERVISOR", "off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -71,35 +69,6 @@ function validateSoftBudget(record: Record<string, unknown>, key: string, path: 
   requireInteger(record, key, path, 1, 32_768, errors);
 }
 
-function validateWorkerRuntime(value: unknown, path: string, errors: string[]): void {
-  const policy = requireRecord(value, path, errors);
-  rejectUnknownKeys(policy, path, new Set(["unavailable_policy", "roles"]), errors);
-  if (policy.unavailable_policy !== "INHERIT_SUPERVISOR") {
-    errors.push(`${path}.unavailable_policy must be INHERIT_SUPERVISOR`);
-  }
-  const roles = requireRecord(policy.roles, `${path}.roles`, errors);
-  rejectUnknownKeys(roles, `${path}.roles`, new Set(workerRoles), errors);
-  for (const role of workerRoles) {
-    const rolePath = `${path}.roles.${role}`;
-    const profile = requireRecord(roles[role], rolePath, errors);
-    if (profile.source === "INHERIT_SUPERVISOR") {
-      rejectUnknownKeys(profile, rolePath, new Set(["source"]), errors);
-      continue;
-    }
-    if (profile.source !== "PI_CONFIG") {
-      errors.push(`${rolePath}.source is invalid`);
-      continue;
-    }
-    rejectUnknownKeys(profile, rolePath, new Set(["source", "provider_id", "model_id", "thinking_level"]), errors);
-    const provider = requireString(profile, "provider_id", rolePath, errors);
-    const model = requireString(profile, "model_id", rolePath, errors);
-    if (provider.length > 256) errors.push(`${rolePath}.provider_id exceeds 256 characters`);
-    if (model.length > 512) errors.push(`${rolePath}.model_id exceeds 512 characters`);
-    if (typeof profile.thinking_level !== "string" || !workerThinkingLevels.has(profile.thinking_level)) {
-      errors.push(`${rolePath}.thinking_level is invalid`);
-    }
-  }
-}
 
 function validateOptionalModule(value: unknown, path: string, errors: string[]): void {
   const moduleConfig = requireRecord(value, path, errors);
@@ -185,15 +154,11 @@ function validateConfig(value: unknown): asserts value is CodingHarnessConfig {
   const execution = requireRecord(root.execution, "$.execution", errors);
   rejectUnknownKeys(execution, "$.execution", new Set([
     "default_intent", "planning_depth", "same_failure_retry_limit", "lease_ttl_ms",
-    "worker_timeout_ms", "max_parallel_workers", "worker_runtime",
   ]), errors);
   if (typeof execution.default_intent !== "string" || !intents.has(execution.default_intent)) errors.push("$.execution.default_intent is invalid");
   if (typeof execution.planning_depth !== "string" || !depths.has(execution.planning_depth)) errors.push("$.execution.planning_depth is invalid");
   requireInteger(execution, "same_failure_retry_limit", "$.execution", 0, 3, errors);
   requireInteger(execution, "lease_ttl_ms", "$.execution", 5_000, 300_000, errors);
-  if (execution.worker_timeout_ms !== undefined) requireInteger(execution, "worker_timeout_ms", "$.execution", 10_000, 3_600_000, errors);
-  if (execution.max_parallel_workers !== undefined) requireInteger(execution, "max_parallel_workers", "$.execution", 1, 8, errors);
-  if (execution.worker_runtime !== undefined) validateWorkerRuntime(execution.worker_runtime, "$.execution.worker_runtime", errors);
 
   const modules = requireRecord(root.modules, "$.modules", errors);
   rejectUnknownKeys(modules, "$.modules", new Set(["memory", "input_context", "compaction", "cache", "output"]), errors);
@@ -298,6 +263,11 @@ export function loadConfig(path: string): CodingHarnessConfig {
     parsed = JSON.parse(readFileSync(absolutePath, "utf8")) as unknown;
   } catch (error) {
     throw new ConfigReadError(absolutePath, error);
+  }
+  // Read old local configs without reviving the removed Worker runtime. These
+  // fields are discarded before hashing or persisting the effective config.
+  if (isRecord(parsed) && isRecord(parsed.execution)) {
+    for (const key of ["worker_timeout_ms", "max_parallel_workers", "worker_runtime"]) delete parsed.execution[key];
   }
   try {
     validateConfig(parsed);

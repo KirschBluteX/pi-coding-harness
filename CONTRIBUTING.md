@@ -14,7 +14,7 @@ are demonstrated by fresh evidence.
 
 2. Read only the relevant part of the normative
    `docs/PI-CODING-HARNESS-BLUEPRINT.md`, the affected source, and nearby tests.
-3. Confirm whether the change affects authority, durable schema, Worker scope,
+3. Confirm whether the change affects authority, durable schema, Single execution scope,
    recovery, privacy, provider behavior, or a public command.
 
 `docs/PI-CODING-HARNESS-BLUEPRINT.md` is the only normative architecture source.

@@ -1,7 +1,15 @@
 import { canonicalJson, canonicalJsonSha256 } from "../authority/canonical-json.js";
 import type { CacheProviderContract } from "../cache-v2/provider-contract.js";
 import { idFromSha256 } from "../foundation/ids.js";
-import type { ResolvedWorkerRuntime } from "../harness/worker/runtime-policy.js";
+import type { PiRuntimeFingerprintInput } from "../harness/runtime-fingerprint.js";
+
+/** Decodes immutable provider provenance written by PCH 1.2; no Worker dispatch is supported. */
+export interface LegacyProviderRuntimeV1 {
+  readonly runtime: PiRuntimeFingerprintInput;
+  readonly source: "SUPERVISOR_INHERITED" | "PI_CONFIG" | "SUPERVISOR_FALLBACK";
+  readonly source_profile_id?: string;
+  readonly fallback_reason: "MODEL_NOT_FOUND" | "AUTH_NOT_CONFIGURED" | null;
+}
 
 const sha256Pattern = /^[a-f0-9]{64}$/u;
 const idPattern = /^[A-Z][A-Z0-9_:-]{0,255}$/u;
@@ -56,7 +64,7 @@ export interface ProviderAllowedFieldV1 {
 
 export interface ProviderRuntimeProfileV1 {
   readonly schema_version: 1;
-  readonly source: ResolvedWorkerRuntime["source"];
+  readonly source: LegacyProviderRuntimeV1["source"];
   readonly source_profile_id: string | null;
   readonly provider: string;
   readonly api: string;
@@ -66,7 +74,7 @@ export interface ProviderRuntimeProfileV1 {
   readonly context_window: number;
   readonly current_pi_config_sha256: string;
   readonly runtime_fingerprint_sha256: string;
-  readonly fallback_reason: ResolvedWorkerRuntime["fallback_reason"];
+  readonly fallback_reason: LegacyProviderRuntimeV1["fallback_reason"];
   readonly record_sha256: string;
 }
 
@@ -319,7 +327,7 @@ function deepFreeze<T>(value: T): T {
 }
 
 function profileBody(input: {
-  readonly resolved: ResolvedWorkerRuntime;
+  readonly resolved: LegacyProviderRuntimeV1;
   readonly sourceProfileId: string | null;
   readonly currentPiConfigSha256: string;
   readonly runtimeFingerprintSha256: string;
@@ -341,7 +349,7 @@ function profileBody(input: {
 }
 
 export function captureProviderRuntimeProfileV1(input: {
-  readonly resolved: ResolvedWorkerRuntime;
+  readonly resolved: LegacyProviderRuntimeV1;
   readonly sourceProfileId: string | null;
   readonly currentPiConfigSha256: string;
   readonly runtimeFingerprintSha256: string;

@@ -16,7 +16,7 @@ observed behavior, and whether the issue involves:
 
 - Extension/Host authentication or replay protection;
 - SQLite authority, leases, fencing, CAS, or recovery;
-- Worker scope, mirror isolation, PatchSet integration, or command execution;
+- Single execution scope, historical authority integrity, or command execution;
 - secret handling, Memory encryption, telemetry, or provider payloads;
 - local path access, credentials, or session controls.
 

@@ -27,7 +27,6 @@ import {
   type WorkspaceBaselineRecord,
 } from "../../src/task-flow/domain.js";
 import { finalizeExecutionGraphV2 } from "../../src/harness/execution-v2/dag.js";
-import { DynamicMultiCoordinator } from "../../src/harness/execution-v2/coordinator.js";
 import { sealHarnessRecord, type TopologyRevisionRecord } from "../../src/harness/domain.js";
 import {
   finalizeDynamicMultiCandidateV2,
@@ -43,7 +42,6 @@ import type { WorkerProviderDispatchAuthorityV1 } from "../../src/provider-v2/wo
 import { finalizeProviderInvocationTerminalV1 } from "../../src/provider-v2/invocation.js";
 import {
   executionIntegrationJournalFixture,
-  preparedExecutionIntegrationJournalFixture,
 } from "../helpers/execution-v2.js";
 
 const fixtures: HarnessFixture[] = [];
@@ -200,20 +198,6 @@ function committedPacketClosure(graph: ReturnType<typeof finalizeExecutionGraphV
     decision_refs: current.decision_refs,
     provider_call_plan_id: current.provider_call_plan_id,
     provider_call_plan_sha256: current.provider_call_plan_sha256,
-  };
-}
-
-function coordinatorMutation(fixture: HarnessFixture) {
-  return {
-    transact(command: Parameters<AuthorityStore["transactExecutionV2"]>[0], idempotencyKey: string) {
-      const authority = fixture.authority.store;
-      return authority.transactExecutionV2(command, {
-        expectedVersion: authority.readSnapshot(command.goalId).goalVersion,
-        idempotencyKey,
-        actor: "RUNTIME",
-        lease: fixture.lease,
-      });
-    },
   };
 }
 
@@ -774,22 +758,6 @@ function recordValidationEvidence(
   } finally {
     read.close();
   }
-}
-
-let coordinatorOracleSequence = 0;
-
-function coordinatorOracle(fixture: HarnessFixture) {
-  return {
-    async validate(input: { readonly packet: TaskPacketV2; readonly postimage_root_sha256: string }) {
-      const validation = recordValidationEvidence(
-        fixture,
-        fixture.authority.store.readSnapshot(fixture.goalId).goalVersion,
-        input.postimage_root_sha256,
-        `COORDINATOR-${input.packet.node_id}-${coordinatorOracleSequence += 1}`,
-      );
-      return { validation_evidence: validation.evidence };
-    },
-  };
 }
 
 const beforeCommitFaults: readonly TransactionFaultPoint[] = [
@@ -1384,175 +1352,6 @@ describe("Dynamic Multi Execution V2 authority", () => {
     acceptEvidence(fixture, graph, "NODE-B", a.version, "terminal-b");
     expect(store.readExecutionV2(fixture.run.run_id, 2)?.completedNodeIds).toEqual([]);
     expect(() => store.readExecutionGraphTerminalPreparation(fixture.run.run_id)).toThrow(/not terminal/u);
-  });
-
-  it("continuously backfills a capability DAG before the current worker wave settles", async () => {
-    const { fixture, graph } = prepare("EVIDENCE_ACCEPTED", true);
-    const started: string[] = [];
-    let bReleased = false;
-    let releaseB: () => void = () => { throw new Error("NODE-B was not started"); };
-    const runtime = {
-      provider: "test-provider", api: "test-api", model: "test-model",
-      thinking_level: "high", context_window: 128_000,
-    } as const;
-    const resultFor = (packet: ReturnType<typeof createTaskPacketV2>) => {
-      const proposal = finalizeWorkerProposalV2({
-        packet, kind: "EVIDENCE_PROPOSAL",
-        payload: { artifact_refs: [{ sha256: sha(`coordinator:${packet.node_id}`), classification: "INTERNAL" }] },
-        created_at_ms: fixture.authority.clock.now(),
-      });
-      return {
-        status: "PROPOSED" as const,
-        proposal,
-        patch_set: null,
-        stopped: null,
-        protocol: {
-          schema_version: 2 as const, reason_code: null, submission_count: 1,
-          assistant_text_is_display_only: true as const,
-        },
-        display_text: "",
-        patches: [],
-        usage: {
-          input_tokens: 1, output_tokens: 1, cache_read_tokens: 0, cache_write_tokens: 0,
-          cost: 0, turns: 1, tool_calls: 1, wall_time_ms: 1,
-        },
-        runtime_resolution: { runtime, source: "SUPERVISOR_INHERITED" as const, fallback_reason: null },
-      };
-    };
-    const coordinator = new DynamicMultiCoordinator({
-      authority: fixture.authority.store,
-      mutation: coordinatorMutation(fixture),
-      runId: fixture.run.run_id,
-      workspace: fixture.authority.directory,
-      capabilityKey: "coordinator-capability-key",
-      supervisorRuntime: runtime,
-      now: () => fixture.authority.clock.now(),
-      worker: {
-        execute(input) {
-          started.push(input.packet.node_id);
-          if (input.packet.node_id !== "NODE-B") return Promise.resolve(resultFor(input.packet));
-          return new Promise((resolveB) => {
-            releaseB = () => {
-              bReleased = true;
-              resolveB(resultFor(input.packet));
-            };
-          });
-        },
-      },
-      evidence: {
-        accept: async ({ proposal }) => ({ evidence_sha256: sha(`accepted:${proposal.proposal_id}`) }),
-      },
-      oracle: coordinatorOracle(fixture),
-    });
-    await coordinator.start(2);
-    for (let attempt = 0; attempt < 100 && !started.includes("NODE-C"); attempt += 1) {
-      await new Promise((resolveWait) => setTimeout(resolveWait, 5));
-    }
-    expect(started.slice(0, 3)).toEqual(["NODE-A", "NODE-B", "NODE-C"]);
-    expect(bReleased).toBe(false);
-    expect(coordinator.poll()).toMatchObject({ active_worker_count: 1, peak_worker_count: 2 });
-    releaseB();
-    await expect(coordinator.wait()).resolves.toMatchObject({
-      state: "SUCCEEDED", graph_status: "CLOSED", completed_node_ids: ["NODE-A", "NODE-B", "NODE-C"],
-      peak_worker_count: 2,
-    });
-    expect(fixture.authority.store.verifyExecutionV2Integrity()).toMatchObject({
-      hostOracleReceipts: 3, hostReceipts: 6, graphTerminalReceipts: 1, mismatches: 0,
-    });
-    void graph;
-  });
-
-  it("integrates a durable PatchSet through the serial Host authority before backfilling its successor", async () => {
-    const { fixture, graph } = prepare("PATCH_INTEGRATED");
-    const runtime = {
-      provider: "test-provider", api: "test-api", model: "test-model",
-      thinking_level: "high", context_window: 128_000,
-    } as const;
-    const started: string[] = [];
-    const postimage = sha("coordinator-patch-postimage");
-    const coordinator = new DynamicMultiCoordinator({
-      authority: fixture.authority.store,
-      mutation: coordinatorMutation(fixture),
-      runId: fixture.run.run_id,
-      workspace: fixture.authority.directory,
-      capabilityKey: "coordinator-capability-key",
-      supervisorRuntime: runtime,
-      artifactStore: new ArtifactStore(fixture.authority.casPath),
-      now: () => fixture.authority.clock.now(),
-      worker: {
-        async execute(input) {
-          started.push(input.packet.node_id);
-          if (input.packet.node_id === "NODE-A") {
-            const content = Buffer.from("export const coordinatorPatch = true;\n");
-            const patchSet = finalizeWorkerPatchSetV2({
-              packet: input.packet,
-              patches: [{ operation: "CREATE", path: "src/coordinator-patch.ts", beforeSha256: null, content }],
-              created_at_ms: fixture.authority.clock.now(),
-            });
-            const proposal = finalizeWorkerProposalV2({
-              packet: input.packet,
-              kind: "PATCH_PROPOSAL",
-              payload: {
-                patch_set_id: patchSet.patch_set_id,
-                patch_set_sha256: patchSet.record_sha256,
-                affected_paths: patchSet.affected_paths,
-                preimage_root_sha256: patchSet.baseline_sha256,
-                proposed_postimage_root_sha256: patchSet.proposed_postimage_root_sha256,
-              },
-              created_at_ms: fixture.authority.clock.now(),
-            });
-            return {
-              status: "PROPOSED" as const, proposal, patch_set: patchSet, stopped: null,
-              protocol: { schema_version: 2 as const, reason_code: null, submission_count: 1, assistant_text_is_display_only: true as const },
-              display_text: "", patches: [{ operation: "CREATE" as const, path: "src/coordinator-patch.ts", beforeSha256: null, content }],
-              usage: { input_tokens: 1, output_tokens: 1, cache_read_tokens: 0, cache_write_tokens: 0, cost: 0, turns: 1, tool_calls: 1, wall_time_ms: 1 },
-              runtime_resolution: { runtime, source: "SUPERVISOR_INHERITED" as const, fallback_reason: null },
-            };
-          }
-          const proposal = finalizeWorkerProposalV2({
-            packet: input.packet,
-            kind: "EVIDENCE_PROPOSAL",
-            payload: { artifact_refs: [{ sha256: sha("coordinator-patch-successor"), classification: "INTERNAL" }] },
-            created_at_ms: fixture.authority.clock.now(),
-          });
-          return {
-            status: "PROPOSED" as const, proposal, patch_set: null, stopped: null,
-            protocol: { schema_version: 2 as const, reason_code: null, submission_count: 1, assistant_text_is_display_only: true as const },
-            display_text: "", patches: [],
-            usage: { input_tokens: 1, output_tokens: 1, cache_read_tokens: 0, cache_write_tokens: 0, cost: 0, turns: 1, tool_calls: 1, wall_time_ms: 1 },
-            runtime_resolution: { runtime, source: "SUPERVISOR_INHERITED" as const, fallback_reason: null },
-          };
-        },
-      },
-      evidence: { accept: async ({ proposal }) => ({ evidence_sha256: sha(`accepted:${proposal.proposal_id}`) }) },
-      oracle: coordinatorOracle(fixture),
-      integration: {
-        async prepare({ patch_set }) {
-          return preparedExecutionIntegrationJournalFixture(fixture, patch_set);
-        },
-        async integrate(input) {
-          expect(input.expected_preimage_root_sha256).toBe(graph.baseline_content_root_sha256);
-          expect(input.artifacts).toHaveLength(1);
-          expect(Buffer.from(input.artifacts[0]!.bytes).toString("utf8")).toContain("coordinatorPatch");
-          return { status: "APPLIED" as const, postimage_root_sha256: postimage };
-        },
-        async observe() {
-          throw new TypeError("Normal integration must not enter reconciliation");
-        },
-      },
-    });
-    await coordinator.start(2);
-    await expect(coordinator.wait()).resolves.toMatchObject({
-      state: "SUCCEEDED", graph_status: "CLOSED", completed_node_ids: ["NODE-A", "NODE-B"],
-    });
-    expect(started).toEqual(["NODE-A", "NODE-B"]);
-    expect(fixture.authority.store.readExecutionV2(fixture.run.run_id, 1)).toMatchObject({
-      currentPostimageRootSha256: postimage, integrationState: "COMMITTED",
-    });
-    expect(fixture.authority.store.verifyExecutionV2Integrity()).toMatchObject({
-      patchSets: 1, patchArtifacts: 1, integrationAttempts: 1, integrationTransitions: 3,
-      hostOracleReceipts: 2, hostReceipts: 4, graphTerminalReceipts: 1, mismatches: 0,
-    });
   });
 
   it("serializes PREPARED to OBSERVED to COMMITTED and unlocks a successor only after the Host receipt", () => {

@@ -10,8 +10,7 @@ Every measured run separates:
 - provider wall time and TTFT;
 - PCH synchronous local time;
 - SQLite transaction/flush time;
-- filesystem readback and scoped-mirror copy time;
-- Worker startup/model/tool/integration time;
+- filesystem readback and local tool time;
 - uncached input, cache read/write, generated output, reasoning and tool arguments;
 - PCH additional model/provider requests;
 - target-project workload time.
@@ -50,8 +49,8 @@ remains; renewal near expiry and every authority mutation's in-transaction lease
 | Class | Expected route | PCH policy |
 |---|---|---|
 | Short | Single Build/DirectCell | no full PRD, no Worker, no profiler, one near WorkCell, one final oracle pass |
-| Medium | Single or small Multi/AdaptiveRoute | 1-3 near WorkCells; optional parallel exploration only with expected benefit |
-| Long | rolling Single/Multi | bounded active frontier, background telemetry, milestone checkpoint only at material transitions |
+| Medium | Single/AdaptiveRoute | 1-3 near WorkCells; reuse current-turn evidence |
+| Long | rolling Single | bounded active frontier, background telemetry, milestone checkpoint only at material transitions |
 
 For all classes:
 
@@ -59,6 +58,7 @@ For all classes:
 - additional provider requests for warmup/cache measurement = 0;
 - routine progress chat = 0 when Widget is available;
 - transition results reuse their embedded status; only missing next/health/blocker deltas are model-visible, routine transitions add no status RPC and identical Widget text is ignored;
+- when a transition changes the workflow phase, its existing response carries the current guide; unchanged guides are omitted, and user-facing command notices stay compact;
 - the Agent does not probe `PI_MODEL`, `PI_SESSION`, provider, thinking or context-window environment/config values;
 - no repeated read/test whose input closure is unchanged;
 - no full test suite until the change surface or phase exit requires it.
@@ -73,19 +73,14 @@ For all classes:
 Release reports P50/P95 for the available local Modules and separately records end-to-end provider-dependent fields as
 `NOT_MEASURED_LOCAL`. A wall-time ratio is not compared across different models, prompts, workloads or quality results.
 
-## 4. Multi admission budget
+## 4. Single execution overhead
 
-Multi has fixed costs: model/session startup, scoped copy, TaskPacket construction, extra generated tokens and serial
-integration. The route should use Multi only when at least one is true:
+Version 1.3 has no Worker startup, scoped workspace copy, role-specific provider call, Multi admission or scheduler.
+It does not collect comparability rollouts or query historical Worker usage for each status request. The current Pi
+Agent performs authorized work directly; telemetry uses that Agent's observed turns.
 
-1. two or more ready shards can overlap useful wall time;
-2. role-local context materially reduces interference/rework risk;
-3. independent verification is required by risk;
-4. a cheaper user-configured role model provides positive expected value without reducing a hard gate.
-
-Do not create PLANNER/EXPLORER/VERIFIER merely to fill roles. Copy is capped at 8,192 files/128 MiB per Worker.
-`max_parallel_workers` is capped at eight and defaults to four. Timeout defaults to 15 minutes per Worker and remains
-user-configurable in the validated range.
+These are removed sources of work, not a measured percentage saving. End-to-end improvement requires matched tasks,
+models and acceptance results. Historical Multi benchmarks do not qualify Single performance or dollar cost.
 
 ## 5. Input Context budget
 

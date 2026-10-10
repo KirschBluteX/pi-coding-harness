@@ -34,7 +34,7 @@ export interface HostNewEnterParams extends HostEnterBase {
   readonly entry_mode?: "LEGACY" | "NEW";
   readonly objective: string;
   readonly intent: "PLAN" | "BUILD";
-  readonly topology: "SINGLE" | "MULTI";
+  readonly topology: "SINGLE";
 }
 
 export interface HostResumeEnterParams extends HostEnterBase {
@@ -257,18 +257,11 @@ export interface HostProviderUsage {
   readonly reasoning: number | null;
 }
 
-export interface HostWorkerStatus {
-  readonly job_id: string;
-  readonly state: "RUNNING" | "SUCCEEDED" | "FAILED" | "ABORTED";
-  readonly result: unknown;
-  readonly error: string | null;
-  readonly worker_count: number;
-  readonly elapsed_ms: number;
-}
 
 export interface HostStateResult {
   readonly message: string;
   readonly status: HostStatus;
+  readonly workflow_prompt?: string;
 }
 
 export interface HostApplicationMethods {
@@ -290,15 +283,6 @@ export interface HostApplicationMethods {
   readonly update_runtime: {
     readonly params: HostRuntimeSelection;
     readonly result: { readonly runtime: HostRuntimeSelection };
-  };
-  readonly worker_start: {
-    readonly params: HostControlFrameParam & { readonly max_parallel?: number };
-    readonly result: { readonly job_id: string; readonly state: "RUNNING"; readonly worker_count: number };
-  };
-  readonly worker_poll: { readonly params: { readonly job_id: string }; readonly result: HostWorkerStatus };
-  readonly worker_abort: {
-    readonly params: { readonly job_id: string };
-    readonly result: { readonly job_id: string; readonly abort_requested: true };
   };
   readonly turn_projection: { readonly params: HostTurnProjectionParams; readonly result: HostTurnProjectionResult };
   readonly context_project: { readonly params: HostContextProjectionParams; readonly result: HostContextProjectionResult };
@@ -391,10 +375,6 @@ export interface HostApplicationMethods {
     };
     readonly result: HostStateResult;
   };
-  readonly define_shards: {
-    readonly params: HostControlFrameParam & { readonly shards: readonly JsonRecord[] };
-    readonly result: { readonly harness: JsonRecord; readonly status: HostStatus };
-  };
   readonly tool_preflight: {
     readonly params: HostControlFrameParam & ToolInvocation;
     readonly result: {
@@ -415,7 +395,7 @@ export interface HostApplicationMethods {
       readonly text: string;
       readonly output_sha256?: string;
     };
-    readonly result: { readonly operation_id: string | null } & HostControlFrameReceipt;
+    readonly result: { readonly operation_id: string | null; readonly workflow_prompt?: string } & HostControlFrameReceipt;
   };
   readonly tool_end: {
     readonly params: { readonly tool_call_id: string; readonly is_error: boolean; readonly text: string };
@@ -460,9 +440,9 @@ export type HostApplicationRequest = {
 
 type ParamsKind = "NULL" | "RECORD" | "NULL_OR_RECORD";
 type ResultKind =
-  | "STATUS" | "STOPPED" | "RUNTIME" | "WORKER_STARTED" | "WORKER_STATUS" | "WORKER_ABORTED"
+  | "STATUS" | "STOPPED" | "RUNTIME"
   | "TURN_PROJECTION" | "CONTEXT_PROJECTION" | "CONTEXT_RESPONSE" | "PROVIDER_BEGIN" | "PROVIDER_SETTLE"
-  | "GENERATION" | "MESSAGE" | "OBSERVED" | "STATE" | "SHARDS" | "TOOL_PREFLIGHT"
+  | "GENERATION" | "MESSAGE" | "OBSERVED" | "STATE" | "TOOL_PREFLIGHT"
   | "TOOL_RESULT" | "TOOL_END" | "COMPACTION" | "GOAL_DISCOVERY";
 
 /** The one executable registry of every Bridge-to-Host application operation. */
@@ -474,9 +454,6 @@ export const HOST_APPLICATION_PROTOCOL = Object.freeze({
   unbind_session: { params: "RECORD", result: "STATUS" },
   rename_goal: { params: "RECORD", result: "STATUS" },
   update_runtime: { params: "RECORD", result: "RUNTIME" },
-  worker_start: { params: "RECORD", result: "WORKER_STARTED" },
-  worker_poll: { params: "RECORD", result: "WORKER_STATUS" },
-  worker_abort: { params: "RECORD", result: "WORKER_ABORTED" },
   turn_projection: { params: "RECORD", result: "TURN_PROJECTION" },
   context_project: { params: "RECORD", result: "CONTEXT_PROJECTION" },
   context_fetch: { params: "RECORD", result: "CONTEXT_RESPONSE" },
@@ -494,7 +471,6 @@ export const HOST_APPLICATION_PROTOCOL = Object.freeze({
   submit_route: { params: "RECORD", result: "STATE" },
   submit_route_revision: { params: "RECORD", result: "STATE" },
   continue_plan: { params: "RECORD", result: "STATE" },
-  define_shards: { params: "RECORD", result: "SHARDS" },
   tool_preflight: { params: "RECORD", result: "TOOL_PREFLIGHT" },
   tool_result: { params: "RECORD", result: "TOOL_RESULT" },
   tool_end: { params: "RECORD", result: "TOOL_END" },
@@ -640,6 +616,7 @@ function paramsError(method: HostMethod, value: unknown): string | null {
   if (!record(value)) return "params must be an object";
 
   if (method === "enter") {
+    if (value.topology === "MULTI") return "Multi is unavailable in PCH Single";
     const base = boundedText(value.cwd, 4_096) && boundedText(value.session_id, 256) && runtimeSelection(value.runtime);
     if (!base) return "entry contract is invalid";
     if (value.entry_mode === "RESUME") {
@@ -657,7 +634,7 @@ function paramsError(method: HostMethod, value: unknown): string | null {
       && (value.entry_mode === undefined || value.entry_mode === "LEGACY" || value.entry_mode === "NEW")
       && boundedText(value.objective, 131_072)
       && (value.intent === "PLAN" || value.intent === "BUILD")
-      && (value.topology === "SINGLE" || value.topology === "MULTI")
+      && value.topology === "SINGLE"
       ? null : "entry contract is invalid";
   }
   if (method === "discover_goals") {
@@ -677,10 +654,6 @@ function paramsError(method: HostMethod, value: unknown): string | null {
   // Authority-bound payload semantics stay in the Host handler, after ControlFrame
   // and GenerationGovernor registration. The protocol edge checks only transport
   // structure for these methods so an invalid repeated route cannot bypass governance.
-  if (method === "worker_start") return controlFrameParams(value) ? null : "worker_start params are invalid";
-  if (method === "worker_poll" || method === "worker_abort") {
-    return exactKeys(value, ["job_id"]) && boundedText(value.job_id, 256) ? null : `${method} params are invalid`;
-  }
   if (method === "turn_projection") {
     return exactKeys(value, [
       "agent_run_id", "system_prompt_sha256", "current_input_tokens", "active_tools", "all_tools",
@@ -773,9 +746,6 @@ function paramsError(method: HostMethod, value: unknown): string | null {
       && sha256(value.expected_stage_gate_sha256)
       && (value.choice === "BUILD" || value.choice === "KEEP" || value.choice === "REVISE")
       ? null : "continue_plan params are invalid";
-  }
-  if (method === "define_shards") {
-    return controlFrameParams(value) ? null : "define_shards params are invalid";
   }
   if (method === "tool_result") {
     return exactKeys(value, ["tool_call_id", "tool_name", "tool_input", "is_error", "text"], ["output_sha256"])
@@ -922,7 +892,8 @@ function status(value: unknown): value is HostStatus {
 }
 
 function state(value: unknown): value is HostStateResult {
-  return record(value) && typeof value.message === "string" && status(value.status);
+  return record(value) && typeof value.message === "string" && status(value.status)
+    && (value.workflow_prompt === undefined || boundedText(value.workflow_prompt, 1_048_576));
 }
 
 function goalDiscovery(value: unknown): value is HostGoalDiscovery {
@@ -941,22 +912,12 @@ function goalDiscovery(value: unknown): value is HostGoalDiscovery {
       && (candidate.binding_receipt_sha256 === null || sha256(candidate.binding_receipt_sha256)));
 }
 
-function workerStatus(value: unknown): value is HostWorkerStatus {
-  return record(value) && typeof value.job_id === "string"
-    && ["RUNNING", "SUCCEEDED", "FAILED", "ABORTED"].includes(String(value.state))
-    && nullableString(value.error) && safeInteger(value.worker_count) && nonnegativeNumber(value.elapsed_ms)
-    && "result" in value;
-}
 
 function validResult(kind: ResultKind, value: unknown): boolean {
   if (kind === "STATUS") return status(value);
   if (kind === "STOPPED") return record(value) && value.stopped === true;
   if (kind === "RUNTIME") return record(value) && exactKeys(value, ["runtime"]) && runtimeSelection(value.runtime);
   if (kind === "GOAL_DISCOVERY") return goalDiscovery(value);
-  if (kind === "WORKER_STARTED") return record(value) && typeof value.job_id === "string" && value.state === "RUNNING"
-    && Number.isSafeInteger(value.worker_count);
-  if (kind === "WORKER_STATUS") return workerStatus(value);
-  if (kind === "WORKER_ABORTED") return record(value) && typeof value.job_id === "string" && value.abort_requested === true;
   if (kind === "TURN_PROJECTION") return record(value) && typeof value.system_prompt === "string" && typeof value.changed === "boolean"
     && typeof value.context_projection_active === "boolean" && typeof value.mode === "string" && typeof value.fit_disposition === "string"
     && nullableString(value.fallback) && typeof value.memory_projected === "boolean" && sha256(value.subject_binding_sha256)
@@ -976,11 +937,11 @@ function validResult(kind: ResultKind, value: unknown): boolean {
   if (kind === "MESSAGE") return record(value) && typeof value.message === "string";
   if (kind === "OBSERVED") return record(value) && value.observed === true;
   if (kind === "STATE") return state(value);
-  if (kind === "SHARDS") return record(value) && record(value.harness) && status(value.status);
   if (kind === "TOOL_PREFLIGHT") return record(value) && typeof value.allow === "boolean" && typeof value.managed === "boolean"
     && typeof value.capture === "boolean" && nullableString(value.reason)
     && (value.control_frame === undefined || controlFrame(value.control_frame));
-  if (kind === "TOOL_RESULT") return record(value) && nullableString(value.operation_id) && controlFrame(value.control_frame);
+  if (kind === "TOOL_RESULT") return record(value) && nullableString(value.operation_id) && controlFrame(value.control_frame)
+    && (value.workflow_prompt === undefined || boundedText(value.workflow_prompt, 1_048_576));
   if (kind === "TOOL_END") return record(value) && status(value.status) && controlFrame(value.control_frame);
   return record(value) && ((boundedText(value.checkpoint_sha256, 256)) !== (value.verified === true));
 }

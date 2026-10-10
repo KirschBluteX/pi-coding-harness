@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)][ValidateSet('INSTALL','DOCTOR','UPGRADE','UNINSTALL')][string]$Operation,
     [string]$Root,
-    [string]$DataRoot = (Join-Path $HOME '.pi\agent\coding-harness'),
+    [string]$DataRoot,
     [string]$ReportPath,
     [string]$ExportPath,
     [switch]$DeleteData,
@@ -26,8 +26,9 @@ if (-not $SkipRuntimeBuild) {
 
 $arguments = @(
     (Join-Path $rootPath 'dist\runtime\lifecycle.js'), $Operation,
-    '--package-root', $rootPath, '--data-root', [IO.Path]::GetFullPath($DataRoot), '--report', $reportFullPath
+    '--package-root', $rootPath, '--report', $reportFullPath
 )
+if ($DataRoot) { $arguments += @('--data-root', $DataRoot) }
 if ($WhatIfPreference) { $arguments += '--what-if' }
 if ($ExportPath) { $arguments += @('--export', [IO.Path]::GetFullPath($ExportPath)) }
 if ($DeleteData) { $arguments += '--delete-data' }

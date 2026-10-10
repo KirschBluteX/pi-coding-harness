@@ -1,5 +1,5 @@
 import type { CacheModuleConfig } from "../config/types.js";
-import type { WorkerRuntimeSelection } from "../harness/worker/runtime-policy.js";
+import type { PiRuntimeFingerprintInput } from "../harness/runtime-fingerprint.js";
 import {
   classifyPositiveProviderCacheRead,
   type CacheProviderContract,
@@ -42,7 +42,7 @@ function normalizedBaseUrl(value: string | undefined): string | null {
 
 export function resolveGeekspaceOpenAiCompletions(
   config: CacheModuleConfig,
-  runtime: WorkerRuntimeSelection,
+  runtime: PiRuntimeFingerprintInput,
 ): GeekspaceOpenAiCompletionsContract | null {
   if (!config.enabled || config.arm !== "C1_PREFIX"
     || config.provider_integration !== geekspaceOpenAiCompletionsIntegrationId) return null;

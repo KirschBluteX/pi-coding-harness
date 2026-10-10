@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param(
     [string]$Root,
-    [string]$DataRoot = (Join-Path $HOME '.pi\agent\coding-harness'),
+    [string]$DataRoot,
     [string]$ReportPath,
     [string]$ExportPath,
     [switch]$DeleteData,

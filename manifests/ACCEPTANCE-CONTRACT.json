@@ -2,7 +2,7 @@
   "$schema": "../schemas/acceptance.schema.json",
   "schema_version": 1,
   "contract_id": "PCH-ACCEPTANCE-1",
-  "goal": "Release a self-contained, low-overhead Pi Coding Harness whose Single and Multi paths are durable, recoverable, configuration-honoring and independently verifiable.",
+  "goal": "Deliver a self-contained, low-overhead Single edition of Pi Coding Harness with durable execution, recovery, configuration fidelity and independently verifiable results. Preserve historical Multi authority without executing it.",
   "hard_constraints": [
     "PCH-ACC-002",
     "PCH-ACC-004",
@@ -28,7 +28,7 @@
     },
     {
       "id": "PCH-ACC-002",
-      "statement": "Authority migrations 001 through 017 apply in order with immutable triggers, foreign keys and integrity intact.",
+      "statement": "Authority migrations 001 through 035 apply in order with immutable triggers, foreign keys and integrity intact.",
       "class": "AUTHORITY",
       "required": true,
       "evidence": ["DETERMINISTIC", "INTEGRATION"],
@@ -72,14 +72,14 @@
     },
     {
       "id": "PCH-ACC-006",
-      "statement": "Multi Workers are role/scoped, fenced and isolated; PatchSets integrate serially without overwriting conflicts.",
+      "statement": "Multi entry, tools, RPCs and execution are unavailable; historical authority remains intact and an unfinished Multi Goal is rejected before acquiring a controller lease.",
       "class": "SAFETY",
       "required": true,
       "evidence": ["DETERMINISTIC", "INTEGRATION"],
-      "implementation_phases": ["P5"],
+      "implementation_phases": ["P13"],
       "review_gates": ["RG-06"],
-      "tests": ["tests/integration/harness-worker-executor.test.ts", "tests/integration/harness-worker-lifecycle.test.ts", "tests/unit/harness-worker-runtime-policy.test.ts"],
-      "blueprint_sections": ["Section 7 Multi execution", "Section 15 Security and privacy"]
+      "tests": ["tests/pi/coding-harness-bridge.test.ts", "tests/integration/harness-host-runtime.test.ts", "tests/integration/task-flow-session.test.ts", "tests/integration/execution-v2-authority.test.ts"],
+      "blueprint_sections": ["Section 7 Retired Multi execution and upgrade compatibility", "Section 15 Security and privacy"]
     },
     {
       "id": "PCH-ACC-007",

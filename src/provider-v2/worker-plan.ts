@@ -1,7 +1,7 @@
 import { canonicalJsonSha256 } from "../authority/canonical-json.js";
 import type { ExecutionGraphRevisionV2, ExecutionNodeSpecV2, TaskPacketV2 } from "../harness/execution-v2/domain.js";
 import { createTaskPacketV2 } from "../harness/execution-v2/domain.js";
-import type { ResolvedWorkerRuntime } from "../harness/worker/runtime-policy.js";
+import type { LegacyProviderRuntimeV1 } from "./domain.js";
 import {
   captureProviderRuntimeProfileV1,
   finalizeProviderCallPlanV1,
@@ -20,7 +20,7 @@ export interface WorkerProviderDispatchAuthorityV1 {
   readonly redaction: ProviderRedactionReceiptV1;
   readonly plan: ProviderCallPlanV1;
   readonly invocation: ProviderInvocationTransitionV1;
-  readonly runtime: ResolvedWorkerRuntime;
+  readonly runtime: LegacyProviderRuntimeV1;
 }
 
 function allowedFields(node: ExecutionNodeSpecV2, packetId: string): readonly ProviderAllowedFieldV1[] {
@@ -61,7 +61,7 @@ export function createWorkerProviderDispatchAuthorityV1(input: {
   readonly createdAtMs: number;
   readonly predecessorAuthorityHeadSha256: string;
   readonly capabilityKey: string;
-  readonly runtime: ResolvedWorkerRuntime;
+  readonly runtime: LegacyProviderRuntimeV1;
 }): WorkerProviderDispatchAuthorityV1 {
   const sourceProfileId = input.runtime.source === "SUPERVISOR_INHERITED"
     ? null : input.runtime.source_profile_id ?? null;

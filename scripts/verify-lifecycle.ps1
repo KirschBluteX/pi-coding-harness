@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$Root,
-    [string]$ReportPath
+    [string]$ReportPath,
+    [switch]$SkipRuntimeBuild
 )
 $ErrorActionPreference = 'Stop'
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
@@ -9,8 +10,10 @@ $rootPath = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
 if (-not $ReportPath) { $ReportPath = Join-Path $rootPath 'reports\lifecycle-validation.json' }
 $tests = @('install.test.ps1', 'upgrade.test.ps1', 'uninstall.test.ps1')
 $results = [Collections.Generic.List[object]]::new()
-& npm --prefix $rootPath run build:runtime --silent
-if ($LASTEXITCODE -ne 0) { throw "PCH runtime build failed with exit code $LASTEXITCODE." }
+if (-not $SkipRuntimeBuild) {
+    & npm --prefix $rootPath run build:runtime --silent
+    if ($LASTEXITCODE -ne 0) { throw "PCH runtime build failed with exit code $LASTEXITCODE." }
+}
 foreach ($test in $tests) {
     try {
         & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $rootPath "tests\lifecycle\$test") -SkipRuntimeBuild

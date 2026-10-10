@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [string]$Root,
-    [string]$DataRoot = (Join-Path $HOME '.pi\agent\coding-harness'),
+    [string]$DataRoot,
     [string]$ReportPath,
     [switch]$SkipPiRegistration,
     [switch]$SkipRuntimeBuild

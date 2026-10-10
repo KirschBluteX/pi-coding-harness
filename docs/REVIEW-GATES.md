@@ -11,8 +11,8 @@ the current normal turn may reason about the change; local validators and tests 
 | RG-02 Assumption | new runtime/provider/filesystem/SDK fact | probe or cited source plus bounded applicability | unverified load-bearing assumption |
 | RG-03 Authority/schema | SQL, immutable record, hash, head, lease or transaction changes | forward migration, fault injection, integrity/rebuild | mutable authority or partial commit |
 | RG-04 Effect/recovery | write/delete/command/reconcile path changes | prepare/dispatch/readback/unknown/retry crash matrix | blind retry or unowned effect |
-| RG-05 Single/Multi parity | shared Goal/route/context/Memory behavior changes | both topology tests or explicit nonapplicability | one topology loses a hard gate |
-| RG-06 Worker isolation | TaskPacket, scope, sandbox, model or integration changes | escape/secret/symlink/conflict/fencing/timeout tests | canonical direct write or leakage |
+| RG-05 Single workflow | Goal/route/context/Memory behavior changes | Plan/Build, interruption and recovery checks | any hard gate lost |
+| RG-06 Compatibility | legacy topology/config/authority changes | old data integrity, config normalization, rejected Multi entry | old effects executed or history rewritten |
 | RG-07 Context/privacy | prompt, Memory, CAS retrieval, telemetry or provider ledger changes | raw-content absence, scope/validity, fallback and token accounting | secret/raw prompt leakage |
 | RG-08 Compaction | protected frontier or Pi compaction hooks change | before/crash/after/mismatch/restart matrix | silent semantic drift |
 | RG-09 Cache/provider | provider payload or cache observation changes | concrete adapter contract, finality level, natural epoch | undocumented mutation/false claim |
@@ -26,7 +26,7 @@ the current normal turn may reason about the change; local validators and tests 
 - Interface states invariants, ordering, error modes and configuration; implementation does not leak extra caller work.
 - SQLite/CAS remain authority; chat, Widget, Worker text and Markdown remain projections.
 - Build stays minimal; Plan stays non-mutating until explicit continuation.
-- Single and Multi share Goal/acceptance but use topology-appropriate execution.
+- Only Single execution is available; historical Multi records cannot authorize new work.
 - Provider/model/thinking/context remain user-controlled.
 - Optional Module failure has an explicit baseline and no hard-gate weakening.
 - No new compatibility alias, duplicate command, duplicate context actuator or hypothetical Adapter seam.
@@ -38,10 +38,10 @@ Test the applicable cases:
 1. crash before transaction, inside transaction, after commit, before tool, after tool but before readback;
 2. duplicate command/idempotency key, stale version, stale lease and stale fencing token;
 3. path traversal, absolute path, case/Unicode variant, symlink/reparse point and scope overlap;
-4. secret in task, Worker narrative, patch, telemetry and artifact;
+4. secret in task, authority proposal, telemetry and artifact;
 5. malformed/oversized/replayed IPC and unexpected fields;
-6. Worker timeout, abort, Host restart, orphan recovery, PatchTransaction partial apply, external postimage and failed compensation;
-7. compaction with pending effect/Worker and semantic mismatch after compaction;
+6. Host restart, tool abort, unknown effects, external postimage and failed compensation;
+7. compaction with a pending effect and semantic mismatch after compaction;
 8. Memory contradiction, stale claim, forget/purge/tamper and private-to-shared leakage;
 9. Context stale authorization, invalid cursor, over-budget evidence and projection unknown outcome;
 10. provider usage absent/zero/inconsistent, `message_end` omitted, both completion hooks delivered, payload changed by
@@ -65,7 +65,7 @@ Hot-path review asks:
 - Can telemetry/index work be queued without losing a hard receipt?
 - Is an RPC redundant after another response already proves the transition?
 - Is repeated model-visible text stable, shorter or retrievable on demand?
-- Would Multi save wall time after startup/integration, or only add roles?
+- Does the current Single turn need this control step or repeat already-current evidence?
 
 ## 5. Review disposition
 
@@ -87,10 +87,10 @@ to avoid changing a plan. Do not label an optimizable issue blocked.
 Release requires all of the following from the final target root:
 
 - clean dependency install, compile, lint, build and complete test suite;
-- SQL 001-019, JSON and Markdown validation;
+- SQL 001-035, JSON and Markdown validation;
 - lifecycle install/upgrade/doctor/uninstall matrix;
 - inactive zero-Host/SQLite/RPC/prompt/provider test;
-- Single and Multi authority/integration/recovery tests;
+- Single authority/integration/recovery tests and legacy Multi rejection/integrity tests;
 - Memory, Input Context, Compaction, Cache C1 positive-evidence/C0 fallback and Output tests;
 - current P50/P95 local performance suite;
 - no secret, old public name, fixed model/thinking/window, old blueprint, external absolute runtime path, reparse point,

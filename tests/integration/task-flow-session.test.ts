@@ -9,7 +9,7 @@ import type { CodingHarnessConfig } from "../../src/config/types.js";
 import { TaskFlowSession } from "../../src/runtime/task-flow-session.js";
 import { hmacSha256Hex, sha256Hex } from "../../src/foundation/crypto.js";
 import { idFromSha256 } from "../../src/foundation/ids.js";
-import { sealHarnessRecord, type TopologyRevisionRecord, workerRoles } from "../../src/harness/domain.js";
+import { sealHarnessRecord, type TopologyRevisionRecord } from "../../src/harness/domain.js";
 import { sealTaskFlowRecord, type TaskDecisionEntryRecord } from "../../src/task-flow/domain.js";
 import { toSessionGoalBindingMarker } from "../../src/task-flow/session-binding.js";
 import { withAcceptanceV2 } from "../helpers/acceptance-v2.js";
@@ -259,34 +259,6 @@ describe("Task Flow live session", () => {
     })).toThrow(/marker does not match current authority/iu);
   });
 
-  it("keeps a requested Multi WorkCell pending until its DAG is proposed", () => {
-    const { session, cwd, ctx } = fixture("PENDING-MULTI-PROPOSAL");
-    expect(session.startFromInput("build: update src/example.ts and run tests", ctx)).toMatchObject({ action: "transform" });
-    submitApprovedBuild(session, contract, route);
-    const harness = session.createHarnessRun({
-      topology: "SINGLE",
-      requestedTopology: "MULTI",
-      reasonCode: "MULTI_BENEFIT_EVIDENCE_REQUIRED",
-      createdByHostHmac: hmacSha256Hex("test-host", "pending-multi-proposal"),
-      configSha256: hmacSha256Hex("test-config", "pending-multi-proposal"),
-      decisionSha256: hmacSha256Hex("test-decision", "pending-multi-proposal"),
-    });
-
-    expect(harness).toMatchObject({
-      requestedTopology: "MULTI",
-      effectiveTopology: "SINGLE",
-      topologyReasonCode: "MULTI_BENEFIT_EVIDENCE_REQUIRED",
-    });
-    expect(session.workflowPrompt()).toContain("Next=PENDING_MULTI_PROPOSAL");
-    expect(session.workflowPrompt()).toContain("coding_delegate action=define");
-    expect(session.workflowPrompt()).not.toContain("Merge all edits to the same file");
-    expect(session.prepareToolOperation({
-      toolCallId: "PENDING-MULTI-READ",
-      toolName: "read",
-      input: { path: "src/example.ts" },
-      cwd,
-    })).toMatchObject({ allow: true });
-  });
 
   function authorityDatabasePath(root: string, cwd: string): string {
     const dataRoot = resolve(root, "data");
@@ -1326,34 +1298,6 @@ describe("Task Flow live session", () => {
     });
   });
 
-  it("allows only a running Worker terminal transition while active-Goal classification is pending", () => {
-    const { session, cwd, ctx } = fixture("ACTIVE-GOAL-WORKER-ABORT");
-    admit(session, cwd, ctx);
-    session.createHarnessRun({
-      topology: "MULTI", createdByHostHmac: sha256Hex("host"),
-      configSha256: sha256Hex("config"), decisionSha256: sha256Hex("decision"),
-    });
-    session.defineHarnessShards([{
-      key: "implement", role: "IMPLEMENTER", outcome: "Update the bounded source",
-      read_roots: ["src/example.ts"], write_roots: ["src/example.ts"], oracle: {},
-    }]);
-    const modelFingerprintHmacByRole = Object.fromEntries(workerRoles.map((role) => [
-      role, sha256Hex(`model:${role}`),
-    ])) as Readonly<Record<typeof workerRoles[number], string>>;
-    const execution = session.startNextHarnessWorker({
-      modelFingerprintHmacByRole, ownerHmac: sha256Hex("worker-owner"),
-    });
-    expect(session.startFromInput("Also preserve the adjacent parser.", ctx)).toBeNull();
-
-    expect(() => session.failHarnessWorker(execution, new Error("User changed the active Goal"), {
-      input: 1, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: null,
-      cost: null, turns: 1, wallTimeMs: 1,
-    }, "ABORTED")).not.toThrow();
-    expect(session.harnessView()).toMatchObject({
-      unresolvedWorkerRunIds: [],
-      shards: [{ status: "FAILED" }],
-    });
-  });
 
   it("preserves exact active-Goal input bytes and restores its mutation fence after restart", () => {
     const { root, session, cwd, ctx } = fixture("ACTIVE-GOAL-USER-TURN-RECOVERY");

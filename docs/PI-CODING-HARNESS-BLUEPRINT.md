@@ -1,9 +1,10 @@
 # Pi Coding Harness implementation blueprint
 
 Status: authoritative implementation specification  
-Version: 1.2.1  
-Authority schema: 19  
-Updated: 2026-07-27
+Version: 1.3.0
+
+Authority schema: 35
+Updated: 2026-10-10
 
 This is the only architecture authority for Pi Coding Harness (PCH). Supporting documents may explain
 implementation order, user operation, budgets, or gates, but cannot change a contract in this file.
@@ -12,11 +13,11 @@ implementation order, user operation, budgets, or gates, but cannot change a con
 
 PCH is an opt-in harness outside Pi Coding Agent. It turns one user-selected coding task into a durable,
 evidence-driven software-engineering run. Pi remains the interactive shell and model client; PCH owns task
-authority, execution admission, context additions, recovery, optional Worker isolation, and verification closure.
+authority, execution admission, context additions, recovery and verification closure. Version 1.3 supports Single execution only.
 
 PCH is not an autonomous chat replacement, a provider proxy, a server-side cache, or a claim that the model sees
 less native Pi history. Its leverage comes from selecting small additional context, keeping exact local state, and
-using short-lived role-isolated Worker sessions when decomposition has positive expected value.
+reusing the current Pi Agent and fresh local evidence without additional Agent sessions.
 
 ### 1.1 Required outcomes
 
@@ -24,10 +25,10 @@ using short-lived role-isolated Worker sessions when decomposition has positive 
 |---|---|---|
 | PCH-G-001 | Native Pi outside Harness | Without a current explicit `/coding` entry or a previously explicit, authority-validated same-session auto-resume binding, Host starts=0, SQLite opens=0, RPC=0, prompt additions=0, extra model/provider requests=0. Auto-resume attaches the exact Goal but never starts a model/provider request. |
 | PCH-G-002 | Fast reliable Single | A narrow Build can use one GoalContract, one DirectCell, one fresh oracle, and one delivery closure. |
-| PCH-G-003 | Useful Multi | Independent shards may run concurrently in scoped mirrors; canonical writes integrate serially with preimage and oracle checks. |
+| PCH-G-003 | Single-only execution | No Multi entry, delegation tool, Worker RPC, executor or scheduler is available; historical records remain intact. |
 | PCH-G-004 | Plan that can continue | Plan is reviewed in the current turn, frozen, and followed by an explicit Build/Keep/Revise choice. |
 | PCH-G-005 | Evidence-driven correction | A disproved assumption or repeated failure changes the route instead of repeating stale work. |
-| PCH-G-006 | Exact recovery | Goal, route, current subject, pending effects, Worker frontier and next action survive restart and compaction. |
+| PCH-G-006 | Exact recovery | Goal, route, current subject, pending effects and next action survive restart and compaction. |
 | PCH-G-007 | Bounded context cost | PCH additions are deterministic, budgeted, stable-prefix aware and retrievable on demand. |
 | PCH-G-008 | Honest optimization | No cache, token, latency or target-performance benefit is claimed without attributable evidence. |
 | PCH-G-009 | Bounded autonomous progress | Repeated turns without authority or unique-evidence progress are detected locally and an unchanged managed route is refused. |
@@ -94,7 +95,7 @@ earlier drafts.
 | PCH-AUD-044 | A passing terminal oracle can auto-close authority while the current Agent turn is still reviewing preservation coverage, rejecting a legitimate correction and allowing locally under-tested work to appear complete. | Fresh terminal oracle Operations attest immediately but keep the final WorkCell writable for preservation review. Any later mutation clears in-memory validation readiness and requires fresh oracle evidence; explicit `coding_flow complete` or the existing local `agent_settled` RPC closes only a still-ready WorkCell without another provider request. Non-terminal WorkCells retain immediate evidence-backed progression. | Task Flow terminal-review, Host settle and Bridge contract regressions |
 | PCH-AUD-045 | Forcing one provider turn per formatter target adds avoidable latency and tokens when all files are already inside one authorized WorkCell. | One safe `gofmt -w` call may contain two through eight unique workspace-relative Go files. Authority atomically prepares the batch, then preserves an independent preimage, lease/fence, OperationAttempt, reconcile locator, postimage readback and commit for every target. Any scope escape rejects the entire batch before durable prepare; Host promotes every successful postimage as fresh source evidence without another provider request. | Bounded 8/9 normalization, atomic scope rejection, per-file commit and Host postimage-reuse regressions |
 
-No known higher-order correctness or safety issue remains in the implemented scope. External effectiveness remains
+The preceding audit entries record prior design corrections, including historical Multi work. They do not enable retired execution paths or substitute for current validation. External effectiveness remains
 conditional where provider behavior or real workloads are required; those limits are not implementation PASSes.
 
 ## 3. System architecture
@@ -107,12 +108,6 @@ flowchart LR
   H --> C["CAS Artifact Store"]
   H --> T["Task Flow Kernel"]
   T --> S["Single direct executor"]
-  T --> M["Multi Coordinator"]
-  M --> W1["Scoped Worker"]
-  M --> W2["Scoped Worker"]
-  W1 --> P["PatchSet queue"]
-  W2 --> P
-  P --> I["Serial Integrator"]
   H --> X["Context Compiler"]
   X --> B
 ```
@@ -122,9 +117,8 @@ flowchart LR
 | Process | Owns | Must not own |
 |---|---|---|
 | Pi main process | UI, user session, current configured model, native provider request | durable PCH authority |
-| Passive Bridge | command/tool registration, lazy Host lifecycle, compact hook transport | SQL, route decisions, Worker integration |
-| PCH Host | authority, route, context additions, Worker orchestration, local telemetry | user credentials or provider mutation without integration |
-| Worker session | one role and TaskPacket inside scoped mirror | canonical workspace, Supervisor history, durable authority |
+| Passive Bridge | command/tool registration, lazy Host lifecycle, compact hook transport | SQL and route decisions |
+| PCH Host | authority, route, context additions, local telemetry | user credentials or provider mutation without integration |
 
 The Bridge and Host communicate with newline-delimited authenticated JSON. Every request/response has a request ID,
 nonce and HMAC. Replay, unknown fields, oversized data and mismatched responses fail closed. The 32-byte Host secret
@@ -137,8 +131,7 @@ is passed by environment once, deleted immediately in the child, and zeroed on s
 | Bridge | `registerCodingHarness(pi)` | `src/bridge/register.ts` |
 | Host | `dispatch(method, params)` | `src/harness/host/runtime.ts` |
 | Task Flow | GoalContract -> RouteSkeleton -> WorkCell -> Operation -> Evidence -> Delivery | `src/task-flow`, `src/runtime/task-flow-session.ts` |
-| Harness authority | Run, topology, shard, packet, Worker, PatchSet, integration | `src/harness/domain.ts`, `repository.ts` |
-| Worker executor | `runReady()` | `src/harness/worker/executor.ts` |
+| Harness authority | Single ManagedRun and immutable historical topology records | `src/harness/domain.ts`, `repository.ts` |
 | Context compiler/actuator | `prepare/project/context` | `src/input-context`, `host/context-runtime.ts` |
 | Memory | capture/retrieve/correct/forget/purge | `src/memory`, authority repositories |
 | Compaction | prepare/verify exact semantic capsule | `src/context/compaction-v21` |
@@ -149,7 +142,7 @@ is passed by environment once, deleted immediately in the child, and zeroed on s
 
 ### 4.1 Zero-cost inactive state
 
-At extension load, register `/coding`, `/memory` and four PCH tool definitions, then remove PCH tools from the active
+At extension load, register `/coding`, `/memory` and three PCH tool definitions (`coding_flow`, `coding_clarify`, `coding_context`), then remove PCH tools from the active
 tool list. Every ordinary event handler begins with an in-memory `active` check. It performs no
 filesystem/config/Host work until explicit entry. `session_start` resets the active tool list, then scans only the
 already-loaded current Pi branch for the latest `pi-coding-harness.session-binding.v1` custom entry. No marker means
@@ -159,7 +152,7 @@ PCH inactive without a lease or prompt injection.
 
 The first successful explicit entry commits an immutable Goal/session binding revision and appends its non-secret
 pointer to Pi JSONL. That prior opt-in permits later same-session Host discovery. Auto-resume restores tools, typed UI
-projection and the exact authority frontier, but sends no user message, starts no Agent/Worker/provider turn and
+projection and the exact authority frontier, but sends no user message, starts no Agent/provider turn and
 performs no canonical mutation beyond bounded restart reconciliation already authorized by durable receipts. A live
 controller is identified by both stable Pi session ID and an ephemeral runtime-instance nonce; a second runtime cannot
 share the first runtime's fencing token. Graceful shutdown releases the lease by CAS, while crash recovery waits for
@@ -169,24 +162,25 @@ lease expiry. Explicit `/coding exit` appends an `UNBOUND` marker and commits th
 
 ```text
 /coding
-/coding [single|multi] [plan|build] <objective>
+/coding [single] [plan|build] <objective>
 /coding recover [goal-id]
-/coding new [single|multi] [plan|build] <objective>
+/coding new [single] [plan|build] <objective>
 ```
 
 With no arguments, `/coding` first offers the exact Goal bound to the current session, then other recoverable Goals in
 the current workspace, and only then new intake. Recovery is selected by Goal identity, never objective wording,
 session name, cwd similarity or browser state. Cross-session transfer is explicit, cannot steal an unexpired live
 lease and atomically supersedes the prior control binding. Missing new-intake values are asked in Pi UI.
-Recommendations are Single and Build because they have the lowest overhead for the common tightly coupled coding
-task. Noninteractive new intake must supply all three values; noninteractive recovery supplies the Goal ID.
+Build is recommended for concrete coding work. Single is the only topology and requires no selection step.
+Noninteractive intake supplies Plan/Build and the objective; noninteractive recovery supplies the Goal ID.
 
-`Intent` and `Topology` are orthogonal:
+| Intent | Single behavior |
+|---|---|
+| Build | Current Pi Agent implements the authorized WorkCell directly |
+| Plan | Current Pi Agent writes the reviewed route, then asks Build/Keep/Revise |
 
-| | Single | Multi |
-|---|---|---|
-| Build | Current Pi Agent implements the authorized WorkCell directly | Coordinator defines/runs only useful shards, then verifies canonical workspace |
-| Plan | Current Pi Agent writes reviewed route, then asks continuation | Role-isolated planning/exploration may contribute; no canonical mutation before Build |
+`multi` and `new multi` are rejected before a Host is started. Unknown or removed Worker RPCs fail at the protocol
+registry. Config, authority and model work remain lazy until explicit supported entry.
 
 No old name or alias is accepted. Ordinary natural language never silently enters Harness.
 
@@ -383,122 +377,25 @@ remain fail-closed; a local status read refreshes the frame without requiring an
 Read-only tools skip lifecycle IPC where no authority transition is needed. A successful committed write omits a
 redundant tool-end call. This keeps the correctness gate while avoiding the former multi-call ceremony.
 
-## 7. Multi execution
+## 7. Retired Multi execution and upgrade compatibility
 
-### 7.1 Requested topology and Multi Benefit Gate
+Version 1.3 removes Multi selection, `coding_delegate`, `define_shards`, `worker_start`, `worker_poll`, `worker_abort`,
+the Worker executors, scoped mirrors, admission service and scheduler. There is no disabled feature flag or hidden
+fallback path. The prior implementation is recoverable from Git history if future work explicitly reintroduces it.
 
-`single` is a hard user limit. `multi` grants permission to evaluate Multi; it is not execution authority. A requested
-Multi WorkCell first derives `PENDING_MULTI_PROPOSAL` from the current requested/effective topology and authorization
-closure. Canonical mutation is fenced in that state. The Agent submits one minimal DAG proposal; the Host persists its
-normalized nodes and exact closure in an immutable `DynamicMultiProposalReceiptV2` before any asynchronous measurement.
-While the persisted proposal has no terminal gate, the derived state is `PENDING_MULTI_ADMISSION`; a Host restart resumes
-admission from that receipt without another Agent turn. A denial enters `SINGLE_ACTIVE(reason)`. An allow enters
-`MULTI_READY`, then `MULTI_RUNNING` and a durable terminal state. Each new or materially changed WorkCell derives a new
-proposal/admission closure instead of inheriting the prior WorkCell's decision.
+Schema 35 and all preceding SQL migrations remain unchanged. Historical topology, Worker, PatchSet, provider-plan
+and integration records retain their codecs, immutable validation and integrity tests. These are stored-history
+compatibility, not runtime execution APIs. Single does not collect new Multi-comparability rollouts, query Worker
+usage on each status refresh, or construct execution graphs.
 
-The Host writes a hash-bound `TopologyGateReceiptV2` only when all required conditions hold:
+Recovery checks both requested and effective topology before acquiring a controller lease. An unfinished Goal that
+ever requested Multi, including one still pending admission, returns `LEGACY_MULTI_UNAVAILABLE`. It is never
+reinterpreted as Single. Reconcile and cancel such work with PCH 1.2.1 before reusing that workspace, or use a separate
+workspace. Do not delete authority or replay unknown effects to bypass this boundary.
 
-| Condition | Multi requirement |
-|---|---|
-| decomposition | at least two independent or low-coupling nodes |
-| information | each TaskPacket has a sufficient exact input closure |
-| mutation | concurrent write scopes are mutually exclusive |
-| validation | node outputs can be checked independently |
-| economics | conservative benefit exceeds startup, provider, communication, conflict and serial integration cost |
-| quality | at least one of makespan, risk coverage, quality or user intervention improves without unacceptable regression |
-
-Small tasks, incomplete specifications, one shared core file, strong sequential dependencies or high shared-context
-needs remain effective Single. A Multi request that fails the gate creates zero Worker session, zero model-catalog
-lookup and a visible typed reason. Gate estimates are calibrated only from comparable local telemetry; no warmup or
-extra provider request is allowed.
-
-Concrete Strong Single executions remain immutable Schema 33 provenance. Admission never searches by current Goal,
-run, WorkCell or Plan identity and never accepts caller-supplied metrics. Schema 34 derives a workload key from exactly
-13 explicit dimensions: WorkCell semantics; Requirement, obligation and Decision content roots; oracle set; scope;
-effect policy; input content root; environment; runtime fingerprint; topology-neutral comparison config; provider
-profile; and cache epoch. A prior PASS/complete-accounting Single is usable only after the Host persists an
-`EXACT_MATCH` comparability receipt with every dimension checked independently. IDs, topology, timestamps and measured
-performance are provenance and do not enter the key. Missing comparable evidence deterministically keeps the normal
-user task Single; isolated Shadow qualification is allowed only in an explicit benchmark epoch.
-
-### 7.2 Dynamic capability DAG
-
-Fixed `PLANNER/EXPLORER/IMPLEMENTER/VERIFIER/INTEGRATOR` identities are V1 profile hints, not V2 topology or authority.
-The V2 scheduler creates the minimum short-lived nodes required by the current DAG and evidence closure. Nodes are
-defined by capability and output responsibility, for example `SOURCE_DISCOVERY`, `PATCH_PROPOSE`, `CONFLICT_PROPOSE`
-or `ORACLE_REQUEST`. A node is not created when its marginal output is already covered; a pending node is canceled when
-new evidence makes it irrelevant.
-
-Dependency edges have typed readiness conditions: `EVIDENCE_ACCEPTED`, `PATCH_INTEGRATED` or `ORACLE_PASSED`. Worker
-narrative, majority vote and model agreement satisfy none of them. `VERIFIER` and `INTEGRATOR` cease to be privileged
-roles: Workers may propose observations or conflict patches, while the Host alone executes the canonical oracle and
-serial integration.
-
-### 7.3 TaskPacket V2 and communication
-
-Every node receives one immutable `TaskPacketV2`:
-
-| Closure | Required content |
-|---|---|
-| identity | Goal, Requirement, obligation, Plan, WorkCell, topology and authorization stable IDs/hashes |
-| input | exact source/dependency refs, baseline/content root and freshness |
-| Decisions | clarification, assumption, route, non-goal and topology-gate receipt refs |
-| grant | capabilities, read/write roots, effect classes, network=false, byte/tool limits, lease/fence |
-| provider | runtime source/profile/config fingerprint, ProviderCallPlan ref, budget and fallback; never credentials |
-| stop | stop generation, deadline, turn/tool/token/retry/no-progress bounds |
-| output | a versioned typed union and evidence requirements |
-| oracle | `owner=HOST`, frozen oracle-set hash and covered obligation IDs |
-
-The capability HMAC covers the complete packet, runtime binding and baseline, not an opaque subset. Large artifacts
-remain in CAS and are transferred as hash refs; Workers receive neither Supervisor chat nor private Memory. Shared
-context accepts only authority-verified records. Relay sufficiency is measured by replay: compression is rejected when
-omitted information changes a downstream decision or oracle requirement.
-
-Workers submit through one schema-validated local `submit_worker_result_v2` tool. Allowed variants are evidence
-proposal, patch proposal, Decision request, conflict proposal, blocked or stopped. Free-form assistant text is display
-only; absence of a valid typed submission is a protocol failure and cannot unlock a successor.
-
-### 7.4 Runtime, mirror and privacy
-
-The default runtime exactly inherits Supervisor provider/model/thinking/context. A user-configured capability profile
-may select another model already present and authenticated in Pi; unavailable profiles fall back explicitly and record
-the reason. No code calls `setModel`, changes the active Pi configuration or implicitly downgrades quality.
-
-- Copy only declared roots into a fresh scoped mirror; reject symlink/reparse traversal and excluded secret/build roots.
-- Apply the existing 8,192-file and 128-MiB hard cap unless a reviewed configuration narrows or widens it.
-- Grant only declared local tools. Network, extensions, skills, prompt templates, context files and persistent Worker
-  history remain disabled unless a future capability receives its own privacy and side-effect authority design.
-- Risk, privacy and capability taint propagate along every DAG edge. A tainted proposal cannot enter a less-restricted
-  node or provider closure without a new Host-approved binding.
-
-### 7.5 Scheduling, integration, oracle and stop
-
-The scheduler continuously backfills free slots from the authority DAG instead of launching one ready wave. Ordering is
-deterministic by MUST reachability, longest remaining critical path, deadline and stable ID. Read-only exploration,
-independent validation and mutually exclusive PatchSets may overlap; canonical integration remains one serial queue.
-
-```text
-WORKER_PROPOSED
- -> PATCH_PREPARED
- -> INTEGRATED
- -> ORACLE_PENDING
- -> ORACLE_PASSED
- -> WORKCELL_COMPLETION_ELIGIBLE
-```
-
-`APPLIED` is never `SUCCEEDED`. After each PatchSet, the Host runs the frozen fresh oracle through the normal Operation
-lifecycle against the current postimage root. A receipt binds the complete integration set, obligations, environment
-and topology revision. A terminal WorkCell still requires preservation review and Acceptance V2 closure.
-
-The existing scoped mirror, sensitive-file exclusions, lease/fence/CAS, PatchSet journal, per-file preimage checks,
-unknown-outcome reconciliation and serial canonical integration are retained. Role-based result inference, patchless
-automatic success, one-shot wave scheduling, `getLastAssistantText()` as a protocol, eager five-role runtime maps and
-`APPLIED => job success` are replaced.
-
-A stop first commits `StopDirectiveV2`, increments `stop_generation`, fences late results and cancels undispatched
-nodes. Only then does the Host request bounded Worker abort/drain. User cancellation never becomes a transient retry;
-restart restores the same canceled frontier. Retry, handoff, replan and fan-out each have durable hard limits, so no
-Worker or Agent chain can loop indefinitely.
+The three retired config keys `worker_timeout_ms`, `max_parallel_workers` and `worker_runtime` are read only for 1.2
+configuration compatibility and discarded before validation/hashing of the effective Single config. No role/model
+lookup is performed. This decoder can be removed in a future config-schema version once explicit migration exists.
 
 ## 8. Durable authority and schema
 
@@ -545,8 +442,8 @@ integrity, rebuild, crash replay and arbitrary-cwd package tests all pass.
 
 ### 8.3 Recovery precedence
 
-On Host restart: verify SQL/integrity -> take or renew goal lease -> rebuild heads -> recover or reconcile open
-PatchTransactions -> reconcile pending Operations -> fence orphaned Workers -> restore latest Goal/route/subject ->
+On Host restart: verify SQL/integrity -> reject retired Multi topology -> take or renew goal lease -> rebuild heads ->
+reconcile pending Single Operations -> restore latest Goal/route/subject ->
 verify compaction frontier -> authorize only the exact next action. An unresolved side effect outranks all execution.
 Completed receipts are reused only when their declared input closure still matches.
 
@@ -573,8 +470,8 @@ silently activated. Manual `/memory remember` always remains available.
 - Retrieval uses scoped structured terms/FTS, validity, conflict checks and token quotas.
 - Selection order favors policy, then evidence, then experience; contradictory policy is not merged silently.
 - At most the configured working set is projected through the sole Context Compiler.
-- Multi receives no memory unless an explicit `MemoryVisibilityBinding` marks the exact claim/version
-  `VERIFIED_SHARED` for the run.
+- Historical `MemoryVisibilityBinding` records retain their exact claim/version and `VERIFIED_SHARED` scope;
+  no new Worker memory projection is created in Single.
 
 ### 9.3 User lifecycle
 
@@ -614,7 +511,7 @@ selector forms cannot be mixed. CAS evidence is revalidated against current subj
 ### 10.3 Honest scope
 
 PCH does not remove or summarize Pi's native full conversation. It prevents PCH from adding repeated full plans,
-tool results, memory and status; Multi additionally gives each Worker a fresh small session. Provider-turn accounting
+tool results, memory and status. Provider-turn accounting
 separates uncached input, cache read/write, output, reasoning, tool arguments and unattributed values without storing
 raw prompt content.
 
@@ -634,20 +531,21 @@ mutually exclusive uncached/cache-read/cache-write/output/reasoning buckets. Unk
 
 ## 11. Compaction 2.1
 
-PCH uses Pi native compaction. Before it starts, local code requires zero pending Operations and unresolved Workers,
+PCH uses Pi native compaction. Before it starts, local code requires zero pending Operations and unresolved effects,
 then atomically stores a capsule hash over Goal/route/WorkCell, Harness frontier, execution subject, context seed,
 next action and pending IDs. After compaction it rebuilds authority and compares the semantic frontier. Match commits
 `VERIFIED`; mismatch commits `RECOVERY_REQUIRED`, blocks mutation and requires reconciliation. A Host crash during the
 Pi-owned interval is recovered at the next boundary. No additional summarizer request is created by PCH.
 
-Provider-backed qualification against Pi 0.82.1 confirms both paths. A completed manual native Compaction stored
+Historical provider-backed qualification against Pi 0.82.1 exercised both paths. A completed manual native Compaction stored
 `PREPARED -> PI_OWNED -> VERIFIED(EXACT_FRONTIER_RESTORED)` with SQLite integrity `ok`, no foreign-key violation and
 zero pending Cache or Provider ledger rows. A second run was terminated only after durable `PI_OWNED`; after the
 30-second execution lease expired, restart committed `VERIFIED(RECOVERY_EXACT_FRONTIER)` with zero Provider tokens and
 the same zero-pending closure. The combined receipt is
 `reports/PROVIDER-BACKED-COMPACTION-VALIDATION.json` (SHA-256
 `2EA6261EA60811166FDB3701B9FE31224FA28EF42EFA008CE655CF6F00D33C3C`). Immediate takeover of an unexpired lease remains
-forbidden because it would weaken fencing. RPC controllers must also wait for Pi's `agent_settled`; a successful
+forbidden because it would weaken fencing. This historical receipt is not a new 1.3 run; current evidence is in
+`docs/VALIDATION.md`. RPC controllers must also wait for Pi's `agent_settled`; a successful
 `prompt` response proves only preflight acceptance and cannot authorize Compaction or another dependent command.
 
 ## 12. Cache v2
@@ -709,9 +607,9 @@ PCH overhead and target-project performance are always reported separately.
 
 ## 15. Security and privacy
 
-- Paths are canonical, workspace-contained and checked against declared roots; symlinks in Worker scope fail closed.
+- Paths are canonical, workspace-contained and checked against declared roots; mutation paths reject symlinks.
 - IPC is HMAC-authenticated and replay-protected; content transport is bounded.
-- Secret-like Worker narrative/patches are rejected before persistence.
+- Secret-like authority proposals are rejected before persistence; historical Worker records retain their integrity checks.
 - Telemetry stores hashes, counts and reason codes, not raw provider prompts or credentials.
 - SQLite permissions and local-filesystem requirement are checked by lifecycle.
 - Unknown external side effect is reconciled by readback; never blindly retried.
@@ -735,7 +633,7 @@ The full numeric contract is in `docs/PERFORMANCE-BUDGET.md`. Hard principles:
 - inactive synchronous overhead is effectively one null check per registered hook and no I/O;
 - Single local control P95 must remain below the documented budgets;
 - no ordinary turn waits for telemetry/index cleanup;
-- Multi is admitted only when expected benefit exceeds Worker startup/copy/integration overhead;
+- Single never starts Worker sessions or measures a Multi-admission candidate;
 - optional Module over-budget or failure bypasses to its documented baseline without weakening authority;
 - every vertical slice runs affected RED/GREEN tests, an independent design review when material, adversarial/fault
   checks, affected integration and a local cost/performance comparison before the next slice broadens scope;
@@ -760,7 +658,7 @@ different root, or absolute development paths.
 | PCH-ACC-003 | JSON and Markdown validators pass; blueprint is unique |
 | PCH-ACC-004 | inactive Bridge test proves zero Host/RPC/prompt/provider activity |
 | PCH-ACC-005 | Single end-to-end mutation has prepare/readback/fresh oracle/delivery |
-| PCH-ACC-006 | Multi concurrent Workers use scopes; conflicts/fencing/recovery/integration are tested |
+| PCH-ACC-006 | Multi entry and RPC are absent; historical records survive fail-closed recovery without new effects |
 | PCH-ACC-007 | PLAN continuation Build/Keep/Revise and H3/H4/H5 routes pass |
 | PCH-ACC-008 | Memory capture/privacy/tamper/purge and Input Context exact/deferred/fallback pass |
 | PCH-ACC-009 | Compaction frontier survives restart and rejects mismatch |
@@ -769,29 +667,24 @@ different root, or absolute development paths.
 | PCH-ACC-012 | no secret, old public name, fixed model/thinking/window, reparse link or external runtime dependency |
 | PCH-ACC-013 | verified provider gets C1 positive-usage attribution; zero remains unknown and unsupported runtimes fall back to C0 |
 | PCH-ACC-014 | exact intake/AcceptanceLedger, route hysteresis, automatic H3/H4/H5 transition and Single zero-shard semantics pass |
-| PCH-ACC-015 | PatchTransaction crash recovery, projection-root reconciliation and GenerationGovernor repeated-route refusal pass |
+| PCH-ACC-015 | Single unknown-effect recovery, projection-root reconciliation and GenerationGovernor repeated-route refusal pass |
 
 ## 20. Implemented status and evidence boundary
 
-This blueprint is the sole current/target architecture authority, but it is not an implementation receipt. The local
-authority schema now extends through 035: Acceptance/Authority V2, Intake/Decision/Goal Fit, Plan/change invalidation,
-Dynamic Multi Execution V2, ProviderCallPlan, integration journal, Strong Single registry,
-workload comparability and persisted Dynamic Multi proposal authority all have concrete migrations and code paths.
-Their presence is not a release claim. `manifests/PROJECT-STATE.json` and immutable validation receipts state what is
-actually qualified at a checkpoint.
+The supported runtime is PCH 1.3 Single on Windows with PowerShell 7, a WAL-safe Node runtime and the tested Pi peer
+range in `package.json`. Schema 001-035 remains continuous; Multi execution has been removed without altering old
+immutable history. This specification is not a verification receipt. The current receipts and limitations are in
+`manifests/PROJECT-STATE.json` and `docs/VALIDATION.md`.
 
-At the 2026-08-01 Dynamic Multi checkpoint, SQL 001-035 verification passes, the persisted-proposal crash/restart path,
-cross-entity exact Strong Single comparability, pending-mutation fence and continuous Host scheduler pass their affected
-tests, and TypeScript compilation passes. Full clean-root, lifecycle, installed arbitrary-cwd, desktop active-Goal,
-provider-backed cache/compaction and Terraform STRESS gates remain mandatory before an unrestricted release claim.
-The 2026-08-01 user decision defers Terraform STRESS, PCH Multi provider reruns and the four-run comparison; those gates
-remain explicitly open while non-benchmark release, lifecycle and installed-package verification proceeds. Lexical heuristics remain
-a prohibited authority route; semantic lowering and Host/local evidence, not added keywords, must close those gaps.
+Release qualification covers Single Plan/Build, exact user contract review, mutation/evidence gates, interruption,
+recovery, installed behavior from another cwd, config compatibility and bounded provider-backed coding. Deferred
+Multi experiments and the earlier four-way Terraform comparison are outside this edition's scope; they are not
+reported as completed. A smoke workflow cannot prove arbitrary long-task reliability or comparative cost savings.
 
 Cache C1 has positive provider-usage evidence only for the exact contracts and lineages recorded in
-`manifests/CACHE-PROVIDER-EVIDENCE.json`; unmatched runtimes remain C0. Future token, latency and quality benefits are
-workload-dependent. Pi versions outside the tested peer range and provider features such as affinity, resumable stream
-handles or server KV access remain external limits until an exact Adapter contract and frozen canary prove them.
+`manifests/CACHE-PROVIDER-EVIDENCE.json`; unmatched runtimes remain C0. Natural compaction at a production-sized
+context window and untested Pi/provider capabilities remain outside the demonstrated evidence. Dollar cost is
+unknown unless actual provider pricing or billing receipts are available.
 
 ## 21. Research basis and limits
 
@@ -845,7 +738,7 @@ request from final prose or claims unavailable provider token IDs.
 
 ## 22. Target V2 convergence contract
 
-This section binds the additive architecture review to implementation. It supersedes conflicting V1 workflow,
+This section binds the shared Single V2 architecture to implementation; section 7 defines the retired Multi boundary. It supersedes conflicting V1 workflow,
 authority, topology and completion semantics elsewhere in this document. V1 records remain immutable migration input;
 they do not retain authority merely because an old projection says PASS.
 
@@ -862,23 +755,16 @@ stateDiagram-v2
   ContractFrozen --> PlanDraft
   PlanDraft --> PlanReview: current and near WorkCells ready
   PlanReview --> PlanDraft: local or contract replan
-  PlanReview --> TopologyGate: fresh Goal Fit and stage entry evidence
-  TopologyGate --> SingleBuild: Single or Multi no-benefit
-  TopologyGate --> MultiBuild: Multi benefit proven
+  PlanReview --> SingleBuild: fresh Goal Fit and stage entry evidence
   SingleBuild --> Validation
-  MultiBuild --> Integration
-  Integration --> Validation: all PatchSets serially integrated
   Validation --> DeliveryReview: fresh Host oracles pass
   Validation --> PlanDraft: local or structural failure
   SingleBuild --> ChangeImpact: material new input
-  MultiBuild --> ChangeImpact: material new input
   ChangeImpact --> DecisionFrontier: affected authority revoked
   ChangeImpact --> SingleBuild: absorption closure passes; independent work continues
-  ChangeImpact --> MultiBuild: absorption closure passes; independent work continues
   DeliveryReview --> Succeeded: Goal Fit and completion closure pass
   DeliveryReview --> PlanDraft: user value or maintenance gap
   SingleBuild --> Reconciling: unknown effect
-  MultiBuild --> Reconciling: unknown effect
   Reconciling --> PlanDraft: recovered or replanned
   Reconciling --> Stopped: no safe route
 ```
@@ -898,10 +784,8 @@ UserSource(span/hash)
  -> GoalContractFreezeReceiptV2
  -> DecisionPlanBindingV2
  -> PlanRevision/StageGateReceiptV2
- -> WorkCell/TaskPacketV2
- -> ProviderInvocationPlan/Attempt or local Operation
- -> WorkerProposal/PatchSet
- -> IntegrationReceiptV2
+ -> WorkCell
+ -> prepared/dispatched/observed/committed local Operation
  -> OracleExecutionReceiptV2
  -> OutcomeEvidenceBindingV2
  -> WorkCellCompletionReceiptV2
@@ -912,101 +796,46 @@ Every edge stores stable IDs, current revision hashes and invalidation provenanc
 typed invalidation edges and computes only the dependent closure. A `ReuseReceiptV1` proves why an unaffected prior
 receipt remains fresh; absence of a receipt means revalidation, not optimistic reuse.
 
-### 22.3 Standard Provider Invocation Protocol
+### 22.3 Provider accounting
 
-Normal Supervisor turns remain Pi-owned requests. Every PCH-added Worker, evaluator or exploratory request first
-creates a `ProviderCallPlanV1` containing:
+All model work uses ordinary Pi-owned turns. PCH adds no planning, critic, Memory, output rewrite, evaluation or
+Worker request. Tool schemas stay stable for the active Single session. Provider begin/settle records are ordered in
+the background and use exact attempt identities; reverse-order settlement never attributes usage to another turn.
+Absent or inconsistent usage remains unknown. No Worker rollout or comparability measurement is collected at
+Single completion. Historical `ProviderCallPlanV1` records remain immutable compatibility input only.
 
-- purpose, uncertainty ID, expected information gain and expected loss if skipped;
-- exact minimum input-closure hash, privacy class, allowed fields and redaction receipt;
-- provider/model/thinking/context profile source from current Pi configuration only;
-- request class, resource budget, admission reason, soft request/token/cost/latency budget and deadline;
-- cache lineage, session capability and Adapter-declared usage semantics;
-- typed success evidence, local verification, fallback, attempt/fan-out limits and stop condition.
+Cache C1 is payload-preserving and adapter-specific. Compound context cache, affinity and tiered persistence remain
+experiments. PCH never guesses provider nodes, pricing, cache state or server KV access.
 
-Formatting, status, Memory, output rewriting, deterministic parsing, test orchestration and local indexing are never
-provider purposes. The default is one high-quality call. Fan-out requires independent expected information and is
-canceled at evidence saturation. Provider output is always a proposal; it cannot authorize an effect, PASS, topology
-promotion or Goal close.
+### 22.4 Single failure and attack model
 
-`ProviderInvocationAttemptV1` records origin (`SUPERVISOR_BASELINE`, `PCH_PLANNED`, `WORKER`, `EVALUATOR`), exact runtime
-fingerprint, `{plan_id, logical_request_id, attempt_id}`, captured payload identity, usage finality, normalized mutually
-exclusive token buckets, cost, latency and terminal or unknown outcome. A durable keyed registry supports interleaved
-begin, reverse-order settle, retry, fan-out and restart; opening one attempt cannot settle another. Worker SDK hooks feed
-the same ledger; aggregate-only stats are marked PARTIAL and never converted from tool-call count into provider-turn
-count. Literal `additional_provider_requests: 0` remains valid only for the baseline path and is replaced by observed
-origin-aware accounting for planned calls.
-
-Cache C1 remains payload-preserving and Adapter-specific. Compound context cache, affinity and tiered persistence are
-experiments, not default behavior. Affinity is unavailable unless the current Adapter exposes a stable, attributable
-capability; local scheduling never guesses provider nodes or server KV state.
-
-### 22.4 Concurrency and attack model
-
-| Threat | Required defense and failure result |
+| Threat | Required defense |
 |---|---|
-| forged Worker PASS or consensus | typed proposal only; Host reruns current oracle; reject authority transition |
-| lead anchoring or polluted edge | source-bound refs, independent oracle and taint propagation; invalidate affected descendants |
-| stale TaskPacket or late Worker | packet closure, lease/fence and stop generation CAS; fence and reconcile |
-| concurrent same-file writes | graph rejects overlap; canonical integration remains serial |
-| external edit after prepare | per-file preimage/readback; preserve external postimage and enter reconcile |
-| secret/private Memory leakage | explicit privacy closure, redaction receipt, scoped mirror and provider plan; stop before dispatch |
-| provider response replacement/append | request/attempt binding and terminal finality; mark unknown, never fabricate usage or PASS |
-| simulator or judge reward hacking | executable anchors, strict typed output isolation and real-oracle holdout |
-| infinite retry/handoff/fan-out | durable family budgets, no-progress counter and terminal StopDirective |
-| irreversible global action | authority reconstructs the complete Goal/Decision/risk graph immediately before execution |
+| Model claims PASS without fresh evidence | Host-bound Oracle receipts and source-bound acceptance facets |
+| Replayed or stale controller | exact session/Goal binding, lease generation, fencing and CAS |
+| Concurrent or external file changes | per-file preimage/readback; unknown outcomes stop mutation |
+| Untrusted source instructions | treat tool/context/Memory content as data, never as execution authority |
+| Provider completion missing | exact attempt finality; retain unknown usage and outcome |
+| Infinite correction loop | repeated-route and no-progress governance with a bounded next action |
+| Old Multi task resumed by a new runtime | reject before taking a controller lease; preserve history |
+| User changes the active Goal | capture the source first, fence mutation, classify and invalidate dependent work |
 
-Advisory concurrency control may be compared with scoped mirrors only in a frozen experiment. It cannot replace the
-current correctness boundary until conflict, crash, privacy and replay tests show no regression.
+### 22.5 Qualification and cost evidence
 
-### 22.5 Benchmark and rollout card
+Run the decisive affected checks during implementation and the full validation once at the candidate exit. The
+Single gate includes tests, types, lint, build, SQL/JSON/Markdown, lifecycle, performance, self-contained closure and
+an installed probe from another cwd. Reuse the build output within a validation run; do not rebuild it in every gate.
 
-Deterministic tests run before any paid provider epoch:
+A provider-backed smoke uses a fresh isolated workspace, the supplied Pi model configuration, a bounded objective,
+external correctness checks and explicit request/time stop conditions. Stop on an actionable Harness defect, retain
+its evidence and use a new run ID after repair. Do not rerun an unchanged successful epoch for cosmetic changes.
 
-1. ambiguous interactive requirements that reveal constraints progressively;
-2. 1/5/10/25/50/100 consecutive Change Requests with restart and compaction at every boundary;
-3. Strong Single vs Multi on identical provider/model/profile, context and evidence budget;
-4. 1/2/4/8 nodes, fixed-role V1 vs dynamic DAG, barrier vs continuous backfill;
-5. independent, same-file and cross-module contract writes plus stale TaskPackets;
-6. Worker crash, Host restart, provider timeout, relay drift, partial integration and unknown effects;
-7. malicious Worker, forged verifier, polluted communication edge and infinite handoff;
-8. specification round-trip, maintainer handoff, desktop UI cancellation/accessibility and performance regression;
-9. compaction relay sufficiency and authority-aware two-stage retrieval against exhaustive context;
-10. controlled action/observation faults: partial results, invalid operations and long-context state dependencies.
+Record all provider turns, input/output/cache tokens, tool retries, end-to-end elapsed time and the final authority
+state. Do not infer cost from tool count, assume gateway prices or claim savings from a reduced tool-schema byte
+count. A matched comparison is required for a comparative cost/latency claim; correctness takes precedence.
 
-Metrics include correctness, obligation coverage, makespan, critical-path idle, provider requests/tokens/cost, unique
-information ratio, repeated reads, communication bytes, conflicts/rework, stale work, user interventions, recovery
-time, security events and maintainer understanding time. A quality failure dominates any speed or cost gain.
+### 22.6 Maintenance boundary
 
-The rollout card freezes source/runtime/provider hashes, prompt/tool surface, workload, evaluator, budgets, cache
-lineage, random seed and stop conditions. OrchBench-style deterministic DAG simulation and replay run first. A paid
-provider run occurs only when the candidate can change a decision and local gates pass. The four-way Terraform STRESS
-comparison is Codex native Single, Codex native delegation, PCH effective Single and PCH dynamic Multi. PCH runs use
-streaming diagnosis: stop on a decisive PCH defect, repair the general mechanism, rerun a new immutable epoch, and
-compare only the final passing epochs.
-
-### 22.6 Refactor and migration order
-
-The landing phase is not constrained to local patches. It may retain, deepen, replace, merge or delete V1 modules when
-the target contract, forward migration and tests prove the change. Execute these vertical slices in order:
-
-1. **P0 Authority/Acceptance**: schema 020, Host-derived oracle/evidence/completion, source spans and removal of lexical
-   acceptance authority. No later slice may build on caller-supplied PASS.
-2. **P0 Intake/Decision/Goal Fit**: schemas 021/024 plus the next forward migration, concern completeness, typed
-   disposition, draft revisions, precise approve/alternate/edit/defer/cancel, Goal Fit assessment, Change absorption,
-   exact freeze and compaction closure.
-3. **P0 Plan/Change/Invalidation**: schemas 022/024 plus the next forward migration, fresh Plan transition,
-   DecisionPlanBinding, stage gates, material Change Request, local reuse and durable correction budgets.
-4. **P0 Dynamic Multi**: schema 023, benefit gate, TaskPacket V2, typed results, continuous scheduler, fresh oracle and
-   durable stop. Preserve scoped mirrors and serial integration; remove fixed-role authority behavior.
-5. **P1 Provider/Context/Cache**: canonical BudgetEnvelope, keyed invocation-attempt registry, Adapter usage semantics
-   and ProviderCallPlan; run `PCH-RX-*` experiments before enabling two-stage retrieval, compound cache, sandbox
-   checkpoint or affinity.
-6. **P1 UX/Recovery/Delivery**: Decision Inbox projection, structured diffs, exact resume, deliverable manifest and
-   maintainer handoff.
-7. **Qualification**: affected and full local gates, clean install/arbitrary cwd, PRD-01 only when allowed by frozen
-   state, Terraform four-way comparison and release verification.
-
-Each slice uses `RED -> GREEN -> independent review -> adversarial/fault -> affected integration -> cost/performance`.
-Any source hash changed during a parallel review invalidates only that finding's changed closure. A failed architecture
-assumption updates RouteDecision and project state before the next slice; it is not preserved to avoid refactoring.
+Extend existing owners for authority, effects, acceptance and context. Keep the runtime and immutable history codecs
+separate from any future Multi experiment. Reintroducing Multi requires a new explicit design and qualification,
+not a hidden switch. User-facing commands, config, docs and installation behavior must describe the Single surface.

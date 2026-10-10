@@ -41,7 +41,7 @@ try {
         Invoke-Step 'lint' { & npm run lint }
         Invoke-Step 'build' { & npm run build }
         Invoke-Step 'tests' {
-            & $vitest run --reporter=json "--outputFile=$testReportPath"
+            & $vitest run --no-file-parallelism --testTimeout=30000 --reporter=json "--outputFile=$testReportPath"
             $script:testSummary = Get-Content -LiteralPath $testReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
             if (-not $script:testSummary.success) { throw 'Vitest JSON summary did not report success' }
         }
@@ -49,7 +49,7 @@ try {
         Invoke-Step 'json' { & npm run verify:json }
         Invoke-Step 'markdown' { & npm run verify:markdown }
         Invoke-Step 'state-update' { & npm run verify:state-update }
-        if (-not $SkipLifecycle) { Invoke-Step 'lifecycle' { & npm run verify:lifecycle } }
+        if (-not $SkipLifecycle) { Invoke-Step 'lifecycle' { & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $rootPath 'scripts\verify-lifecycle.ps1') -SkipRuntimeBuild } }
         Invoke-Step 'arbitrary-cwd-import' {
             $temp = Join-Path ([IO.Path]::GetTempPath()) ('pch-import-' + [guid]::NewGuid().ToString('N'))
             [IO.Directory]::CreateDirectory($temp) | Out-Null

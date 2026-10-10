@@ -3,7 +3,7 @@
 ## What changes when you enter
 
 Pi behaves normally until `/coding`. After entry, a local Host tracks the coding Goal, shows compact status, gates
-writes, preserves recovery state and optionally runs isolated Workers. The current Pi provider/model/thinking/context
+writes and preserves recovery state. The current Pi provider/model/thinking/context
 configuration is reused unchanged.
 
 ## Start a task
@@ -14,30 +14,30 @@ Interactive:
 /coding
 ```
 
-Pi asks three things: Single or Multi, Plan or Build, and the objective. The recommendations are Single and Build
-because they have the least overhead for ordinary fixes.
+The Goal picker offers recovery or a new task. New tasks ask for Plan or Build and the objective.
+Build is recommended for a concrete fix; execution always uses the current Single Agent.
 
 Direct:
 
 ```text
-/coding single build 修复 CSV 解析器的引号边界问题并运行现有测试
-/coding multi plan 设计并评估支付模块的可回滚拆分路线
+/coding build 修复 CSV 解析器的引号边界问题并运行现有测试
+/coding plan 设计并评估支付模块的可回滚拆分路线
 ```
 
-### Single or Multi
+### Single execution
 
-Use **Single** for a small fix, tightly coupled refactor, one module, or when you want the lowest startup cost. The
-current Agent reads, edits and verifies the real workspace under PCH's operation gate.
-
-Use **Multi** for independent modules, parallel research/implementation, or a long task where role-local context is
-worth extra Worker tokens. Workers see only assigned roots and a short TaskPacket. They edit temporary mirrors; the
-Host verifies and integrates their patches. Multi can consume more total tokens while reducing wall time and context
-interference. It is not automatically better for every task.
+The current Agent reads, edits and verifies the real workspace under PCH's operation gate. PCH creates no additional
+Agent sessions. `/coding single build ...` remains accepted; the `single` word is optional.
+Multi execution is unavailable in 1.3. See [upgrading from 1.2](#upgrading-from-12) for existing data.
 
 ### Plan or Build
 
 **Build** does not force a full PRD. It creates the smallest complete contract and near-term route, then implements.
 Material ambiguities are asked in one batch with a recommendation.
+
+The proposed Goal Contract is reviewed once by the user before its scope and acceptance requirements are frozen.
+The model cannot approve its own contract. In a session without interactive UI, review the displayed proposal and use
+`/coding review approve` or `/coding review reject <feedback>`. Contract approval starts the next productive turn.
 
 **Plan** creates a detailed contract only to the level the product/task needs, checks the route for missing
 acceptance, unsafe assumptions, rollback, performance and avoidable work, and freezes it without modifying target
@@ -92,8 +92,6 @@ Use `/memory help` to see the exact installed grammar. Typical actions are statu
 correction, forget and purge. `forget` is reversible hiding. `purge` destroys reachable encrypted content/key material
 for the selected scope while retaining non-content audit so recovery cannot restore it.
 
-In Multi, memory remains Supervisor-private unless the exact claim/version is explicitly marked verified shared.
-
 ## Context and compaction
 
 PCH injects only current workflow authority, a short output policy and bounded relevant evidence. Larger exact evidence
@@ -101,12 +99,12 @@ is deferred. The Agent can call `coding_context` to retrieve a current item or s
 whole document. This reduces PCH-added context; it does not remove Pi's native conversation history.
 
 Before Pi native compaction, PCH records an exact semantic frontier. After compaction it verifies Goal, route,
-WorkCell, Worker and pending-effect state. A mismatch blocks mutation and asks for reconciliation rather than silently
+WorkCell and pending-effect state. A mismatch blocks mutation and asks for reconciliation rather than silently
 continuing from a wrong summary.
 
 ## Cache
 
-Cache runs in non-mutating C1 when Pi is using the verified `geekspace/openai-completions` runtime. Other providers,
+Cache uses non-mutating C1 only for a supported provider integration matching the active Pi runtime. Other providers,
 APIs or base URLs automatically use C0. `/coding cache` shows the configured and effective arms, confirmed positive
 reads, unknown zero values, pending observations and token-read share. It never interprets normalized zero as a miss,
 adds provider fields, or guarantees a future hit rate.
@@ -122,9 +120,21 @@ PCH overhead and your project's runtime improvement are reported separately.
 
 ## Recovery
 
-If Pi or the Host exits, run the same `/coding ...` entry from the same workspace/session context. PCH verifies SQLite,
-takes a lease, fences orphaned Workers, reconciles pending writes and restores the exact next action. It does not redo
-a completed WorkCell whose input/evidence closure is still current.
+Reopening the same Pi session automatically validates its existing Goal binding without starting a model request.
+Use `/coding` to choose a recoverable Goal, or `/coding recover <goal-id>` in a session without a UI. Use
+`/coding new build <objective>` to explicitly begin new work. Recovery verifies SQLite, takes a lease, reconciles
+pending writes and restores the exact next action. It reuses completed WorkCells whose evidence is still current.
+
+### Upgrading from 1.2
+
+Single Goals and schema 35 data remain compatible. The old `worker_timeout_ms`, `max_parallel_workers` and
+`worker_runtime` config fields are ignored and discarded from the effective configuration; they may be deleted.
+No historical tables, events or artifacts are erased during upgrade.
+
+An unfinished Goal that requested Multi is never converted into Single, including one still waiting for admission.
+Recovery returns `LEGACY_MULTI_UNAVAILABLE` before taking its controller lease. Reconcile and cancel that Goal using
+PCH 1.2.1 before upgrading its workspace, or continue Single work in a separate workspace. Do not delete the database
+to bypass a pending effect. Completed Multi records remain available as historical data.
 
 ## Installation and data
 

@@ -1,8 +1,8 @@
 {
   "name": "pi-coding-harness",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "private": true,
-  "description": "Opt-in Pi coding harness with durable Single and role-isolated Multi execution",
+  "description": "Opt-in Single-agent Pi coding harness with durable state, verified changes and recovery",
   "type": "module",
   "engines": {
     "node": ">=22.22.3 <23 || >=24.15.0"
@@ -10,7 +10,7 @@
   "packageManager": "npm@11.9.0",
   "scripts": {
     "build": "npm run build:runtime",
-    "build:runtime": "tsc -p tsconfig.runtime.json",
+    "build:runtime": "node scripts/build-runtime.mjs",
     "compile": "tsc --noEmit",
     "lint": "eslint src tests vitest.config.ts",
     "test": "vitest run",
@@ -28,7 +28,7 @@
     "verify:performance": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-performance-baseline.ps1"
   },
   "codingHarness": {
-    "blueprintVersion": "1.2.1",
+    "blueprintVersion": "1.3.0",
     "productImplementation": "pi-coding-harness-v1",
     "authoritySchema": 35,
     "releaseExcludedDirectories": [
@@ -48,7 +48,8 @@
       "telemetry"
     ],
     "releaseExcludedFiles": [
-      "*.tsbuildinfo"
+      "*.tsbuildinfo",
+      ".git"
     ],
     "externalJsonContracts": [
       "package.json",

@@ -1,6 +1,6 @@
 import { canonicalJsonSha256 } from "../authority/canonical-json.js";
 import type { CacheModuleConfig } from "../config/types.js";
-import type { WorkerRuntimeSelection } from "../harness/worker/executor.js";
+import type { PiRuntimeFingerprintInput } from "../harness/runtime-fingerprint.js";
 import { hmacSha256Hex, sha256Hex } from "../foundation/crypto.js";
 import { idFromSha256 } from "../foundation/ids.js";
 import {
@@ -43,7 +43,7 @@ export class CacheV2Runtime {
     readonly secret: Uint8Array; readonly now?: () => number;
   }) {}
 
-  effective(runtime: WorkerRuntimeSelection): {
+  effective(runtime: PiRuntimeFingerprintInput): {
     readonly arm: "C0" | "C1_PREFIX";
     readonly providerIntegration: string | null;
     readonly reason: "ACTIVE" | "DISABLED" | "UNSUPPORTED_RUNTIME";
@@ -57,7 +57,7 @@ export class CacheV2Runtime {
       : { arm: "C0", providerIntegration: null, reason: "UNSUPPORTED_RUNTIME" };
   }
 
-  prepare(runtime: WorkerRuntimeSelection, seed: CacheV2ContextSeed): string | null {
+  prepare(runtime: PiRuntimeFingerprintInput, seed: CacheV2ContextSeed): string | null {
     const now = (this.options.now ?? Date.now)();
     const contract = resolveCacheProviderContract(this.options.config, runtime);
     if (!contract) return null;

@@ -31,6 +31,24 @@ afterEach(() => {
 });
 
 describe("loadConfig", () => {
+  it("ships no Worker settings in the Single defaults", () => {
+    expect(Object.keys(cloneDefault().execution as object)).not.toEqual(expect.arrayContaining(["worker_timeout_ms"]));
+    expect(JSON.stringify(loadConfig(defaultConfigPath).execution)).not.toMatch(/worker/u);
+  });
+
+  it("discards retired Worker settings when loading a 1.2 configuration", () => {
+    const config = cloneDefault();
+    Object.assign(config.execution as object, {
+      worker_timeout_ms: 900000, max_parallel_workers: 4,
+      worker_runtime: { unavailable_policy: "INHERIT_SUPERVISOR", roles: {} },
+    });
+    const execution = loadConfig(temporaryConfig(config)).execution;
+    expect(execution).not.toHaveProperty("worker_timeout_ms");
+    expect(execution).not.toHaveProperty("max_parallel_workers");
+    expect(execution).not.toHaveProperty("worker_runtime");
+    expect(execution.lease_ttl_ms).toBe(30000);
+  });
+
   it("loads the checked default configuration without runtime report dependencies", () => {
     const config = loadConfig(defaultConfigPath);
     expect(config.schema_version).toBe(1);

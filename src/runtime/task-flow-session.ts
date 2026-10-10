@@ -3,18 +3,13 @@ import {
 } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import type { ExtensionCommandContext, ExtensionContext, InputEventResult } from "@earendil-works/pi-coding-agent";
-import { canonicalJson, canonicalJsonSha256, omitProperty, type CanonicalJson } from "../authority/canonical-json.js";
+import { canonicalJson, canonicalJsonSha256, type CanonicalJson } from "../authority/canonical-json.js";
 import type { LeaseToken } from "../authority/lease.js";
 import type { MutationMeta } from "../authority/transactions.js";
 import type { HostTaskFlowUserInputMeta } from "../authority/transactions.js";
 import type { TaskFlowDetail, TaskFlowStatusView } from "./task-flow-view.js";
 import type { ToolInvocation } from "../effects/normalize.js";
-import {
-  applyPatchFile, journalPreimage, patchTransactionArtifacts, preparePatchTransaction,
-  readPatchTransactionJournal, removePatchCreatedDirectories, restorePatchTransactionPreimage,
-  type PatchTransactionJournalEntry,
-} from "../effects/patch-transaction.js";
-import { buildMemoryWorkingSet, memoryContextMessage, type MemoryContextMessage } from "../memory/context-projector.js";
+import type { MemoryContextMessage } from "../memory/context-projector.js";
 import type { MemoryCommandRequest } from "../memory/commands.js";
 import type { InputContextSeed } from "../input-context/runtime.js";
 import { hmacSha256Hex, sha256Hex } from "../foundation/crypto.js";
@@ -60,18 +55,11 @@ import {
 } from "../task-flow/operation-lifecycle.js";
 import { createClarificationBatch, type ClarificationDecision } from "../planning/clarification.js";
 import {
-  makeExecutionSubjectRefV2, packetContentSha256, sealHarnessRecord,
-  type IntegrationReceiptRecord, type PatchEntry, type PatchSetRecord,
-  type ShardLeaseGenerationRecord, type TaskPacketRecord, type WorkerResultRecord,
-  type WorkerRunRecord, type WorkerRunTransitionRecord, type WorkerUsage,
-  type ExecutionTopology,
+  sealHarnessRecord,
   type ManagedRunRecord,
   type TopologyRevisionRecord,
-  type WorkerRole,
-  type WorkShardRecord,
 } from "../harness/domain.js";
-import type { HarnessCurrentView, OpenPatchTransactionView } from "../harness/repository.js";
-import type { ArtifactRecord } from "../artifacts/artifact-store.js";
+import type { HarnessCurrentView } from "../harness/repository.js";
 import {
   compactionCapsuleSha256, compactionTransitionSha256,
   type HarnessCompactionAttempt, type HarnessCompactionCapsule, type HarnessCompactionTransition,
@@ -93,15 +81,11 @@ import { planSubjectKeyV2, type PlanSubjectRefV2 } from "../plan-v2/graph.js";
 import { WorkspaceBaselineCapture } from "../task-flow/workspace-baseline.js";
 
 const secretPattern = /(?:-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b|authorization\s*["']?\s*[:=]\s*["']?(?:bearer\s+)?\S{8,}|(?:api[_-]?key|password|private[_-]?key|client[_-]?secret)["']?\s*[:=]\s*["']?\S{8,})/iu;
-const maximumDependencyEvidenceBytes = 24 * 1024;
-const maximumDependencyEvidenceItemBytes = 8 * 1024;
 const maximumAuthorityProposalBytes = 256 * 1024;
-const maximumWorkerNarrativeBytes = 256 * 1024;
-const maximumWorkerPatchBytes = 64 * 1024 * 1024;
 const maximumReadbackBytes = 64 * 1024 * 1024;
 const maximumOutcomeWitnessBytes = 2 * 1024 * 1024;
 const goalFitAssessmentGuide = `goal_fit_assessment is required in this same proposal turn: {"proposal_origin":"CURRENT_AGENT_TYPED_PROPOSAL","outcome_fidelity":{"status":"PASS|ASK_USER|REFRAME|REJECT","reason_codes":["TYPED_REASON"],"coverage":"ALL_CURRENT"},"obligation_coverage":{...},"unnecessary_design":{...},"current_decisions":{...},"invalidations":{"status":"NOT_APPLICABLE","reason_codes":["NO_ACTIVE_INVALIDATIONS"],"coverage":"NOT_APPLICABLE"},"gate_specific_evidence":{...}}. Submit only typed findings over each complete current facet; do not submit subject IDs, receipt hashes, Plan hashes, authority roots or a verdict. The Host lowers ALL_CURRENT to exact subjects/evidence, binds the gate instance and derives the verdict locally; this does not create a separate critic/provider request.`;
-const goalContractProposalGuide = `GoalContract proposal shape (submit only these proposal fields, not frozen IDs/schema): {"user_outcomes":["..."],"acceptance_facets":[{"key":"stable-facet","kind":"OUTCOME|INVARIANT|QUALITY|CONSTRAINT|NON_GOAL","subject":{"kind":"USER_OUTCOME|CONSTRAINT|NON_GOAL","index":0},"source_quotes":[{"quote":"<exact UTF-8 excerpt from the task>","occurrence":1}],"obligation_keys":["stable-key"]}],"scope":["relative/path"],"non_goals":[],"constraints":[],"assumption_refs":[],"decision_refs":[],"obligations":[{"key":"stable-key","priority":"MUST","statement":"...","oracle":{"commands":["<exact local command>"]},"dependencies":[]}],"acceptance_policy":{},"authorization_ceiling":"LOCAL_REVERSIBLE","goal_fit_assessment":{...}}. Every contract subject has at least one typed facet; one subject may have separate outcome, quality and preservation facets. Every facet explicitly maps to frozen obligations, and every MUST has a source-bound SATISFIES facet. The Host derives exact byte spans and the authority root. ${goalFitAssessmentGuide}`;
+const goalContractProposalGuide = `GoalContract proposal shape (submit only these proposal fields, not frozen IDs/schema): {"user_outcomes":["..."],"acceptance_facets":[{"key":"stable-facet","kind":"OUTCOME","subject":{"kind":"USER_OUTCOME","index":0},"source_quotes":[{"quote":"<exact UTF-8 excerpt from the task>","occurrence":1}],"obligation_keys":["stable-key"]}],"scope":["relative/path"],"non_goals":[],"constraints":[],"assumption_refs":[],"decision_refs":[],"obligations":[{"key":"stable-key","priority":"MUST","statement":"...","oracle":{"commands":["<exact local command>"]},"dependencies":[]}],"acceptance_policy":{},"authorization_ceiling":"LOCAL_REVERSIBLE","goal_fit_assessment":{...}}. Facet kind must match its subject: OUTCOME, INVARIANT or QUALITY binds USER_OUTCOME; CONSTRAINT binds CONSTRAINT; NON_GOAL binds NON_GOAL. subject.index is zero-based in the corresponding user_outcomes, constraints or non_goals array. For example, a no-dependencies constraint in constraints[0] needs kind=CONSTRAINT and subject={"kind":"CONSTRAINT","index":0}. Every contract subject has at least one typed facet; one user outcome may have separate outcome, quality and preservation facets. Every facet explicitly maps to frozen obligations, and every MUST has a source-bound SATISFIES facet. The Host derives exact byte spans and the authority root. ${goalFitAssessmentGuide}`;
 const routeProposalGuide = `Route proposal shape (submit only these fields; obligation_keys reference GoalContract keys): {"lane":"DIRECT_CELL|ADAPTIVE_ROUTE","outcomes":["..."],"work_cells":[{"key":"change","outcome":"...","obligation_keys":["stable-key"],"dependencies":[],"read_roots":["relative/path"],"write_roots":["relative/path"],"effect_classes":["LOCAL_REVERSIBLE"],"oracle":{"commands":["<same exact local command>"]},"risk":"LOW","reversible":true}],"near_horizon":["change"],"assumptions":[],"risks":[],"alternatives":[],"deferred_outcomes":[],"goal_fit_assessment":{...}}. Optional arrays may be omitted when empty; do not invent fields such as evidence, failure_recovery, scope, performance_cost or waiting_cost. ${goalFitAssessmentGuide}`;
 const routeRevisionPatchGuide = `RouteRevision patch shape: {"work_cells":[{"key":"repaired-current-work","outcome":"...","obligation_keys":["stable-key"],"dependencies":[],"read_roots":["relative/path"],"write_roots":["relative/path"],"effect_classes":["LOCAL_REVERSIBLE"],"oracle":{"commands":["<exact local command>"]},"risk":"LOW","reversible":true}],"assumptions":[],"goal_fit_assessment":{...}}. work_cells replaces the old active horizon; omitted outcomes/risks/alternatives/deferred_outcomes are preserved. near_horizon defaults to the submitted WorkCell keys. Host expands this patch and reruns every full RouteSkeleton check. ${goalFitAssessmentGuide}`;
 
@@ -171,55 +155,6 @@ export interface ClarificationSelection extends ClarificationDecision {
   readonly selectedOptionId: string | null;
 }
 
-export interface HarnessShardProposal {
-  readonly key: string;
-  readonly role: WorkerRole;
-  readonly outcome: string;
-  readonly dependencies?: readonly string[];
-  readonly read_roots: readonly string[];
-  readonly write_roots: readonly string[];
-  readonly oracle: Readonly<Record<string, unknown>>;
-  readonly packet_budget?: Readonly<Record<string, unknown>>;
-}
-
-export interface HarnessWorkerExecution {
-  readonly shard: WorkShardRecord;
-  readonly packet: TaskPacketRecord;
-  readonly lease: ShardLeaseGenerationRecord;
-  readonly worker: WorkerRunRecord;
-  readonly runningTransitionSha256: string;
-  readonly baselineSha256: string;
-  readonly baselineContentRootSha256: string;
-  readonly dependencyEvidence: readonly {
-    readonly shardId: string;
-    readonly role: WorkShardRecord["role"];
-    readonly resultKind: WorkerResultRecord["result_kind"];
-    readonly artifactSha256: string;
-    readonly trust: WorkerResultRecord["trust"];
-    readonly content: string;
-  }[];
-}
-
-export interface HarnessWorkerPatchInput {
-  readonly operation: PatchEntry["operation"];
-  readonly path: string;
-  readonly beforeSha256: string | null;
-  readonly content: Uint8Array | null;
-}
-
-export interface HarnessWorkerSubmission {
-  readonly execution: HarnessWorkerExecution;
-  readonly output: string;
-  readonly usage: WorkerUsage;
-  readonly patches: readonly HarnessWorkerPatchInput[];
-}
-
-export interface HarnessSubmittedResult {
-  readonly result: WorkerResultRecord;
-  readonly patchSet: PatchSetRecord | null;
-  readonly integrated: boolean;
-}
-
 function contained(root: string, candidate: string): boolean {
   const delta = relative(resolve(root), resolve(candidate));
   return delta === "" || (!delta.startsWith("..") && !isAbsolute(delta));
@@ -262,14 +197,6 @@ function statusMode(view: TaskFlowCurrentView): "PLAN" | "BUILD" {
 function routeHealth(view: TaskFlowCurrentView): string {
   if (["SUCCEEDED", "FAILED", "CANCELED"].includes(view.status)) return "H0_CONTINUE";
   return view.latestHealth?.level ?? (view.status === "RECONCILING" ? "H5_RECONCILE_OR_STOP" : "H0_CONTINUE");
-}
-
-function artifactMetadata(record: ArtifactRecord): Omit<ArtifactRecord, "created"> {
-  return omitProperty(record, "created");
-}
-
-function emptyWorkerUsage(): WorkerUsage {
-  return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: null, cost: null, turns: 0, wallTimeMs: 0 };
 }
 
 function assertSafeAuthorityPayload(value: unknown, label: string, maximumBytes = maximumAuthorityProposalBytes): void {
@@ -353,6 +280,12 @@ export class TaskFlowSession {
   }
 
   private recoverExisting(resources: CodingHarnessResources, existing: ActiveTaskFlowGoal): void {
+    // Historical Multi authority is readable, but cannot acquire a new controller
+    // or be reinterpreted as Single. Resolve it with the original version first.
+    const harness = resources.authority.readHarnessView(existing.goalId);
+    if (harness && (harness.requestedTopology !== "SINGLE" || harness.effectiveTopology !== "SINGLE")) {
+      throw new TypeError(`LEGACY_MULTI_UNAVAILABLE: Goal ${existing.goalId} belongs to retired Multi execution. Its history is unchanged. Use PCH 1.2.1 to reconcile and cancel it before starting Single work in this workspace.`);
+    }
     const lease = resources.authority.acquireLease(
       existing.goalId,
       this.requiredSessionId(),
@@ -370,7 +303,6 @@ export class TaskFlowSession {
         && recovered.view.status === "CONTRACTING"
         && recovered.view.nextActionCode === "SUBMIT_CONTRACT",
     };
-    const harness = resources.authority.readHarnessView(existing.goalId);
     const openCompaction = harness ? resources.authority.readOpenHarnessCompaction(harness.runId) : null;
     if (openCompaction) {
       this.pendingCompactionAttemptId = openCompaction.attempt.attempt_id;
@@ -378,7 +310,6 @@ export class TaskFlowSession {
       this.active.blocker = "Compaction recovery required; use /coding resume or coding_flow control=resume before continuing.";
     }
     const pendingActiveGoalInput = resources.authority.hasPendingActiveGoalUserTurn(existing.goalId);
-    if (!pendingActiveGoalInput) this.recoverOpenPatchTransactions();
     if (!openCompaction && !pendingActiveGoalInput) {
       this.reconcilePendingAuthorityTransitions();
       if (this.requiredActive().view.nextActionCode === "AUTHORIZE_WORK") this.authorizeNextWork();
@@ -474,34 +405,20 @@ export class TaskFlowSession {
   }
 
   createHarnessRun(input: {
-    readonly topology: ExecutionTopology;
-    readonly requestedTopology?: ExecutionTopology;
-    readonly reasonCode?: "USER_SELECTED" | "MULTI_BENEFIT_EVIDENCE_REQUIRED";
+    readonly topology: "SINGLE";
     readonly createdByHostHmac: string;
     readonly configSha256: string;
     readonly decisionSha256: string;
   }): HarnessCurrentView {
     const state = this.requiredActive();
     const resources = this.requiredResources();
-    const requestedTopology = input.requestedTopology ?? input.topology;
-    const reasonCode = input.reasonCode ?? "USER_SELECTED";
-    if (requestedTopology === "SINGLE" && input.topology === "MULTI") {
-      throw new TypeError("Effective MULTI topology requires prior user permission");
-    }
-    if (requestedTopology !== input.topology
-      && (requestedTopology !== "MULTI" || input.topology !== "SINGLE" || reasonCode !== "MULTI_BENEFIT_EVIDENCE_REQUIRED")) {
-      throw new TypeError("Requested and effective Harness topology require a valid admission reason");
-    }
-    if (requestedTopology === input.topology && reasonCode !== "USER_SELECTED") {
-      throw new TypeError("Unchanged Harness topology requires USER_SELECTED reason");
-    }
+    if (input.topology !== "SINGLE") throw new TypeError("Multi is unavailable in PCH Single");
     const existing = resources.authority.readHarnessView(state.goalId);
     if (existing) {
-      if (existing.requestedTopology !== requestedTopology || existing.effectiveTopology !== input.topology) {
+      if (existing.requestedTopology !== "SINGLE" || existing.effectiveTopology !== "SINGLE") {
         throw new TypeError("Recovered Harness topology differs from the requested or effective topology");
       }
-      if (!resources.authority.hasPendingActiveGoalUserTurn(state.goalId)) this.recoverHarnessWorkers(existing);
-      return resources.authority.readHarnessView(state.goalId)!;
+      return existing;
     }
     this.ensureLease();
     const run = sealHarnessRecord<ManagedRunRecord, "record_sha256">("PCH-MANAGED-RUN-V1", {
@@ -510,8 +427,8 @@ export class TaskFlowSession {
       initial_config_sha256: input.configSha256, created_at_ms: this.now(),
     }, "record_sha256");
     const topology = sealHarnessRecord<TopologyRevisionRecord, "record_sha256">("PCH-TOPOLOGY-REVISION-V1", {
-      schema_version: 1, run_id: run.run_id, revision: 1, requested_topology: requestedTopology,
-      effective_topology: input.topology, reason_code: reasonCode, decision_sha256: input.decisionSha256,
+      schema_version: 1, run_id: run.run_id, revision: 1, requested_topology: "SINGLE",
+      effective_topology: "SINGLE", reason_code: "USER_SELECTED", decision_sha256: input.decisionSha256,
       config_sha256: input.configSha256, created_at_ms: this.now(),
     }, "record_sha256");
     const result = resources.authority.transactHarness({ type: "CREATE_MANAGED_RUN", goalId: state.goalId, run, topology },
@@ -553,449 +470,6 @@ export class TaskFlowSession {
   }
 
   workspaceRoot(): string { return this.requiredCwd(); }
-
-  defineHarnessShards(proposals: readonly HarnessShardProposal[]): HarnessCurrentView {
-    const state = this.requiredActive();
-    const resources = this.requiredResources();
-    const harness = resources.authority.readHarnessView(state.goalId);
-    const cell = this.currentCell();
-    if (!harness || harness.effectiveTopology !== "MULTI" || !cell || state.view.workCellId !== cell.work_cell_id) {
-      throw new TypeError("Multi shard definition requires the current authorized WorkCell");
-    }
-    if (harness.shards.some((shard) => shard.workCellId === cell.work_cell_id)) throw new TypeError("Current WorkCell already has a shard graph");
-    if (proposals.length === 0 || proposals.length > 32) throw new TypeError("Multi WorkCell requires 1..32 bounded shard proposals");
-    const ids = new Map(proposals.map((proposal) => [proposal.key, idFromSha256("SHARD", sha256Hex(`${harness.runId}\0${cell.work_cell_id}\0${proposal.key}`))]));
-    if (ids.size !== proposals.length) throw new TypeError("Shard proposal keys must be unique");
-    const shards = proposals.map((proposal, ordinal) => sealHarnessRecord<WorkShardRecord, "spec_sha256">("PCH-WORK-SHARD-V1", {
-      schema_version: 1, shard_id: ids.get(proposal.key)!, run_id: harness.runId, goal_id: state.goalId,
-      work_cell_id: cell.work_cell_id, logical_key: proposal.key, ordinal, role: proposal.role, outcome: proposal.outcome,
-      dependencies: (proposal.dependencies ?? []).map((key) => {
-        const id = ids.get(key); if (!id) throw new TypeError(`Unknown shard dependency ${key}`); return id;
-      }),
-      read_roots: proposal.read_roots, write_roots: proposal.write_roots, oracle: proposal.oracle,
-      packet_budget: proposal.packet_budget ?? { max_attempts: 2 },
-    }, "spec_sha256"));
-    const result = resources.authority.transactHarness({
-      type: "DEFINE_WORK_SHARDS", goalId: state.goalId, runId: harness.runId, workCellId: cell.work_cell_id, shards,
-    }, this.mutation(`coding-harness:multi:define:${canonicalJsonSha256(shards.map((shard) => shard.spec_sha256))}`));
-    state.version = result.goalVersion;
-    return resources.authority.readHarnessView(state.goalId)!;
-  }
-
-  startNextHarnessWorker(input: {
-    readonly modelFingerprintHmacByRole: Readonly<Record<WorkerRole, string>>;
-    readonly ownerHmac: string;
-  }): HarnessWorkerExecution {
-    const state = this.requiredActive();
-    const resources = this.requiredResources();
-    const harness = resources.authority.readHarnessView(state.goalId);
-    const contract = state.view.contract; const route = state.view.route; const authorization = state.view.authorization;
-    if (!harness || harness.effectiveTopology !== "MULTI" || !harness.nextReadyShardId || !contract || !route || !authorization) {
-      throw new TypeError("No authority-ready MULTI WorkShard is available");
-    }
-    const detail = resources.authority.readHarnessShard(state.goalId, harness.nextReadyShardId);
-    const baseline = resources.authority.readLatestTaskFlowBaseline(state.goalId);
-    const currentCell = this.currentCell();
-    if (!detail || detail.status !== "READY" || detail.spec.role === "SUPERVISOR" || !baseline
-      || !currentCell || currentCell.work_cell_id !== detail.spec.work_cell_id) {
-      throw new AuthorityIntegrityError("Ready WorkShard execution closure is incomplete");
-    }
-    const attempt = detail.attemptCount + 1;
-    const workerTimeoutMs = this.options.config.execution.worker_timeout_ms ?? 900_000;
-    const expiresAtMs = Math.min(
-      authorization.expires_at_ms,
-      this.now() + Math.max(this.options.config.execution.lease_ttl_ms, workerTimeoutMs + 5_000),
-    );
-    if (expiresAtMs <= this.now()) throw new TypeError("WorkShard authorization has expired");
-    const subject = makeExecutionSubjectRefV2({
-      kind: "WORK_SHARD", run_id: harness.runId, goal_id: state.goalId, work_cell_id: detail.spec.work_cell_id,
-      shard_id: detail.spec.shard_id, worker_run_id: null, role: detail.spec.role,
-      topology_revision: harness.topologyRevision, attempt, goal_contract_sha256: contract.record_sha256,
-      route_sha256: route.record_sha256, authorization_sha256: authorization.record_sha256,
-    });
-    const packetId = idFromSha256("PACKET", sha256Hex(`${detail.spec.shard_id}\0${attempt}\0${subject.binding_sha256}`));
-    const sharedMemory = this.sharedWorkerMemory(harness.runId, detail.spec.outcome);
-    let remainingDependencyBytes = maximumDependencyEvidenceBytes;
-    const dependencyEvidence = detail.dependencyEvidence.map((evidence) => {
-      const bytes = Buffer.from(resources.artifacts.open(`pch-cas://sha256/${evidence.artifactSha256}`));
-      const included = Math.min(bytes.byteLength, maximumDependencyEvidenceItemBytes, remainingDependencyBytes);
-      remainingDependencyBytes -= included;
-      const decoded = included === 0 ? "" : bytes.subarray(0, included).toString("utf8");
-      return {
-        ...evidence,
-        content: included === bytes.byteLength ? decoded
-          : `${decoded}${decoded ? "\n" : ""}[dependency output omitted after bounded evidence budget]`,
-      };
-    });
-    const packetContent = {
-      schema_version: 1 as const, packet_id: packetId, run_id: harness.runId, shard_id: detail.spec.shard_id, attempt,
-      subject_binding_sha256: subject.binding_sha256, task: detail.spec.outcome,
-      goal_contract_sha256: contract.record_sha256, route_sha256: route.record_sha256,
-      work_cell_sha256: currentCell.spec_sha256,
-      evidence_refs: [...new Set([
-        ...dependencyEvidence.map((evidence) => evidence.artifactSha256),
-        ...(sharedMemory?.binding_sha256s ?? []),
-      ])], shared_memory: sharedMemory,
-      failure_signatures: [], expires_at_ms: expiresAtMs,
-    };
-    const packetSha256 = packetContentSha256(packetContent);
-    const packet: TaskPacketRecord = {
-      ...packetContent, packet_sha256: packetSha256,
-      capability_hmac: hmacSha256Hex(resources.workspaceSecret, `packet:${packetSha256}`),
-    };
-    const lease = sealHarnessRecord<ShardLeaseGenerationRecord, "lease_sha256">("PCH-SHARD-LEASE-V1", {
-      schema_version: 1, shard_id: detail.spec.shard_id, generation: detail.latestLeaseGeneration + 1,
-      fencing_token: detail.latestFencingToken + 1, owner_hmac: input.ownerHmac, expires_at_ms: expiresAtMs,
-    }, "lease_sha256");
-    let result = resources.authority.transactHarness({ type: "LEASE_WORK_SHARD", goalId: state.goalId, packet, subject, lease },
-      this.mutation(`coding-harness:worker:lease:${packet.packet_sha256}`));
-    state.version = result.goalVersion;
-    const workerId = idFromSha256("WORKER", sha256Hex(`${packet.packet_sha256}\0${lease.lease_sha256}`));
-    const worker = sealHarnessRecord<WorkerRunRecord, "record_sha256">("PCH-WORKER-RUN-V1", {
-      schema_version: 1, worker_run_id: workerId, run_id: harness.runId, shard_id: detail.spec.shard_id,
-      packet_id: packet.packet_id, role: detail.spec.role, attempt, lease_generation: lease.generation,
-      fencing_token: lease.fencing_token, sandbox_kind: "SCOPED_MIRROR",
-      model_fingerprint_hmac: input.modelFingerprintHmacByRole[detail.spec.role],
-      created_at_ms: this.now(),
-    }, "record_sha256");
-    const workerSubject = makeExecutionSubjectRefV2({
-      ...subject, kind: "WORKER_RUN", worker_run_id: workerId,
-    });
-    const starting = this.workerTransition(workerId, 0, "STARTING", null, emptyWorkerUsage(), null, null);
-    result = resources.authority.transactHarness({ type: "START_WORKER_RUN", goalId: state.goalId, worker, subject: workerSubject, transition: starting },
-      this.mutation(`coding-harness:worker:start:${worker.record_sha256}`));
-    state.version = result.goalVersion;
-    const running = this.workerTransition(workerId, 1, "RUNNING", null, emptyWorkerUsage(), null, starting.transition_sha256);
-    result = resources.authority.transactHarness({ type: "TRANSITION_WORKER_RUN", goalId: state.goalId, transition: running },
-      this.mutation(`coding-harness:worker:running:${running.transition_sha256}`));
-    state.version = result.goalVersion;
-    return {
-      shard: detail.spec, packet, lease, worker, runningTransitionSha256: running.transition_sha256,
-      baselineSha256: baseline.record_sha256, baselineContentRootSha256: baseline.content_root_sha256,
-      dependencyEvidence,
-    };
-  }
-
-  submitHarnessWorkerResult(input: HarnessWorkerSubmission): HarnessSubmittedResult {
-    const state = this.requiredActive(); const resources = this.requiredResources();
-    const execution = input.execution;
-    if (Buffer.byteLength(input.output, "utf8") > maximumWorkerNarrativeBytes) throw new TypeError("Coding Harness Worker narrative exceeds its bounded persistence budget");
-    if (secretPattern.test(input.output)) throw new TypeError("Coding Harness rejected secret-like Worker output before persistence");
-    if (input.patches.length > 256) throw new TypeError("Coding Harness Worker patch count exceeds its bound");
-    let patchBytes = 0;
-    const patchPaths = new Set<string>();
-    for (const patch of input.patches) {
-      if (!/^(?:CREATE|MODIFY|DELETE)$/u.test(patch.operation)) throw new TypeError("Coding Harness Worker patch operation is invalid");
-      if (patch.beforeSha256 !== null && !/^[a-f0-9]{64}$/u.test(patch.beforeSha256)) throw new TypeError("Coding Harness Worker patch preimage is invalid");
-      if (patch.operation === "CREATE" && patch.beforeSha256 !== null) throw new TypeError("CREATE patch cannot carry a preimage");
-      if (patch.operation !== "CREATE" && patch.beforeSha256 === null) throw new TypeError(`${patch.operation} patch requires a preimage`);
-      if ((patch.operation === "DELETE") !== (patch.content === null)) throw new TypeError(`${patch.operation} patch content contract is invalid`);
-      const normalized = normalizedRelativeRoot(this.requiredCwd(), patch.path);
-      if (!this.targetWithinRoots(normalized.absolute, execution.shard.write_roots)) {
-        throw new TypeError("Coding Harness rejected a Worker patch outside its shard write scope before persistence");
-      }
-      if (patchPaths.has(normalized.relative)) throw new TypeError("Coding Harness Worker patch contains duplicate paths");
-      patchPaths.add(normalized.relative);
-      patchBytes += patch.content?.byteLength ?? 0;
-      if ((patch.content?.byteLength ?? 0) > 8 * 1024 * 1024) throw new TypeError("Coding Harness Worker patch file exceeds its bound");
-      if (patchBytes > maximumWorkerPatchBytes) throw new TypeError("Coding Harness Worker patch exceeds its bounded persistence budget");
-    }
-    const outputArtifact = resources.artifacts.put(input.output || "[worker produced no narrative output]", {
-      mediaType: "text/markdown", classification: "INTERNAL", retentionClass: "GOAL",
-    });
-    const artifacts: ArtifactRecord[] = [outputArtifact];
-    const patchEntries: PatchEntry[] = input.patches.map((patch) => {
-      if (patch.operation === "DELETE") {
-        if (patch.content !== null) throw new TypeError("DELETE patch cannot carry postimage content");
-        return { operation: patch.operation, path: patch.path, before_sha256: patch.beforeSha256, after_sha256: null, content_locator: null, byte_length: 0 };
-      }
-      if (patch.content === null) throw new TypeError(`${patch.operation} patch requires postimage content`);
-      if (secretPattern.test(Buffer.from(patch.content).toString("utf8"))) {
-        throw new TypeError("Coding Harness rejected secret-like Worker patch content before persistence");
-      }
-      const artifact = resources.artifacts.put(patch.content, {
-        mediaType: "application/octet-stream", classification: "INTERNAL", retentionClass: "GOAL",
-      });
-      artifacts.push(artifact);
-      return {
-        operation: patch.operation, path: patch.path, before_sha256: patch.beforeSha256,
-        after_sha256: artifact.sha256, content_locator: artifact.locator, byte_length: artifact.byteLength,
-      };
-    });
-    const patchSet = patchEntries.length === 0 ? null : sealHarnessRecord<PatchSetRecord, "patch_sha256">("PCH-PATCH-SET-V1", {
-      schema_version: 1, patch_set_id: idFromSha256("PATCH", sha256Hex(`${execution.worker.worker_run_id}\0${canonicalJsonSha256(patchEntries)}`)),
-      run_id: execution.worker.run_id, shard_id: execution.shard.shard_id, worker_run_id: execution.worker.worker_run_id,
-      baseline_sha256: execution.baselineSha256, entries: patchEntries, created_at_ms: this.now(),
-    }, "patch_sha256");
-    const resultKind: WorkerResultRecord["result_kind"] = patchSet
-      ? execution.worker.role === "INTEGRATOR" ? "INTEGRATION" : "PATCH"
-      : execution.worker.role === "PLANNER" ? "PLAN" : execution.worker.role === "EXPLORER" ? "ANALYSIS"
-        : execution.worker.role === "VERIFIER" ? "VERIFICATION" : "NO_CHANGES";
-    const workerResult = sealHarnessRecord<WorkerResultRecord, "record_sha256">("PCH-WORKER-RESULT-V1", {
-      schema_version: 1, result_id: idFromSha256("RESULT", sha256Hex(`${execution.worker.worker_run_id}\0${outputArtifact.sha256}`)),
-      worker_run_id: execution.worker.worker_run_id, run_id: execution.worker.run_id, shard_id: execution.shard.shard_id,
-      result_kind: resultKind, artifact_sha256: outputArtifact.sha256,
-      artifact_locator_hmac: hmacSha256Hex(resources.workspaceSecret, outputArtifact.locator), trust: "UNVERIFIED", created_at_ms: this.now(),
-    }, "record_sha256");
-    const succeeded = this.workerTransition(execution.worker.worker_run_id, 2, "SUCCEEDED", outputArtifact.sha256,
-      input.usage, null, execution.runningTransitionSha256);
-    const authority = resources.authority.transactHarness({
-      type: "SUBMIT_WORKER_RESULT", goalId: state.goalId, result: workerResult, transition: succeeded, patchSet,
-      artifacts: artifacts.map(artifactMetadata),
-    }, this.mutation(`coding-harness:worker:result:${workerResult.record_sha256}`));
-    state.version = authority.goalVersion;
-    if (!patchSet) {
-      this.recordHarnessIntegration(execution, null, "NO_CHANGES", execution.baselineContentRootSha256, [], []);
-      return { result: workerResult, patchSet: null, integrated: true };
-    }
-    return { result: workerResult, patchSet, integrated: false };
-  }
-
-  integrateHarnessPatch(execution: HarnessWorkerExecution, patchSet: PatchSetRecord): IntegrationReceiptRecord {
-    const resources = this.requiredResources(); const cwd = this.requiredCwd(); const state = this.requiredActive();
-    const prepared = preparePatchTransaction({
-      cwd, goalId: state.goalId, preimageRootSha256: execution.baselineContentRootSha256,
-      patchSet, artifacts: resources.artifacts,
-    });
-    const preparation = resources.authority.transactHarness({
-      type: "PREPARE_PATCH_TRANSACTION", goalId: state.goalId, runId: patchSet.run_id,
-      shardId: patchSet.shard_id, patchSetId: patchSet.patch_set_id,
-      journalSha256: prepared.journalArtifact.sha256,
-      journalArtifact: artifactMetadata(prepared.journalArtifact),
-      preimageArtifacts: patchTransactionArtifacts(prepared).slice(1),
-    }, this.mutation(`coding-harness:patch-transaction:prepare:${prepared.journalArtifact.sha256}`));
-    state.version = preparation.goalVersion;
-    this.refresh();
-    this.options.onPatchTransactionFault?.("AFTER_PREPARE", null);
-    if (prepared.journal.conflict_paths.length > 0) {
-      const receipt = this.recordHarnessIntegration(
-        execution, patchSet, "CONFLICT", null, prepared.journal.conflict_paths, [], prepared.journalArtifact.sha256,
-      );
-      this.assessHarnessIntegrationFailure(execution, receipt);
-      return receipt;
-    }
-    const operationIds: string[] = [];
-    const applied: PatchTransactionJournalEntry[] = [];
-    let applyError: Error | null = null;
-    let uncertainOutcome = false;
-    for (const entry of prepared.journal.entries) {
-      const content = prepared.postimages.get(entry.path) ?? null;
-      const absolute = normalizedRelativeRoot(cwd, entry.path).absolute;
-      const expectedPreimage = entry.observed_before_sha256 ?? sha256Hex("PCH-ABSENT-V1");
-      const callId = idFromSha256("CALL", sha256Hex(`${patchSet.patch_sha256}\0APPLY\0${entry.path}`));
-      const admission = this.prepareHarnessPatchOperation(callId, cwd, entry.operation, entry.path, entry.expected_after_sha256);
-      if (!admission.allow) { applyError = new Error(admission.reason ?? "Patch integration was rejected"); break; }
-      try {
-        this.ensureLease();
-        resources.authority.withLeaseFence(this.requiredActive().lease, () => {
-          if (this.hashTarget(absolute) !== expectedPreimage) {
-            throw new AuthorityIntegrityError(`Patch transaction preimage changed after prepare: ${entry.path}`);
-          }
-          applyPatchFile(absolute, entry.operation, content);
-        });
-      } catch (error) {
-        applyError = error instanceof Error ? error : new Error(String(error));
-        this.observeToolResult(callId, true, applyError.message);
-        break;
-      }
-      this.options.onPatchTransactionFault?.("AFTER_APPLY", entry.path);
-      const note = this.observeToolResult(callId, false, patchSet.patch_sha256) ?? "";
-      const operationId = /operation=([^;\s]+)/u.exec(note)?.[1];
-      if (!operationId) {
-        applyError = new AuthorityIntegrityError("Deterministic integration did not commit its canonical operation");
-        uncertainOutcome = true;
-        break;
-      }
-      operationIds.push(operationId);
-      applied.push(entry);
-    }
-    if (applyError) {
-      if (uncertainOutcome) {
-        const receipt = this.recordHarnessIntegration(
-          execution, patchSet, "OUTCOME_UNKNOWN", null, prepared.journal.entries.map((entry) => entry.path),
-          operationIds, prepared.journalArtifact.sha256,
-        );
-        this.assessHarnessIntegrationFailure(execution, receipt);
-        return receipt;
-      }
-      let rollbackFailed = false;
-      for (const entry of [...applied].reverse()) {
-        const before = journalPreimage(resources.artifacts, entry);
-        const absolute = normalizedRelativeRoot(cwd, entry.path).absolute;
-        const inverse: PatchEntry["operation"] = before === null ? "DELETE" : existsSync(absolute) ? "MODIFY" : "CREATE";
-        const callId = idFromSha256("CALL", sha256Hex(`${patchSet.patch_sha256}\0COMPENSATE\0${entry.path}`));
-        const admission = this.prepareHarnessPatchOperation(callId, cwd, inverse, entry.path, before === null ? null : sha256Hex(before));
-        if (!admission.allow) { rollbackFailed = true; continue; }
-        try {
-          this.ensureLease();
-          resources.authority.withLeaseFence(this.requiredActive().lease, () => applyPatchFile(absolute, inverse, before));
-          const note = this.observeToolResult(callId, false, `COMPENSATED:${patchSet.patch_sha256}`) ?? "";
-          const operationId = /operation=([^;\s]+)/u.exec(note)?.[1];
-          if (operationId && this.hashTarget(absolute) === (entry.observed_before_sha256 ?? sha256Hex("PCH-ABSENT-V1"))) {
-            operationIds.push(operationId);
-          } else rollbackFailed = true;
-        } catch (error) {
-          rollbackFailed = true;
-          this.observeToolResult(callId, true, error instanceof Error ? error.message : String(error));
-        }
-      }
-      this.ensureLease();
-      resources.authority.withLeaseFence(this.requiredActive().lease, () => {
-        if (removePatchCreatedDirectories(cwd, prepared.journal).length > 0) rollbackFailed = true;
-      });
-      const receipt = this.recordHarnessIntegration(
-        execution, patchSet, rollbackFailed ? "OUTCOME_UNKNOWN" : "REJECTED", null,
-        rollbackFailed ? patchSet.entries.map((entry) => entry.path) : [], operationIds,
-        prepared.journalArtifact.sha256,
-      );
-      this.assessHarnessIntegrationFailure(execution, receipt);
-      return receipt;
-    }
-    const postimage = this.captureBaseline(this.currentCell()!).content_root_sha256;
-    return this.recordHarnessIntegration(
-      execution, patchSet, "APPLIED", postimage, [], operationIds, prepared.journalArtifact.sha256,
-    );
-  }
-
-  failHarnessWorker(
-    execution: HarnessWorkerExecution,
-    error: unknown,
-    usage: WorkerUsage,
-    stateName: "FAILED" | "ABORTED" | "TIMED_OUT" | "FENCED" = "FAILED",
-  ): void {
-    const state = this.requiredActive(); const resources = this.requiredResources();
-    const failure = this.workerFailureSignature(execution.worker.role, error, stateName);
-    let terminalState: typeof stateName = stateName;
-    let transition = this.workerTransition(execution.worker.worker_run_id, 2, terminalState, null, usage, failure, execution.runningTransitionSha256);
-    try {
-      const result = resources.authority.transactHarness({ type: "TRANSITION_WORKER_RUN", goalId: state.goalId, transition },
-        this.mutation(`coding-harness:worker:failure:${transition.transition_sha256}`));
-      state.version = result.goalVersion;
-    } catch (errorValue) {
-      const unresolved = resources.authority.readHarnessWorkerRecovery(state.goalId, execution.worker.worker_run_id);
-      if (!unresolved || terminalState === "FENCED") throw errorValue;
-      terminalState = "FENCED";
-      transition = this.workerTransition(execution.worker.worker_run_id, unresolved.ordinal + 1, "FENCED", null, usage,
-        failure, unresolved.transitionSha256);
-      const fenced = resources.authority.transactHarness({ type: "TRANSITION_WORKER_RUN", goalId: state.goalId, transition },
-        this.mutation(`coding-harness:worker:fenced:${transition.transition_sha256}`));
-      state.version = fenced.goalVersion;
-    }
-    if (resources.authority.hasPendingActiveGoalUserTurn(state.goalId)) {
-      this.refresh();
-      return;
-    }
-    if (!state.view.route) { this.refresh(); return; }
-    const health = this.requiredKernel().assess(state.goalId, state.view.route.route_id, execution.shard.work_cell_id, {
-      ...this.healthyAssessment(), failureSignatureSha256: failure, failureOccurrence: execution.worker.attempt,
-      transientFailure: terminalState !== "FENCED", localRepairAvailable: false,
-    }, this.mutation(`coding-harness:worker:health:${failure}:${execution.worker.attempt}`));
-    state.version = health.authority.goalVersion;
-    if (health.decision.retryAllowed) {
-      const requeued = this.requiredResources().authority.transactHarness({
-        type: "REQUEUE_WORK_SHARD", goalId: state.goalId, runId: execution.worker.run_id,
-        shardId: execution.shard.shard_id, reasonSha256: failure, routeDecisionSha256: health.health.record_sha256,
-      }, this.mutation(`coding-harness:worker:requeue:${execution.shard.shard_id}:${execution.worker.attempt}`));
-      state.version = requeued.goalVersion;
-    }
-    this.refresh();
-  }
-
-  private recoverHarnessWorkers(harness: HarnessCurrentView): void {
-    if (harness.unresolvedWorkerRunIds.length === 0) return;
-    const state = this.requiredActive(); const resources = this.requiredResources();
-    this.ensureLease();
-    for (const workerRunId of harness.unresolvedWorkerRunIds) {
-      const worker = resources.authority.readHarnessWorkerRecovery(state.goalId, workerRunId);
-      if (!worker) continue;
-      const failure = canonicalJsonSha256({
-        domain: "PCH-ORPHANED-WORKER-V1", reason: "HOST_RESTART", runId: worker.runId, shardId: worker.shardId,
-      });
-      const transition = this.workerTransition(
-        worker.workerRunId, worker.ordinal + 1, "FENCED", null, emptyWorkerUsage(), failure, worker.transitionSha256,
-      );
-      const recovered = resources.authority.transactHarness({
-        type: "RECOVER_WORKER_RUN", goalId: state.goalId, transition,
-      }, this.mutation(`coding-harness:worker:recover:${transition.transition_sha256}`));
-      state.version = recovered.goalVersion;
-    }
-    this.refresh();
-  }
-
-  private fenceHarnessWorkers(harness: HarnessCurrentView): void {
-    if (harness.unresolvedWorkerRunIds.length === 0) return;
-    const state = this.requiredActive(); const resources = this.requiredResources();
-    this.ensureLease();
-    for (const workerRunId of harness.unresolvedWorkerRunIds) {
-      const worker = resources.authority.readHarnessWorkerRecovery(state.goalId, workerRunId);
-      if (!worker) continue;
-      const failure = canonicalJsonSha256({
-        domain: "PCH-ORPHANED-WORKER-V1", reason: "ACTIVE_GOAL_INPUT", runId: worker.runId, shardId: worker.shardId,
-      });
-      const transition = this.workerTransition(
-        worker.workerRunId, worker.ordinal + 1, "FENCED", null, emptyWorkerUsage(), failure, worker.transitionSha256,
-      );
-      const fenced = resources.authority.transactHarness({
-        type: "TRANSITION_WORKER_RUN", goalId: state.goalId, transition,
-      }, this.mutation(`coding-harness:worker:active-goal-fence:${transition.transition_sha256}`));
-      state.version = fenced.goalVersion;
-    }
-    this.refresh();
-  }
-
-  private recoverOpenPatchTransactions(): void {
-    const state = this.requiredActive();
-    const resources = this.requiredResources();
-    const transactions = resources.authority.readOpenPatchTransactions(state.goalId);
-    if (transactions.length === 0) return;
-    this.ensureLease();
-    for (const transaction of transactions) {
-      let result: "REJECTED" | "OUTCOME_UNKNOWN" = "OUTCOME_UNKNOWN";
-      let affected = [...transaction.affectedPaths].sort();
-      try {
-        const journal = readPatchTransactionJournal(resources.artifacts, transaction.journalLocator);
-        if (journal.goal_id !== state.goalId || journal.run_id !== transaction.runId
-          || journal.shard_id !== transaction.shardId || journal.patch_set_id !== transaction.patchSetId
-          || journal.patch_sha256 !== transaction.patchSha256
-          || journal.preimage_root_sha256 !== transaction.preimageRootSha256) {
-          throw new AuthorityIntegrityError("Recovered PatchTransaction journal binding differs from authority");
-        }
-        const recovery = restorePatchTransactionPreimage({
-          cwd: this.requiredCwd(), journal, artifacts: resources.artifacts,
-          withMutationFence: (effect) => {
-            this.ensureLease();
-            resources.authority.withLeaseFence(this.requiredActive().lease, effect);
-          },
-          afterRestore: (path) => this.options.onPatchTransactionFault?.("AFTER_RECOVERY_APPLY", path),
-        });
-        affected = recovery.outcome === "OUTCOME_UNKNOWN"
-          ? [...new Set([...affected, ...recovery.uncertain_paths])].sort() : [];
-        if (recovery.outcome === "RESTORED") {
-          if (resources.authority.readUnresolvedTaskFlowOperations(state.goalId).length > 0) {
-            this.reconcileOperations(undefined, false);
-          }
-          result = "REJECTED";
-        }
-      } catch {
-        result = "OUTCOME_UNKNOWN";
-      }
-      this.ensureLease();
-      const receipt = this.recordRecoveredPatchTransaction(transaction, result, affected);
-      const shard = resources.authority.readHarnessShard(state.goalId, transaction.shardId);
-      this.assessHarnessIntegrationResult(shard?.spec.role ?? "INTEGRATOR", receipt);
-      if (result === "OUTCOME_UNKNOWN") state.blocker = "PatchTransaction outcome requires manual reconciliation.";
-    }
-  }
-
-  private workerFailureSignature(role: WorkerRole, error: unknown, state: string): string {
-    const raw = error instanceof Error ? `${error.name}:${error.message}` : String(error);
-    const normalized = raw.normalize("NFC").trim().toLowerCase()
-      .replace(/[a-z]:[\\/][^\s]+/giu, "<path>")
-      .replace(/(?:worker|packet|shard|run)-[a-z0-9_-]+/giu, "<runtime-id>")
-      .replace(/\b\d{4,}\b/gu, "<number>")
-      .slice(0, 1_024);
-    return canonicalJsonSha256({ domain: "PCH-WORKER-FAILURE-SIGNATURE-V1", role, state, normalized });
-  }
 
   current(): TaskFlowStatusView | null {
     const state = this.active;
@@ -1263,12 +737,6 @@ export class TaskFlowSession {
     const pendingRemains = authority.hasPendingActiveGoalUserTurn(state.goalId);
     if (!pendingRemains) {
       state.blocker = null;
-      this.recoverOpenPatchTransactions();
-      const harness = authority.readHarnessView(state.goalId);
-      if (harness) {
-        if (requiresContractRevision) this.fenceHarnessWorkers(harness);
-        else this.recoverHarnessWorkers(harness);
-      }
     }
     if (pendingRemains) state.blocker = "Active Goal user turn requires typed classification before mutation can resume.";
     else if (requiresContractRevision) {
@@ -1731,58 +1199,6 @@ export class TaskFlowSession {
       const outcomeEvidenceLine = outcomeEvidenceKeys.length > 0
         ? `OutcomeEvidenceRequired=${canonicalJson(outcomeEvidenceKeys)}; coding_flow complete must include outcome_evidence=[{obligation_key,operation_id,witnesses:[{path,locator}]}] with a distinct current test locator for each key.`
         : null;
-      const harness = this.requiredResources().authority.readHarnessView(state.goalId);
-      if (harness?.requestedTopology === "MULTI" && harness.effectiveTopology === "SINGLE"
-        && harness.topologyReasonCode === "MULTI_BENEFIT_EVIDENCE_REQUIRED") {
-        return [
-          prefix, "Next=PENDING_MULTI_PROPOSAL",
-          `WorkCell=${cell?.work_cell_id ?? "missing"} Outcome=${cell?.outcome ?? "missing"}`,
-          `ReadScope=${cell?.read_roots.join(",") ?? ""} WriteScope=${cell?.write_roots.join(",") ?? ""}`,
-          "Submit the smallest useful dependency DAG once with coding_delegate action=define. This proposal does not authorize Workers or canonical mutation; the Host will first apply the Multi Benefit Gate.",
-          "Use only nodes with measurable marginal value. Parallel patch proposals require mutually exclusive write scopes and exact input refs from the frozen WorkCell baseline.",
-        ].join("\n");
-      }
-      if (harness?.effectiveTopology === "MULTI") {
-        const execution = this.requiredResources().authority.readExecutionV2(harness.runId, 8);
-        if (execution && execution.graph.work_cell_id === cell?.work_cell_id) {
-          if (execution.status === "CLOSED") return [
-            prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} ExecutionV2=CLOSED`,
-            `Oracle=${canonicalJson(cell?.oracle ?? {})}`,
-            outcomeEvidenceLine,
-            "The Host accepted and integrated the Dynamic Multi graph. Run each frozen Oracle command verbatim in the canonical workspace, review preservation outcomes, then call coding_flow action=complete once.",
-          ].filter((line): line is string => line !== null).join("\n");
-          if (execution.status === "FAILED" || execution.status === "STOPPED") return [
-            prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} ExecutionV2=${execution.status}`,
-            "Do not retry or mutate around the terminal graph. Follow RouteHealth to repair the affected route or reconcile the stopped authority frontier.",
-          ].join("\n");
-          if (execution.readyNodeIds.length > 0) return [
-            prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} ReadyNodes=${execution.readyNodeIds.length}`,
-            "Run the authority-ready Dynamic Multi nodes with coding_delegate action=run_ready. Do not redefine the accepted graph or duplicate Worker work.",
-          ].join("\n");
-          return `${prefix}\nDynamic Multi Execution V2 is in progress. Do not redefine it, duplicate Worker work, or mutate canonical project files.`;
-        }
-        const shards = harness.shards.filter((shard) => shard.workCellId === cell?.work_cell_id);
-        if (shards.length === 0) return [
-          prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} Outcome=${cell?.outcome ?? "missing"}`,
-          `ReadScope=${cell?.read_roots.join(",") ?? ""} WriteScope=${cell?.write_roots.join(",") ?? ""}`,
-          "Define the smallest useful role-isolated shard DAG with coding_delegate action=define. Parallel shards must have disjoint read/write conflicts; each downstream TaskPacket receives bounded hash-bound dependency output.",
-          "Do not modify canonical project files directly in Multi. Use only roles that add value; a single IMPLEMENTER shard is valid when extra roles would add overhead.",
-        ].join("\n");
-        if (shards.some((shard) => shard.status === "READY")) return [
-          prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} ReadyShards=${shards.filter((shard) => shard.status === "READY").length}`,
-          "Run the authority-ready isolated shard batch with coding_delegate action=run_ready. Do not duplicate Worker work or modify canonical project files directly.",
-        ].join("\n");
-        if (shards.every((shard) => shard.status === "SUCCEEDED")) return [
-          prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} Shards=SUCCEEDED`, `Oracle=${canonicalJson(cell?.oracle ?? {})}`,
-          outcomeEvidenceLine,
-          "Oracle commands are exact allowlisted strings: run each verbatim once in the canonical workspace without added flags, wrappers, chaining or cwd changes. After the final fresh PASS, review every explicit preservation outcome, make any still-needed correction, rerun stale Oracle evidence, then call coding_flow action=complete once. Worker narrative is untrusted and never substitutes for this oracle.",
-        ].filter((line): line is string => line !== null).join("\n");
-        if (shards.some((shard) => ["REJECTED", "FAILED"].includes(shard.status))) return [
-          prefix, `WorkCell=${cell?.work_cell_id ?? "missing"} Shards=REJECTED_OR_FAILED`,
-          "Do not retry or mutate around a rejected shard. Follow RouteHealth: submit a repaired RouteSkeleton when H3, reconcile when H5, or run only a legitimately requeued READY shard.",
-        ].join("\n");
-        return `${prefix}\nMulti Worker execution is in progress. Do not duplicate it or mutate canonical project files.`;
-      }
       const performance = state.view.contract ? targetPerformanceContract(state.view.contract) : null;
       const performancePhase = cell ? targetPerformancePhase(cell) : null;
       const mustOutcomes = state.view.contract?.obligations
@@ -1841,28 +1257,6 @@ export class TaskFlowSession {
 
   memoryProjection(): MemoryContextMessage | null { return this.services.memoryProjection(); }
 
-  private sharedWorkerMemory(runId: string, task: string): TaskPacketRecord["shared_memory"] {
-    const authority = this.requiredResources().authority;
-    if (!authority.hasVerifiedSharedHarnessMemory(runId)) return null;
-    const retrieval = this.services.memoryRetrievalFor(task);
-    if (!retrieval) return null;
-    const candidates = retrieval.selected.map((entry) => ({ claimId: entry.claimId, version: entry.version }));
-    const bindings = authority.readVerifiedSharedHarnessMemoryBindings(runId, candidates);
-    const selected = retrieval.selected.filter((entry) => bindings.has(`${entry.claimId}:${entry.version}`));
-    if (selected.length === 0) return null;
-    const workingSet = buildMemoryWorkingSet(
-      selected.filter((entry) => entry.channel === "POLICY"),
-      selected.filter((entry) => entry.channel === "EVIDENCE"),
-      selected.filter((entry) => entry.channel === "EXPERIENCE"),
-      [], [],
-    );
-    const content = memoryContextMessage(workingSet).content;
-    return {
-      schema_version: 1, audience: "VERIFIED_SHARED", content,
-      manifest_sha256: workingSet.manifestSha256,
-      binding_sha256s: selected.map((entry) => bindings.get(`${entry.claimId}:${entry.version}`)!),
-    };
-  }
   inputContextSeed(): InputContextSeed | null {
     if (!this.workspaceId) return null;
     const subject = this.executionSubject();
@@ -2320,112 +1714,7 @@ export class TaskFlowSession {
       nowMs: this.now(),
     });
   }
-  private workerTransition(
-    workerRunId: string, ordinal: number, state: WorkerRunTransitionRecord["state"], outputSha256: string | null,
-    usage: WorkerUsage, failureSignatureSha256: string | null, predecessorSha256: string | null,
-  ): WorkerRunTransitionRecord {
-    return sealHarnessRecord<WorkerRunTransitionRecord, "transition_sha256">("PCH-WORKER-TRANSITION-V1", {
-      schema_version: 1, transition_id: idFromSha256("WORKER_TRANSITION", sha256Hex(`${workerRunId}\0${ordinal}\0${state}`)),
-      worker_run_id: workerRunId, ordinal, state, output_sha256: outputSha256, usage,
-      failure_signature_sha256: failureSignatureSha256, predecessor_sha256: predecessorSha256, created_at_ms: this.now(),
-    }, "transition_sha256");
-  }
 
-  private prepareHarnessPatchOperation(
-    callId: string,
-    cwd: string,
-    operation: PatchEntry["operation"],
-    path: string,
-    contentSha256: string | null,
-  ): TaskFlowOperationAdmission {
-    return this.prepareToolOperation({
-      toolCallId: callId, toolName: "coding_integrate", cwd,
-      input: { path, operation, ...(contentSha256 === null ? {} : { content_sha256: contentSha256 }) },
-    });
-  }
-
-  private recordHarnessIntegration(
-    execution: HarnessWorkerExecution, patchSet: PatchSetRecord | null, resultName: IntegrationReceiptRecord["result"],
-    postimageRootSha256: string | null, conflictPaths: readonly string[], operationIds: readonly string[],
-    transactionJournalSha256: string | null = null,
-  ): IntegrationReceiptRecord {
-    const state = this.requiredActive();
-    const receipt = sealHarnessRecord<IntegrationReceiptRecord, "receipt_sha256">("PCH-INTEGRATION-RECEIPT-V1", {
-      schema_version: 1,
-      integration_id: idFromSha256("INTEGRATION", sha256Hex(`${execution.worker.worker_run_id}\0${patchSet?.patch_sha256 ?? "NO_PATCH"}\0${resultName}`)),
-      run_id: execution.worker.run_id, shard_id: execution.shard.shard_id, patch_set_id: patchSet?.patch_set_id ?? null,
-      transaction_journal_sha256: transactionJournalSha256,
-      result: resultName, preimage_root_sha256: execution.baselineContentRootSha256,
-      postimage_root_sha256: postimageRootSha256, conflict_paths: conflictPaths, operation_ids: operationIds, created_at_ms: this.now(),
-    }, "receipt_sha256");
-    const authority = this.requiredResources().authority.transactHarness({
-      type: "RECORD_HARNESS_INTEGRATION", goalId: state.goalId, receipt,
-    }, this.mutation(`coding-harness:integration:${receipt.receipt_sha256}`));
-    state.version = authority.goalVersion;
-    this.refresh();
-    return receipt;
-  }
-
-  private recordRecoveredPatchTransaction(
-    transaction: OpenPatchTransactionView,
-    resultName: "REJECTED" | "OUTCOME_UNKNOWN",
-    affectedPaths: readonly string[],
-  ): IntegrationReceiptRecord {
-    const state = this.requiredActive();
-    const receipt = sealHarnessRecord<IntegrationReceiptRecord, "receipt_sha256">("PCH-INTEGRATION-RECEIPT-V1", {
-      schema_version: 1,
-      integration_id: idFromSha256("INTEGRATION", sha256Hex(`${transaction.patchSetId}\0${transaction.journalSha256}\0RECOVERY\0${resultName}`)),
-      run_id: transaction.runId, shard_id: transaction.shardId, patch_set_id: transaction.patchSetId,
-      transaction_journal_sha256: transaction.journalSha256, result: resultName,
-      preimage_root_sha256: transaction.preimageRootSha256, postimage_root_sha256: null,
-      conflict_paths: resultName === "OUTCOME_UNKNOWN" ? affectedPaths : [], operation_ids: [], created_at_ms: this.now(),
-    }, "receipt_sha256");
-    const authority = this.requiredResources().authority.transactHarness({
-      type: "RECORD_HARNESS_INTEGRATION", goalId: state.goalId, receipt,
-    }, this.mutation(`coding-harness:patch-transaction:recover:${receipt.receipt_sha256}`));
-    state.version = authority.goalVersion;
-    this.refresh();
-    return receipt;
-  }
-  private assessHarnessIntegrationFailure(
-    execution: HarnessWorkerExecution,
-    receipt: IntegrationReceiptRecord,
-  ): void {
-    this.assessHarnessIntegrationResult(execution.worker.role, receipt);
-  }
-
-  private assessHarnessIntegrationResult(
-    role: WorkShardRecord["role"],
-    receipt: IntegrationReceiptRecord,
-  ): void {
-    const state = this.requiredActive();
-    const route = state.view.route;
-    if (!route || !["CONFLICT", "REJECTED", "OUTCOME_UNKNOWN"].includes(receipt.result)) return;
-    const shard = this.requiredResources().authority.readHarnessShard(state.goalId, receipt.shard_id);
-    const unknownEffect = receipt.result === "OUTCOME_UNKNOWN";
-    const signature = canonicalJsonSha256({
-      domain: "PCH-INTEGRATION-FAILURE-V1",
-      result: receipt.result,
-      role,
-      paths: [...receipt.conflict_paths].sort(),
-    });
-    const assessment: RouteHealthInput = {
-      ...this.healthyAssessment(),
-      unknownEffect,
-      assumptionInvalidated: !unknownEffect,
-      failureSignatureSha256: signature,
-      failureOccurrence: Math.max(1, shard?.attemptCount ?? 1),
-      transientFailure: false,
-      localRepairAvailable: false,
-      routeAlternativeAvailable: true,
-    };
-    const result = this.requiredKernel().assess(
-      state.goalId, route.route_id, shard?.spec.work_cell_id ?? state.view.workCellId, assessment,
-      this.mutation(`coding-harness:integration-health:${receipt.receipt_sha256}`),
-    );
-    state.version = result.authority.goalVersion;
-    this.refresh();
-  }
   private healthyAssessment(): RouteHealthInput {
     const state = this.active;
     const contract = state?.view.contract;

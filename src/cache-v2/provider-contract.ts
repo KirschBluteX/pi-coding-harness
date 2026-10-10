@@ -1,5 +1,5 @@
 import type { CacheModuleConfig } from "../config/types.js";
-import type { WorkerRuntimeSelection } from "../harness/worker/runtime-policy.js";
+import type { PiRuntimeFingerprintInput } from "../harness/runtime-fingerprint.js";
 import type { CacheRequestAttributionV2 } from "./domain.js";
 
 export interface CacheUsageClassification {
@@ -25,13 +25,13 @@ export interface CacheProviderContract {
   readonly integrationId: string;
   readonly securityEpoch: string;
   readonly usageSemanticsId: string;
-  canonicalTransportIdentity(runtime: WorkerRuntimeSelection): CacheTransportIdentity;
+  canonicalTransportIdentity(runtime: PiRuntimeFingerprintInput): CacheTransportIdentity;
   classifyUsage(input: CacheUsageObservation): CacheUsageClassification;
 }
 
 export type CacheProviderContractResolver = (
   config: CacheModuleConfig,
-  runtime: WorkerRuntimeSelection,
+  runtime: PiRuntimeFingerprintInput,
 ) => CacheProviderContract | null;
 
 function token(value: number | null): number | null {

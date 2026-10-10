@@ -15,19 +15,7 @@
     "default_intent": "AUTO",
     "planning_depth": "AUTO",
     "same_failure_retry_limit": 2,
-    "lease_ttl_ms": 30000,
-    "worker_timeout_ms": 900000,
-    "max_parallel_workers": 4,
-    "worker_runtime": {
-      "unavailable_policy": "INHERIT_SUPERVISOR",
-      "roles": {
-        "PLANNER": { "source": "INHERIT_SUPERVISOR" },
-        "EXPLORER": { "source": "INHERIT_SUPERVISOR" },
-        "IMPLEMENTER": { "source": "INHERIT_SUPERVISOR" },
-        "VERIFIER": { "source": "INHERIT_SUPERVISOR" },
-        "INTEGRATOR": { "source": "INHERIT_SUPERVISOR" }
-      }
-    }
+    "lease_ttl_ms": 30000
   },
   "modules": {
     "memory": {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { registerCodingHarness } from "../../src/bridge/register.js";
 import { SESSION_GOAL_BINDING_CUSTOM_TYPE } from "../../src/task-flow/session-binding.js";
+import type { SpawnHostOptions } from "../../src/harness/host/client.js";
 
 function bindingMarker(overrides: Readonly<Record<string, unknown>> = {}) {
   return {
@@ -19,7 +20,7 @@ function bindingMarker(overrides: Readonly<Record<string, unknown>> = {}) {
   };
 }
 
-function fixture() {
+function fixture(overrideDataRoot = true) {
   const commands = new Map<string, { handler(args: string, ctx: ExtensionCommandContext): Promise<void> | void }>();
   const tools: { name: string }[] = [];
   const handlers = new Map<string, (...args: any[]) => unknown>();
@@ -27,6 +28,7 @@ function fixture() {
   const sent: unknown[] = [];
   const entries: { readonly type: "custom"; readonly customType: string; readonly data: unknown }[] = [];
   const calls: { method: string; params: unknown }[] = [];
+  const spawnOptions: SpawnHostOptions[] = [];
   let closed = 0;
   let contextProjectionActive = false;
   let generationTurnResult: { decision: string; directive: string | null } = { decision: "CONTINUE", directive: null };
@@ -168,7 +170,9 @@ function fixture() {
   } as unknown as ExtensionAPI;
   registerCodingHarness(pi, {
     packageRoot: "X:/package", configPath: "X:/package/config/default.json",
-    hostEntryPath: import.meta.filename, dataRoot: "X:/data", spawnHost: () => client,
+    hostEntryPath: import.meta.filename,
+    ...(overrideDataRoot ? { dataRoot: "X:/data" } : {}),
+    spawnHost: (options) => { spawnOptions.push(options); return client; },
   });
   const notices: string[] = [];
   const statuses = new Map<string, string | undefined>();
@@ -194,7 +198,7 @@ function fixture() {
     },
   } as unknown as ExtensionCommandContext;
   return {
-    commands, tools, handlers, sent, entries, calls, client, ctx, notices, statuses, statusWrites, widgets, widgetWrites, status,
+    commands, tools, handlers, sent, entries, calls, spawnOptions, client, ctx, notices, statuses, statusWrites, widgets, widgetWrites, status,
     getActiveTools: () => activeTools, getClosed: () => closed,
     setContextProjectionActive: (value: boolean) => { contextProjectionActive = value; },
     setGenerationTurnResult: (value: { decision: string; directive: string | null }) => { generationTurnResult = value; },
@@ -202,9 +206,43 @@ function fixture() {
 }
 
 describe("passive Coding Harness Bridge", () => {
+  it("lets the Host honor config data.root when no explicit override was supplied", async () => {
+    const f = fixture(false);
+    await f.commands.get("coding")!.handler("build honor the configured data drive", f.ctx);
+    expect(f.spawnOptions).toHaveLength(1);
+    expect(f.spawnOptions[0]?.dataRoot).toBeUndefined();
+  });
+
+  it("exposes only the Single tool surface", () => {
+    const f = fixture();
+    expect(f.tools.map((tool) => tool.name)).toEqual(["coding_flow", "coding_clarify", "coding_context"]);
+  });
+
+  it.each(["multi build change files", "new multi plan change files", "multi"])(
+    "rejects retired Multi entry %s before contacting the Host",
+    async (command) => {
+      const f = fixture();
+      await f.commands.get("coding")!.handler(command, f.ctx);
+      expect(f.notices.at(-1)).toMatch(/Multi.*unavailable/iu);
+      expect(f.calls).toHaveLength(0);
+      expect(f.sent).toHaveLength(0);
+    },
+  );
+
+  it("enters a headless Build without a redundant topology choice", async () => {
+    const f = fixture();
+    const ctx = { ...f.ctx, hasUI: false } as ExtensionCommandContext;
+    await f.commands.get("coding")!.handler("build fix a bounded parser bug", ctx);
+    expect(f.calls).toContainEqual(expect.objectContaining({
+      method: "enter", params: expect.objectContaining({
+        topology: "SINGLE", intent: "BUILD", objective: "fix a bounded parser bug",
+      }),
+    }));
+  });
+
   it("performs no Host call or prompt injection before explicit entry", async () => {
     const f = fixture();
-    expect(f.tools.map((tool) => tool.name)).toEqual(["coding_flow", "coding_clarify", "coding_delegate", "coding_context"]);
+    expect(f.tools.map((tool) => tool.name)).toEqual(["coding_flow", "coding_clarify", "coding_context"]);
     expect([...f.commands.keys()]).toEqual(["memory", "coding"]);
     f.handlers.get("session_start")!({}, f.ctx as unknown as ExtensionContext);
     expect(f.getActiveTools()).toEqual(["read", "write", "other_extension_tool"]);
@@ -447,7 +485,7 @@ describe("passive Coding Harness Bridge", () => {
     } });
     expect(f.sent).toEqual(["implement the bounded change"]);
     expect(f.statuses.get("coding-harness")).toBe("Coding Harness DEFINING_GOAL goal=\"fixture objective\"");
-    expect(f.getActiveTools()).toEqual(["read", "write", "other_extension_tool", "coding_flow", "coding_clarify", "coding_delegate", "coding_context"]);
+    expect(f.getActiveTools()).toEqual(["read", "write", "other_extension_tool", "coding_flow", "coding_clarify", "coding_context"]);
     const memoryCalls = () => f.calls.filter((call) => call.method === "memory_observe").length;
     const activeGoalInputCalls = () => f.calls.filter((call) => call.method === "active_goal_input").length;
     f.handlers.get("input")!({ text: "continue the ordinary task", source: "interactive" }, f.ctx as unknown as ExtensionContext);
@@ -620,6 +658,25 @@ describe("passive Coding Harness Bridge", () => {
       params: { selector: "CURRENT_ON_DEMAND", control_frame_sha256: "c".repeat(64) },
     });
     expect(result.content[0]?.text).toContain('"status":"OK"');
+  });
+
+  it("keeps native output and appends a changed WorkCell guide without a status RPC", async () => {
+    const f = fixture();
+    await f.commands.get("coding")!.handler("build verify consecutive WorkCells", f.ctx);
+    await f.handlers.get("before_agent_start")!({ systemPrompt: "BASE" }, f.ctx as unknown as ExtensionContext);
+    const originalRequest = f.client.request.bind(f.client);
+    f.client.request = async (method, params) => {
+      const result = await originalRequest(method, params);
+      return method === "tool_result" ? { ...result, operation_id: "OP-VALIDATE", workflow_prompt: "Next WorkCell: follow-up" } : result;
+    };
+    f.calls.length = 0;
+    await f.handlers.get("tool_call")!({ toolCallId: "VALIDATE", toolName: "bash", input: { command: "npm test" } }, f.ctx);
+    const result = await f.handlers.get("tool_result")!({
+      toolCallId: "VALIDATE", toolName: "bash", input: { command: "npm test" }, isError: false,
+      content: [{ type: "text", text: "Tests passed" }],
+    });
+    expect(result).toEqual({ content: [{ type: "text", text: "Tests passed" }, { type: "text", text: "Next WorkCell: follow-up" }] });
+    expect(f.calls.map((call) => call.method)).toEqual(["tool_preflight", "tool_result"]);
   });
 
   it("returns only the authority next-action delta instead of duplicating Widget status", async () => {
@@ -868,6 +925,27 @@ describe("passive Coding Harness Bridge", () => {
     expect(f.widgets.get("coding-harness")?.[1]).toContain("PLANNING");
   });
 
+  it("delivers phase guidance to the model in the transition result without exposing it in command notices", async () => {
+    const f = fixture();
+    await f.commands.get("coding")!.handler("build follow the current WorkCell", f.ctx);
+    await f.handlers.get("before_agent_start")!({ systemPrompt: "BASE" }, f.ctx as unknown as ExtensionContext);
+    const originalRequest = f.client.request.bind(f.client);
+    f.client.request = async (method, params) => {
+      const result = await originalRequest(method, params);
+      return method === "submit_route" || method === "control"
+        ? { ...result, workflow_prompt: "Current WorkCell: run the exact fresh Oracle, then complete." } : result;
+    };
+    const tool = f.tools.find((entry) => entry.name === "coding_flow") as unknown as {
+      execute(id: string, params: unknown, signal: unknown, update: unknown, ctx: ExtensionCommandContext): Promise<{ content: { text: string }[] }>;
+    };
+    f.calls.length = 0;
+    const result = await tool.execute("FLOW-GUIDANCE", { action: "submit_route", route: {} }, undefined, undefined, f.ctx);
+    expect(result.content[0]?.text).toContain("Current WorkCell: run the exact fresh Oracle, then complete.");
+    expect(f.calls.map((call) => call.method)).toEqual(["submit_route"]);
+    await f.commands.get("coding")!.handler("pause", f.ctx);
+    expect(f.notices.join("\n")).not.toContain("Current WorkCell:");
+  });
+
   it("routes pause, resume, replan, and confirmed cancel through the local Host", async () => {
     const f = fixture();
     await f.commands.get("coding")!.handler("single build exercise local controls", f.ctx);
@@ -1047,27 +1125,6 @@ describe("passive Coding Harness Bridge", () => {
     expect(f.notices.at(-1)).toMatch(/entry failed.*clarification write failed/u);
   });
 
-  it("polls Multi workers without occupying the Host long-poll lane", async () => {
-    const f = fixture();
-    await f.commands.get("coding")!.handler("multi build execute independent shards", f.ctx);
-    const mutable = f.client as unknown as { request(method: string, params: unknown): Promise<unknown> };
-    const original = mutable.request.bind(mutable);
-    mutable.request = async (method, params) => {
-      if (method === "worker_start") { f.calls.push({ method, params }); return { job_id: "WORKER-JOB-1", state: "RUNNING", worker_count: 1 }; }
-      if (method === "worker_poll") {
-        f.calls.push({ method, params });
-        return { job_id: "WORKER-JOB-1", state: "SUCCEEDED", result: [], error: null, worker_count: 1, elapsed_ms: 10 };
-      }
-      return original(method, params);
-    };
-    const tool = f.tools.find((entry) => entry.name === "coding_delegate") as unknown as {
-      execute(id: string, params: unknown, signal: AbortSignal | undefined, update: unknown, ctx: ExtensionCommandContext): Promise<unknown>;
-    };
-    f.calls.length = 0;
-    await tool.execute("DELEGATE-POLL", { action: "run_ready", max_parallel: 1 }, undefined, undefined, f.ctx);
-    expect(f.calls.map((call) => call.method)).toContain("worker_poll");
-    expect(f.calls.map((call) => call.method)).not.toContain("worker_wait");
-  });
 
   it("waits for pending Memory observation before closing the Host", async () => {
     const f = fixture();

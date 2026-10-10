@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from "node:fs";
-import { basename, dirname, relative, resolve } from "node:path";
+import { basename, dirname, matchesGlob, relative, resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 
 let excludedSegments = new Set(["node_modules", "dist", "reports", ".git", ".tmp"]);
+let excludedFilePatterns = [];
 let externalJson = new Set(["package.json", "package-lock.json", "tsconfig.json", "tsconfig.runtime.json"]);
 const HASHLESS_STATE_PROJECTIONS = new Set(["manifests/PROJECT-STATE.json", "PROJECT-STATUS.md"]);
 
@@ -29,7 +30,7 @@ function walk(directory) {
     if (entry.isDirectory() && excludedSegments.has(entry.name)) continue;
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) files.push(...walk(path));
-    else if (entry.isFile()) files.push(path);
+    else if (entry.isFile() && !excludedFilePatterns.some((pattern) => matchesGlob(entry.name, pattern))) files.push(path);
   }
   return files;
 }
@@ -208,16 +209,22 @@ function run() {
   const root = resolve(args.root);
   const packageContract = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
   const releaseExcludedDirectories = packageContract.codingHarness?.releaseExcludedDirectories;
+  const releaseExcludedFiles = packageContract.codingHarness?.releaseExcludedFiles;
   const externalJsonContracts = packageContract.codingHarness?.externalJsonContracts;
   if (!Array.isArray(releaseExcludedDirectories) || releaseExcludedDirectories.length === 0
     || releaseExcludedDirectories.some((entry) => typeof entry !== "string" || entry.length === 0 || /[\\/]/u.test(entry))) {
     throw new TypeError("package.json releaseExcludedDirectories is invalid");
+  }
+  if (!Array.isArray(releaseExcludedFiles) || releaseExcludedFiles.length === 0
+    || releaseExcludedFiles.some((entry) => typeof entry !== "string" || entry.length === 0 || /[\\/]/u.test(entry))) {
+    throw new TypeError("package.json releaseExcludedFiles is invalid");
   }
   if (!Array.isArray(externalJsonContracts) || externalJsonContracts.length === 0
     || externalJsonContracts.some((entry) => typeof entry !== "string" || entry.length === 0 || entry.includes("\\"))) {
     throw new TypeError("package.json externalJsonContracts is invalid");
   }
   excludedSegments = new Set(releaseExcludedDirectories);
+  excludedFilePatterns = releaseExcludedFiles;
   externalJson = new Set(externalJsonContracts);
   const failures = [];
   const parsed = walk(root).filter((path) => path.endsWith(".json")).sort();

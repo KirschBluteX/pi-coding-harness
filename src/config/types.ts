@@ -4,22 +4,8 @@ export type PlanningDepth = "AUTO" | "BYPASS" | "LIGHT" | "STANDARD" | "FULL";
 export type SafeDefaultPolicy = "LOW_RISK_ONLY" | "NEVER";
 export type OptionalFallback = "BASELINE" | "EMPTY_OPTIONAL_PROJECTION" | "NATIVE_PI";
 export type CacheArm = "C0" | "C1_PREFIX" | "C2_PROVIDER" | "C3_RETENTION" | "C4_COMBINED" | "AUTO";
-export type HarnessWorkerRole = "PLANNER" | "EXPLORER" | "IMPLEMENTER" | "VERIFIER" | "INTEGRATOR";
-export type WorkerThinkingLevel = "INHERIT_SUPERVISOR" | "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
-export type WorkerRoleRuntimeConfig =
-  | { readonly source: "INHERIT_SUPERVISOR" }
-  | {
-    readonly source: "PI_CONFIG";
-    readonly provider_id: string;
-    readonly model_id: string;
-    readonly thinking_level: WorkerThinkingLevel;
-  };
 
-export interface WorkerRuntimePolicyConfig {
-  readonly unavailable_policy: "INHERIT_SUPERVISOR";
-  readonly roles: Readonly<Record<HarnessWorkerRole, WorkerRoleRuntimeConfig>>;
-}
 
 export interface CodingHarnessConfig {
   readonly schema_version: 1;
@@ -39,9 +25,6 @@ export interface CodingHarnessConfig {
     readonly planning_depth: PlanningDepth;
     readonly same_failure_retry_limit: number;
     readonly lease_ttl_ms: number;
-    readonly worker_timeout_ms?: number;
-    readonly max_parallel_workers?: number;
-    readonly worker_runtime?: WorkerRuntimePolicyConfig;
   };
   readonly modules: {
     readonly memory: MemoryModuleConfig;

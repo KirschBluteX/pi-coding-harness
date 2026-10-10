@@ -23,16 +23,14 @@
 - provider、model、thinking level 和 context window 只来自当前 Pi 配置。禁止调用 `setModel`、
   `setThinkingLevel` 或写死具体模型、thinking level、窗口与 provider。
 
-## Single 与 Multi
+## Single 正式版边界
 
-- Single 和 Multi 都必须支持 Plan、Build、澄清、路线纠错、恢复、Memory、Input Context、
+- 当前版本仅支持 Single 的 Plan、Build、澄清、路线纠错、恢复、Memory、Input Context、
   Compaction、Output、Cache telemetry 和性能门。
 - Single 由 Supervisor 在真实工作区执行；所有 mutation 经过 operation prepare/observe/commit/reconcile。
-- Multi 仅在用户进入时选择。Worker 按 `PLANNER/EXPLORER/IMPLEMENTER/VERIFIER/INTEGRATOR`
-  隔离，使用短生命周期 in-memory session 和 scoped mirror。
-- Worker 输出是不可信提案；只有 hash-bound TaskPacket、lease、PatchSet、fresh oracle 与 IntegrationReceipt
-  能推动 authority。并行写范围必须互斥，集成必须串行。
-- Worker 模型配置只能继承 Supervisor 或读取用户在 Pi 配置中明确提供的 role profile；不可隐式降级。
+- Multi 的菜单、工具、RPC、Worker 执行器和调度已移除，不得通过隐式回退重新启用。
+- 保留 schema 35 及更早的不可变历史格式；旧 Multi Goal 在获取控制 lease 前拒绝恢复，不能解释成 Single。
+- 历史 Worker 配置只在读取 1.2 配置时丢弃，不进入运行配置或模型请求。
 
 ## 低开销硬门
 

@@ -1,7 +1,7 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { closeAuthorityConnection, openAuthorityConnection } from "../../src/authority/database.js";
 import { applyForwardMigration, initializeCoreStore, SUPPORTED_MIGRATION_VERSION } from "../../src/authority/migrate.js";
 import { AuthorityStore, type AuthorityStoreOptions } from "../../src/authority/transactions.js";
@@ -75,21 +75,37 @@ function schemaObjects(databasePath: string): readonly string[] {
   }
 }
 
-function createSchemaVersion(databasePath: string, targetVersion: number): void {
-  const connection = openAuthorityConnection({ path: databasePath });
-  try {
-    applyForwardMigration(connection, 1, resolve("schemas/sql/001_core.sql"), 1);
-    initializeCoreStore(connection, { storeId: `STORE-RUNTIME-UPGRADE-${targetVersion}`, nowMs: 1 });
-    const directTarget = Math.min(targetVersion, 25);
-    for (let version = 2; version <= directTarget; version += 1) {
-      applyForwardMigration(connection, version, resolve("schemas/sql", migrationNames[version - 1]!), version);
+const schemaTemplates = new Map<number, string>();
+let templateRoot: string | null = null;
+beforeAll(() => {
+  templateRoot = mkdtempSync(join(tmpdir(), "pch-upgrade-prefixes-"));
+  const databasePath = join(templateRoot, "builder.sqlite");
+  // Apply the prefix once. Every case still opens its own isolated database;
+  // a failed runtime-open check cannot mutate the next case's fixture.
+  for (let version = 1; version < SUPPORTED_MIGRATION_VERSION; version += 1) {
+    const connection = openAuthorityConnection({ path: databasePath });
+    try {
+      if (version <= 25) {
+        applyForwardMigration(connection, version, resolve("schemas/sql", migrationNames[version - 1]!), version);
+        if (version === 1) initializeCoreStore(connection, { storeId: "STORE-RUNTIME-UPGRADE", nowMs: 1 });
+      } else {
+        migrateHarnessPostStore(connection, resolve("schemas/sql"), version, undefined, version);
+      }
+    } finally {
+      // Close/checkpoint before copying so no committed pages remain only in WAL.
+      closeAuthorityConnection(connection);
     }
-    if (targetVersion >= 26) {
-      migrateHarnessPostStore(connection, resolve("schemas/sql"), targetVersion, undefined, targetVersion);
-    }
-  } finally {
-    closeAuthorityConnection(connection);
+    const snapshot = join(templateRoot, `schema-${version}.sqlite`);
+    copyFileSync(databasePath, snapshot);
+    schemaTemplates.set(version, snapshot);
   }
+}, 60_000);
+afterAll(() => { if (templateRoot) rmSync(templateRoot, { recursive: true, force: true }); });
+
+function createSchemaVersion(databasePath: string, targetVersion: number): void {
+  const snapshot = schemaTemplates.get(targetVersion);
+  if (!snapshot) throw new TypeError(`No isolated schema-${targetVersion} fixture`);
+  copyFileSync(snapshot, databasePath);
 }
 
 function runtimeOptions(databasePath: string): AuthorityStoreOptions {

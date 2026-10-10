@@ -3,27 +3,27 @@
 > Checked development projection; product authority remains SQLite/CAS.
 
 - Product: Pi Coding Harness
-- Version: 1.2.1
+- Version: 1.3.0
 - Authority schema: 35
-- State: PASS
-- Current phase: P12
-- Current stage: PUBLIC_CORE_ONLY_RELEASE_CI_VERIFIED
-- State generation: 101
-- Updated: 2026-08-16T07:00:46.6027859-07:00
+- State: VERIFYING
+- Current phase: P13
+- Current stage: SINGLE_CODE_VERIFIED_PERFORMANCE_OPEN
+- State generation: 105
+- Updated: 2026-10-10T04:45:38.1553738-07:00
 
 ## Goal
 
-Qualify the core-only Pi Coding Harness runtime, its continuous authority schema, lifecycle, installed-package behavior and self-contained public source closure.
+Complete the supported Single edition of PCH: remove Multi execution, preserve historical authority, reduce unnecessary control overhead and verify the real Single lifecycle before updating GitHub. No GitHub Release is authorized for this delivery.
 
 ## Evidence
 
-- Completed receipts: 85
-- Authoritative artifacts: 71
-- Verification: PASS
+- Completed receipts: 92
+- Authoritative artifacts: 73
+- Verification: FAIL
 
 ## Latest correction
 
-PCH-COR-POWERSHELL-7-RELEASE-GATES: Release, lifecycle and developer entry points now require PowerShell 7 (pwsh), preventing nested fallback to Windows PowerShell 5.1 and restoring the state-update CI gate.
+PCH-COR-WORKTREE-SOURCE-CLOSURE: The JSON source-closure walker now uses the declared excluded-file patterns, preventing a Git worktree .git pointer from being treated as missing product source. The final code and functional evidence are complete; durable-write performance qualification remains open.
 
 ## Do not repeat
 
@@ -120,15 +120,15 @@ PCH-COR-POWERSHELL-7-RELEASE-GATES: Release, lifecycle and developer entry point
 - Do not reconstruct an immutable Decision closure from later resolutions or DueEventReceipts, and do not treat a historically valid but current-frontier-stale closure or Goal Fit review as current authority.
 - Do not connect Host worker_start to Execution V2 until durable terminal graph state, per-node failure/requeue recovery, restart-safe PatchSet content and fresh Host oracle are represented and fault-tested.
 - Do not derive recoverable Goals only from schema-35 binding heads; pre-binding active Task Flow authority must remain discoverable without fabricating binding receipts.
+- Do not rely on Pi before_agent_start to refresh phase guidance between tool cycles; return changed guidance with the current transition and preserve authority validation.
+- Do not assume prepending Node to PATH changes npm.ps1's colocated runtime. Invoke npm through the pinned Node CLI when verifying SQLite-backed commands.
+- Do not rerun the same failed X-drive persistence benchmark to fish for a pass; requalify after a relevant deployment-environment change and retain the failed samples.
 
 ## Open risks
 
-- The tested Pi Coding Agent 0.82.1 peer/dev package shrinkwrap contains brace-expansion 5.0.7 (high DoS advisory); bundled PCH runtime dependencies audit clean, project overrides cannot replace the dependency-owned shrinkwrap, and no newer tested Pi release is available.
-- WAL remains auto-checkpoint-disabled and can grow during a long Host lifetime; synchronous same-thread PASSIVE checkpoint is rejected until measured or moved behind a proven off-main-thread maintenance Module.
-- Natural Compaction at the production 272000-token context window remains unobserved; manual native Compaction and its restart frontier are provider-backed qualified.
-- The localhost provider endpoint depends on the Codex Desktop relay lifecycle and may become an external availability blocker.
-- The terminal-preservation, MUST-outcome and bounded formatter-batch corrections are locally verified but remain without a clean provider-backed Terraform STRESS receipt because that benchmark is user-deferred.
-- An unrestricted release claim still requires the user-deferred PCH Single Terraform STRESS, PCH Multi provider rerun and four-run comparison; the current receipt covers the complete non-benchmark release surface only.
+- Local phase-1 durable-write and Cache C1 latency budgets are not met on the tested X-drive environment. Functional correctness is verified, but the full performance/release gate is not passed.
+- Historical unfinished requested/effective Multi Goals require 1.2.1 reconciliation/cancellation before workspace reuse; 1.3 preserves their authority but does not execute them.
+- The isolated real-model smoke does not establish matched native-Pi cost savings, production-length natural compaction or long-running reliability; gateway dollar pricing is unknown.
 
 ## Blockers
 
@@ -136,4 +136,4 @@ PCH-COR-POWERSHELL-7-RELEASE-GATES: Release, lifecycle and developer entry point
 
 ## Next action
 
-Collect the first independent installation and usage feedback from the public repository while keeping the deferred provider-backed stress and four-run comparison gates explicit.
+Requalify the phase-1 persistence and Cache C1 gates on the intended data volume after a relevant storage-environment change. Keep Multi retired. Creating a Release requires a new user instruction and successful release gates.

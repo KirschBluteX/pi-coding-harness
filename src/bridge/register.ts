@@ -21,7 +21,7 @@ import {
   generationGovernorMessageType, type GenerationGovernorSnapshot,
 } from "../control/generation-governor.js";
 
-const harnessTools = ["coding_flow", "coding_clarify", "coding_delegate", "coding_context"] as const;
+const harnessTools = ["coding_flow", "coding_clarify", "coding_context"] as const;
 const defaultPackageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 interface HostClient {
@@ -258,10 +258,12 @@ function rejected(code: string, error: unknown) {
   return { content: [{ type: "text" as const, text: `${code}: ${message}` }], details: { status: "REJECTED" as const, reason: message } };
 }
 
-function resultMessage(value: unknown): string {
+function resultMessage(value: unknown, includeWorkflow = false): string {
   if (typeof value !== "object" || value === null) return String(value);
-  const row = value as { message?: unknown; status?: unknown };
-  const message = typeof row.message === "string" ? row.message : "Coding Harness transition accepted.";
+  const row = value as { message?: unknown; status?: unknown; workflow_prompt?: unknown };
+  const baseMessage = typeof row.message === "string" ? row.message : "Coding Harness transition accepted.";
+  const message = includeWorkflow && typeof row.workflow_prompt === "string"
+    ? `${baseMessage}\n\n${row.workflow_prompt}` : baseMessage;
   if (!row.status || typeof row.status !== "object") return message;
   const status = row.status as HostStatus;
   if (!status.active || !status.flow) return message === "Coding Harness transition accepted." ? "Coding Harness inactive" : message;
@@ -307,7 +309,7 @@ type CodingCommandAction = "status" | "cache" | "continue" | "review" | "clarify
 type CodingEntryMode = "HUB" | "NEW" | "RECOVER";
 
 function parseCommand(args: string): {
-  topology?: "SINGLE" | "MULTI";
+  topology?: "SINGLE";
   intent?: "PLAN" | "BUILD";
   objective?: string;
   action?: CodingCommandAction;
@@ -321,14 +323,17 @@ function parseCommand(args: string): {
 } {
   const trimmed = args.trim();
   if (!trimmed) return { entryMode: "HUB" };
+  if (/^(?:new\s+)?multi(?:\s|$)/iu.test(trimmed)) {
+    throw new TypeError("Multi is unavailable in PCH Single. Use /coding build <objective> or /coding plan <objective>.");
+  }
   const recoverEntry = /^recover(?:\s+([A-Za-z][A-Za-z0-9_-]{0,255}))?$/iu.exec(trimmed);
   if (recoverEntry) return { entryMode: "RECOVER", ...(recoverEntry[1] ? { goalId: recoverEntry[1] } : {}) };
   const newEntry = /^new(?:\s+([\s\S]+))?$/iu.exec(trimmed);
   if (newEntry) {
-    const match = /^(?:(single|multi)\s+)?(?:(plan|build)\s+)?([\s\S]*)$/iu.exec(newEntry[1]?.trim() ?? "");
+    const match = /^(?:(single)\s+)?(?:(plan|build)\s+)?([\s\S]*)$/iu.exec(newEntry[1]?.trim() ?? "");
     return {
       entryMode: "NEW",
-      ...(match?.[1] ? { topology: match[1].toUpperCase() as "SINGLE" | "MULTI" } : {}),
+      topology: "SINGLE",
       ...(match?.[2] ? { intent: match[2].toUpperCase() as "PLAN" | "BUILD" } : {}),
       ...(match?.[3]?.trim() ? { objective: match[3].trim() } : {}),
     };
@@ -364,10 +369,10 @@ function parseCommand(args: string): {
   }
   const replan = /^replan(?:\s+([\s\S]+))?$/iu.exec(trimmed);
   if (replan) return { action: "replan", ...(replan[1]?.trim() ? { reason: replan[1].trim() } : {}) };
-  const match = /^(?:(single|multi)\s+)?(?:(plan|build)\s+)?([\s\S]*)$/iu.exec(trimmed);
+  const match = /^(?:(single)\s+)?(?:(plan|build)\s+)?([\s\S]*)$/iu.exec(trimmed);
   return {
     entryMode: "NEW",
-    ...(match?.[1] ? { topology: match[1].toUpperCase() as "SINGLE" | "MULTI" } : {}),
+    topology: "SINGLE",
     ...(match?.[2] ? { intent: match[2].toUpperCase() as "PLAN" | "BUILD" } : {}),
     ...(match?.[3]?.trim() ? { objective: match[3].trim() } : {}),
   };
@@ -402,17 +407,8 @@ async function chooseEntry(args: string, ctx: ExtensionCommandContext) {
     ...(parsed.confirmed ? { confirmed: true } : {}),
     ...(parsed.clarificationSelections ? { clarificationSelections: parsed.clarificationSelections } : {}),
   } as const;
-  if (!ctx.hasUI && (!parsed.topology || !parsed.intent || !parsed.objective)) {
-    throw new TypeError("Non-interactive usage: /coding <single|multi> <plan|build> <objective>");
-  }
-  let topology = parsed.topology;
-  if (!topology) {
-    const selected = await ctx.ui.select("Execution topology", [
-      "[Recommended] Single - lowest overhead for tightly coupled work",
-      "Multi - parallel role-isolated workers for decomposable work",
-    ]);
-    if (selected === undefined) throw new TypeError("Coding Harness entry canceled");
-    topology = selected?.startsWith("Multi") ? "MULTI" : "SINGLE";
+  if (!ctx.hasUI && (!parsed.intent || !parsed.objective)) {
+    throw new TypeError("Non-interactive usage: /coding <plan|build> <objective>");
   }
   let intent = parsed.intent;
   if (!intent) {
@@ -425,7 +421,7 @@ async function chooseEntry(args: string, ctx: ExtensionCommandContext) {
   }
   const objective = parsed.objective ?? await ctx.ui.editor("Coding objective");
   if (!objective?.trim()) throw new TypeError("Coding objective cannot be empty");
-  return { kind: "NEW" as const, topology, intent, objective: objective.trim() };
+  return { kind: "NEW" as const, topology: "SINGLE" as const, intent, objective: objective.trim() };
 }
 
 async function continuePlan(
@@ -508,7 +504,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
   const packageRoot = options.packageRoot ?? defaultPackageRoot;
   const configPath = options.configPath ?? resolve(packageRoot, "config", "default.json");
   const hostEntryPath = options.hostEntryPath ?? resolve(packageRoot, "dist", "harness", "host", "entry.js");
-  const dataRoot = options.dataRoot ?? "~/.pi/agent/coding-harness";
+  const dataRoot = options.dataRoot;
   const spawnHost = options.spawnHost ?? ((input: SpawnHostOptions): HostRpcClient => spawnCodingHarnessHost(input));
   let active: ActiveBridge | null = null;
   let recoveryFailure: { readonly marker: SessionGoalBindingMarkerV1 | null; readonly message: string } | null = null;
@@ -660,7 +656,8 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
       throw new TypeError("Coding Harness Host build is missing; run npm run build:runtime in the package root");
     }
     return spawnHost({
-      entryPath: hostEntryPath, cwd: ctx.cwd, packageRoot, configPath, dataRoot,
+      entryPath: hostEntryPath, cwd: ctx.cwd, packageRoot, configPath,
+      ...(dataRoot === undefined ? {} : { dataRoot }),
       timeoutMs: 8_000, maxPending: 32,
     });
   };
@@ -787,7 +784,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
           action: params.control, ...(params.reason === undefined ? {} : { reason: params.reason }),
         }));
         projectResultStatus(ctx, result);
-        return accepted(resultMessage(result));
+        return accepted(resultMessage(result, true));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         try {
@@ -852,62 +849,11 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
           else bridge.pendingClarifications.delete(selection.id);
         }
         projectResultStatus(ctx, result);
-        return accepted(resultMessage(result));
+        return accepted(resultMessage(result, true));
       } catch (error) { return rejected("CODING_CLARIFICATION_REJECTED", error); }
     },
   });
 
-  pi.registerTool({
-    name: "coding_delegate",
-    label: "Delegate Coding Shards",
-    description: "Propose the bounded dependency graph while requested Multi is pending, or execute authority-ready isolated Worker nodes after admission.",
-    promptSnippet: "Use define in PENDING_MULTI_PROPOSAL; use run_ready only after the Host admits effective Multi",
-    parameters: Type.Union([
-      Type.Object({ action: Type.Literal("define"), shards: Type.Array(Type.Record(Type.String(), Type.Unknown()), { minItems: 1, maxItems: 32 }) }, { additionalProperties: false }),
-      Type.Object({ action: Type.Literal("run_ready"), max_parallel: Type.Optional(Type.Integer({ minimum: 1, maximum: 8 })) }, { additionalProperties: false }),
-    ]),
-    executionMode: "sequential",
-    async execute(_id, params, _signal, _update, ctx) {
-      try {
-        const bridge = required();
-        let result: unknown;
-        if (params.action === "run_ready") {
-          const started = await bridge.client.request("worker_start", controlled(bridge, { max_parallel: params.max_parallel ?? 4 }), 4_000) as { job_id: string };
-          let aborted = false;
-          const requestAbort = (): void => {
-            aborted = true;
-            void bridge.client.request("worker_abort", { job_id: started.job_id }, 2_000).catch(() => undefined);
-          };
-          _signal?.addEventListener("abort", requestAbort, { once: true });
-          try {
-            let pollDelayMs = 100;
-            for (;;) {
-              const polled = await bridge.client.request("worker_poll", { job_id: started.job_id }, 2_000) as {
-                state: "RUNNING" | "SUCCEEDED" | "FAILED" | "ABORTED"; result: unknown; error: string | null;
-                worker_count: number; elapsed_ms: number;
-              };
-              if (polled.state === "SUCCEEDED") { result = { message: `Worker completed: ${JSON.stringify(polled.result)}` }; break; }
-              if (polled.state !== "RUNNING") throw new TypeError(polled.error ?? `Worker ${polled.state.toLowerCase()}`);
-              if (bridge.ui.status) ctx.ui.setStatus("coding-harness", `Coding Harness MULTI workers=${polled.worker_count} state=RUNNING elapsed=${Math.floor(polled.elapsed_ms / 1_000)}s`);
-              if (aborted) throw new TypeError("Worker cancellation requested");
-              await new Promise<void>((resolveWait) => {
-                const wake = (): void => { clearTimeout(timer); resolveWait(); };
-                const timer = setTimeout(() => {
-                  _signal?.removeEventListener("abort", wake);
-                  resolveWait();
-                }, pollDelayMs);
-                if (_signal?.aborted) wake();
-                else _signal?.addEventListener("abort", wake, { once: true });
-              });
-              pollDelayMs = Math.min(1_000, pollDelayMs * 2);
-            }
-          } finally { _signal?.removeEventListener("abort", requestAbort); }
-        } else result = await bridge.client.request("define_shards", controlled(bridge, { shards: params.shards }));
-        if (!projectResultStatus(ctx, result)) await showStatus(ctx);
-        return accepted(resultMessage(result));
-      } catch (error) { return rejected("CODING_DELEGATION_REJECTED", error); }
-    },
-  });
 
   pi.registerTool({
     name: "coding_context",
@@ -949,7 +895,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     ctx: ExtensionCommandContext,
     client: HostClient,
   ): Promise<
-    | { readonly kind: "NEW"; readonly topology: "SINGLE" | "MULTI"; readonly intent: "PLAN" | "BUILD"; readonly objective: string }
+    | { readonly kind: "NEW"; readonly topology: "SINGLE"; readonly intent: "PLAN" | "BUILD"; readonly objective: string }
     | { readonly kind: "RESUME"; readonly marker: SessionGoalBindingMarkerV1 }
     | { readonly kind: "RECOVER"; readonly goalId: string; readonly allowTransfer: boolean; readonly goalTitle: string }
   > => {
@@ -988,7 +934,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
       selectedGoalId = choice.goalId;
     }
     if (parsed.entryMode === "HUB" && !ctx.hasUI && !current) {
-      throw new TypeError("Non-interactive usage: /coding recover <goal-id> or /coding new <single|multi> <plan|build> <objective>");
+      throw new TypeError("Non-interactive usage: /coding recover <goal-id> or /coding new <plan|build> <objective>");
     }
     if (!selectedGoalId && parsed.entryMode === "RECOVER") {
       if (!ctx.hasUI) throw new TypeError("Non-interactive recovery requires: /coding recover <goal-id>");
@@ -1019,10 +965,11 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
   pi.registerCommand("coding", {
     description: "Enter, inspect, or exit Pi Coding Harness",
     handler: async (args, ctx) => {
-      const parsedCommand = parseCommand(args);
-      const commandAction = parsedCommand.action;
       let preparedClient: HostClient | null = null;
+      let commandAction: CodingCommandAction | undefined;
       try {
+        const parsedCommand = parseCommand(args);
+        commandAction = parsedCommand.action;
         if (!commandAction && active) {
           try { await active.client.request("status", null, 2_000); }
           catch { await deactivate(); }
@@ -1465,6 +1412,7 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     }, 4_000) as Promise<{
       operation_id: string | null;
       control_frame?: { control_frame_sha256: string };
+      workflow_prompt?: string;
     }>;
     const observedRequest = request.then((result) => {
       if (active === bridge) projectResultControlFrame(bridge, result);
@@ -1481,8 +1429,12 @@ export function registerCodingHarness(pi: ExtensionAPI, options: CodingHarnessBr
     }
     const observed = await observedRequest;
     active.managedToolCalls.delete(event.toolCallId);
-    if (!observed.operation_id || !event.isError) return;
-    return { content: [...event.content, { type: "text" as const, text: `[Coding Harness operation: ${observed.operation_id}]` }] };
+    const additions = [
+      ...(observed.operation_id && event.isError ? [`[Coding Harness operation: ${observed.operation_id}]`] : []),
+      ...(observed.workflow_prompt ? [observed.workflow_prompt] : []),
+    ];
+    if (additions.length === 0) return;
+    return { content: [...event.content, ...additions.map((text) => ({ type: "text" as const, text }))] };
   });
   pi.on("tool_execution_end", async (event) => {
     if (!active || !active.managedToolCalls.has(event.toolCallId)

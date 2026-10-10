@@ -36,9 +36,9 @@
         "planning_depth": { "enum": ["AUTO", "BYPASS", "LIGHT", "STANDARD", "FULL"] },
         "same_failure_retry_limit": { "type": "integer", "minimum": 0, "maximum": 3 },
         "lease_ttl_ms": { "type": "integer", "minimum": 5000, "maximum": 300000 },
-        "worker_timeout_ms": { "type": "integer", "minimum": 10000, "maximum": 3600000 },
-        "max_parallel_workers": { "type": "integer", "minimum": 1, "maximum": 8 },
-        "worker_runtime": { "$ref": "#/$defs/workerRuntimePolicy" }
+        "worker_timeout_ms": { "deprecated": true, "description": "Ignored on upgrade from PCH 1.2; Single has no Worker runtime." },
+        "max_parallel_workers": { "deprecated": true, "description": "Ignored on upgrade from PCH 1.2; Single has no Worker runtime." },
+        "worker_runtime": { "deprecated": true, "description": "Ignored on upgrade from PCH 1.2; Single has no Worker runtime." }
       }
     },
     "modules": {
@@ -87,47 +87,6 @@
     }
   },
   "$defs": {
-    "workerRuntimePolicy": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["unavailable_policy", "roles"],
-      "properties": {
-        "unavailable_policy": { "const": "INHERIT_SUPERVISOR" },
-        "roles": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["PLANNER", "EXPLORER", "IMPLEMENTER", "VERIFIER", "INTEGRATOR"],
-          "properties": {
-            "PLANNER": { "$ref": "#/$defs/workerRoleRuntime" },
-            "EXPLORER": { "$ref": "#/$defs/workerRoleRuntime" },
-            "IMPLEMENTER": { "$ref": "#/$defs/workerRoleRuntime" },
-            "VERIFIER": { "$ref": "#/$defs/workerRoleRuntime" },
-            "INTEGRATOR": { "$ref": "#/$defs/workerRoleRuntime" }
-          }
-        }
-      }
-    },
-    "workerRoleRuntime": {
-      "oneOf": [
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["source"],
-          "properties": { "source": { "const": "INHERIT_SUPERVISOR" } }
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["source", "provider_id", "model_id", "thinking_level"],
-          "properties": {
-            "source": { "const": "PI_CONFIG" },
-            "provider_id": { "type": "string", "minLength": 1, "maxLength": 256 },
-            "model_id": { "type": "string", "minLength": 1, "maxLength": 512 },
-            "thinking_level": { "enum": ["INHERIT_SUPERVISOR", "off", "minimal", "low", "medium", "high", "xhigh", "max"] }
-          }
-        }
-      ]
-    },
     "inputContextModule": {
       "type": "object",
       "additionalProperties": false,

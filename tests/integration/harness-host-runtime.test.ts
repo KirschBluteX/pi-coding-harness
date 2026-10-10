@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +11,7 @@ import { TaskFlowSession } from "../../src/runtime/task-flow-session.js";
 import { loadConfig } from "../../src/config/load-config.js";
 import { withAcceptanceV2 } from "../helpers/acceptance-v2.js";
 import { passingGoalFitAssessment, passingMaterialChangeGoalFitAssessment } from "../helpers/goal-fit.js";
+import { sealHarnessRecord, type ManagedRunRecord, type TopologyRevisionRecord } from "../../src/harness/domain.js";
 
 const packageRoot = resolve(import.meta.dirname, "..", "..");
 const roots: string[] = [];
@@ -80,7 +81,11 @@ async function submitApprovedHostBuild(
     expected_decision_frontier_sha256: review.decision_frontier_sha256,
     action: "APPROVE",
     selected_value: true,
-  }) as { status: { control_frame: { control_frame_sha256: string } } };
+  }) as { status: { control_frame: { control_frame_sha256: string } }; workflow_prompt?: string };
+  // Pi emits before_agent_start once per user prompt, not once per tool cycle.
+  // Approval must deliver the next proposal shape in this very response.
+  expect(reviewed.workflow_prompt).toContain("Route proposal shape");
+  expect(reviewed.workflow_prompt).toContain('"goal_fit_assessment"');
   return host.dispatch("submit_route", {
     ...route,
     control_frame_sha256: reviewed.status.control_frame.control_frame_sha256,
@@ -92,6 +97,76 @@ afterEach(() => {
 });
 
 describe("Coding Harness Host runtime", () => {
+  it.each(["MULTI", "SINGLE"] as const)("preserves retired Multi history with effective %s and refuses recovery", async (effectiveTopology) => {
+    const { cwd, options } = fixture();
+    const context = {
+      cwd, sessionManager: { getSessionId: () => "SESSION-LEGACY-MULTI" }, ui: { notify: () => undefined },
+    } as unknown as Pick<ExtensionContext, "cwd" | "sessionManager" | "ui">;
+    const sessionOptions = {
+      config: loadConfig(options.configPath), packageRoot,
+      migrationPath: resolve(packageRoot, "schemas", "sql", "001_core.sql"),
+      dataRoot: options.dataRoot, now: options.now,
+    };
+    const legacy = new TaskFlowSession(sessionOptions);
+    legacy.initialize(context, { recovery: { kind: "NONE" } });
+    legacy.startFromInput("build: preserve this unfinished legacy Goal", context);
+    const marker = legacy.bindCurrentGoal();
+    const run = sealHarnessRecord<ManagedRunRecord, "record_sha256">("PCH-MANAGED-RUN-V1", {
+      schema_version: 1, run_id: "RUN-LEGACY-MULTI", goal_id: marker.goalId, workspace_id: marker.workspaceId,
+      created_by_host_hmac: "a".repeat(64), initial_config_sha256: "b".repeat(64), created_at_ms: options.now(),
+    }, "record_sha256");
+    const topology = sealHarnessRecord<TopologyRevisionRecord, "record_sha256">("PCH-TOPOLOGY-REVISION-V1", {
+      schema_version: 1, run_id: run.run_id, revision: 1, requested_topology: "MULTI", effective_topology: effectiveTopology,
+      reason_code: effectiveTopology === "MULTI" ? "USER_SELECTED" : "MULTI_BENEFIT_EVIDENCE_REQUIRED",
+      decision_sha256: "c".repeat(64), config_sha256: run.initial_config_sha256, created_at_ms: options.now(),
+    }, "record_sha256");
+    const authority = legacy.resources()!.authority;
+    const result = authority.transactHarness({ type: "CREATE_MANAGED_RUN", goalId: marker.goalId, run, topology },
+      legacy.binding()!.mutation("test:legacy-multi-history"));
+    legacy.binding()!.advanceVersion(result.goalVersion);
+    const before = authority.readHarnessView(marker.goalId);
+    legacy.shutdown();
+
+    const host = new CodingHarnessHostRuntime(options);
+    try {
+      await expect(host.dispatch("enter", {
+        entry_mode: "RECOVER", cwd, session_id: "SESSION-LEGACY-MULTI", goal_id: marker.goalId, allow_transfer: false,
+        runtime: { provider: "configured", api: "configured", model: "configured", thinking_level: "configured", context_window: 32_768 },
+      })).rejects.toThrow(/LEGACY_MULTI_UNAVAILABLE/u);
+      expect(await host.dispatch("status", null)).toMatchObject({ active: false });
+    } finally { host.close(); }
+    const inspection = new TaskFlowSession(sessionOptions);
+    try {
+      inspection.initialize(context, { recovery: { kind: "NONE" } });
+      expect(inspection.resources()!.authority.readHarnessView(marker.goalId)).toEqual(before);
+      expect(inspection.resources()!.authority.readTaskFlowGoalVersion(marker.goalId)).toBe(result.goalVersion);
+    } finally { inspection.shutdown(); }
+  });
+
+  it("rejects new Multi authority before opening runtime data", async () => {
+    const { cwd, options } = fixture();
+    const host = new CodingHarnessHostRuntime(options);
+    try {
+      await expect(host.dispatch("enter", {
+        cwd, session_id: "SESSION-RETIRED-MULTI", objective: "change files", intent: "BUILD", topology: "MULTI",
+        runtime: { provider: "configured", api: "configured", model: "configured", thinking_level: "configured", context_window: 32_768 },
+      })).rejects.toThrow(/Multi.*unavailable/iu);
+      expect(existsSync(options.dataRoot)).toBe(false);
+      expect(await host.dispatch("status", null)).toMatchObject({ active: false });
+    } finally { host.close(); }
+  });
+
+  it.each(["define_shards", "worker_start", "worker_poll", "worker_abort"])(
+    "removes the Multi RPC %s from the Host protocol", async (method) => {
+      const { options } = fixture();
+      const host = new CodingHarnessHostRuntime(options);
+      try {
+        await expect(host.dispatch(method, {})).rejects.toMatchObject({ code: "HOST_METHOD_UNKNOWN" });
+        expect(existsSync(options.dataRoot)).toBe(false);
+      } finally { host.close(); }
+    },
+  );
+
   it("lazily enters a Single BUILD and recovers it after Host restart", async () => {
     const { cwd, options } = fixture();
     const enter = {
@@ -295,7 +370,10 @@ describe("Coding Harness Host runtime", () => {
             oracle: { command: "npm test" }, risk: "LOW", reversible: true,
           }],
           near_horizon: ["bounded-change"],
-      }) as { status: { flow: { goalId: string }; control_frame: { control_frame_sha256: string } } };
+      }) as { status: { flow: { goalId: string }; control_frame: { control_frame_sha256: string } }; workflow_prompt?: string };
+      expect(built.workflow_prompt).toContain("WriteScope=src/example.ts");
+      expect(built.workflow_prompt).toContain('Oracle={"command":"npm test"');
+      expect(built.workflow_prompt).not.toContain("Route proposal shape");
 
       const admission = await host.dispatch("tool_preflight", {
         toolCallId: "EDIT-PREFLIGHT-1", toolName: "edit",
@@ -389,6 +467,56 @@ describe("Coding Harness Host runtime", () => {
     }
   });
 
+  it("returns the next WorkCell guide when native validation advances the route", async () => {
+    const { cwd, options } = fixture();
+    mkdirSync(resolve(cwd, "src"));
+    writeFileSync(resolve(cwd, "src/example.ts"), "export const value = 1;\n");
+    writeFileSync(resolve(cwd, "package.json"), JSON.stringify({ scripts: { test: "vitest run" } }));
+    const host = new CodingHarnessHostRuntime(options);
+    try {
+      await host.dispatch("enter", {
+        cwd, session_id: "SESSION-HOST-NEXT-CELL", objective: "Verify the file and review the follow-up",
+        intent: "BUILD", topology: "SINGLE",
+        runtime: { provider: "configured-provider", api: "configured-api", model: "configured-model", thinking_level: "configured", context_window: 32_768 },
+      });
+      const projected = await host.dispatch("turn_projection", {
+        agent_run_id: "AGENT-RUN-NEXT-CELL", system_prompt_sha256: sha256Hex("BASE"), system_prompt: "BASE",
+        current_input_tokens: 10, active_tools: ["bash"], all_tools: ["bash"],
+      });
+      const built = await submitApprovedHostBuild(host, projected.control_frame.control_frame_sha256, withAcceptanceV2({
+        user_outcomes: ["The local file is verified", "The follow-up is reviewed"], scope: ["src/example.ts"],
+        obligations: [
+          { key: "first", priority: "MUST", statement: "Verify the file", oracle: { command: "npm test" } },
+          { key: "second", priority: "MUST", statement: "Review the follow-up", oracle: { command: "npm test" } },
+        ],
+        authorization_ceiling: "LOCAL_REVERSIBLE",
+      }), {
+        outcomes: ["The file and follow-up are verified"], goal_fit_assessment: passingGoalFitAssessment(),
+        work_cells: ["first", "second"].map((key) => ({
+          key, outcome: key === "first" ? "Verify the file" : "Review the follow-up",
+          obligation_keys: [key], dependencies: key === "first" ? [] : ["first"],
+          read_roots: ["src/example.ts"], write_roots: ["src/example.ts"], effect_classes: ["LOCAL_REVERSIBLE"],
+          oracle: { command: "npm test" }, risk: "LOW", reversible: true,
+        })), near_horizon: ["first", "second"],
+      }) as { status: HostStatus };
+      let frame = built.status.control_frame!.control_frame_sha256;
+      for (const index of [1, 2]) {
+        const admission = await host.dispatch("tool_preflight", {
+          toolCallId: `VALIDATE-${index}`, toolName: "bash", input: { command: "npm test" }, cwd,
+          control_frame_sha256: frame,
+        });
+        expect(admission).toMatchObject({ allow: true, managed: true });
+        const observed = await host.dispatch("tool_result", {
+          tool_call_id: `VALIDATE-${index}`, tool_name: "bash", tool_input: { command: "npm test" },
+          is_error: false, text: "Tests: 1 passed",
+        }) as { workflow_prompt?: string; control_frame: { control_frame_sha256: string } };
+        if (index === 1) expect(observed.workflow_prompt).toContain("Outcome=Review the follow-up");
+        else expect(observed.workflow_prompt).toBeUndefined();
+        frame = observed.control_frame.control_frame_sha256;
+      }
+    } finally { host.close(); }
+  });
+
   it("closes fresh terminal evidence locally when the Agent settles", async () => {
     const { cwd, options } = fixture();
     mkdirSync(resolve(cwd, "src"));
@@ -451,8 +579,8 @@ describe("Coding Harness Host runtime", () => {
         changed_files: [{ path: "src/example.ts", change: "MODIFIED" }],
       });
       expect(session.resources()!.authority.verifyExecutionV2Integrity()).toMatchObject({
-        strongSingleRollouts: 1,
-        strongSingleWorkloadBindings: 1,
+        strongSingleRollouts: 0,
+        strongSingleWorkloadBindings: 0,
         workloadComparabilityReceipts: 0,
         mismatches: 0,
       });
@@ -494,31 +622,15 @@ describe("Coding Harness Host runtime", () => {
     const { cwd, options } = fixture();
     const host = new CodingHarnessHostRuntime(options);
     const enter = {
-      cwd, session_id: "SESSION-HOST-002", objective: "Inspect bounded sources", intent: "PLAN", topology: "MULTI",
+      cwd, session_id: "SESSION-HOST-002", objective: "Inspect bounded sources", intent: "PLAN", topology: "SINGLE",
       runtime: { provider: "configured-provider", api: "configured-api", model: "configured-model", thinking_level: "configured", context_window: 65_536 },
     } as const;
-    await host.dispatch("enter", enter);
-    await expect(host.dispatch("enter", { ...enter, topology: "SINGLE" })).rejects.toThrow("different entry contract");
-    host.close();
+    try {
+      await host.dispatch("enter", enter);
+      await expect(host.dispatch("enter", { ...enter, objective: "Inspect a different source" })).rejects.toThrow("different entry contract");
+    } finally { host.close(); }
   });
 
-  it("treats a requested Multi topology as permission until benefit evidence exists", async () => {
-    const { cwd, options } = fixture();
-    const host = new CodingHarnessHostRuntime(options);
-    try {
-      const status = await host.dispatch("enter", {
-        cwd, session_id: "SESSION-HOST-MULTI-BENEFIT-GATE", objective: "Inspect one bounded source file",
-        intent: "BUILD", topology: "MULTI",
-        runtime: { provider: "configured-provider", api: "configured-api", model: "configured-model", thinking_level: "configured", context_window: 65_536 },
-      });
-      expect(status).toMatchObject({
-        topology: "MULTI",
-        harness: { requestedTopology: "MULTI", effectiveTopology: "SINGLE" },
-      });
-    } finally {
-      host.close();
-    }
-  });
 
   it("rejects a different objective or intent after Host restart instead of binding it to the recovered Goal", async () => {
     const { cwd, options } = fixture();
@@ -590,43 +702,7 @@ describe("Coding Harness Host runtime", () => {
     resumed.close();
   });
 
-  it("aborts active Multi workers when cancellation becomes authoritative", async () => {
-    const { cwd, options } = fixture();
-    const host = new CodingHarnessHostRuntime(options);
-    await host.dispatch("enter", {
-      cwd, session_id: "SESSION-HOST-CANCEL-WORKER", objective: "Cancel bounded worker execution",
-      intent: "BUILD", topology: "MULTI",
-      runtime: { provider: "configured-provider", api: "configured-api", model: "configured-model", thinking_level: "configured", context_window: 65_536 },
-    });
-    const abort = new AbortController();
-    (host as unknown as { workerJob: unknown }).workerJob = {
-      id: "WORKER-JOB-CANCEL", aborts: [abort], state: "RUNNING", workerCount: 1,
-      startedAtMs: 10_000, result: null, error: null, completion: new Promise<void>(() => undefined),
-    };
-    await host.dispatch("control", { action: "cancel", reason: "User confirmed cancellation" });
-    expect(abort.signal.aborted).toBe(true);
-    host.close();
-  });
 
-  it("aborts active Multi workers after an active-Goal turn is durably captured", async () => {
-    const { cwd, options } = fixture();
-    const host = new CodingHarnessHostRuntime(options);
-    await host.dispatch("enter", {
-      cwd, session_id: "SESSION-HOST-ACTIVE-INPUT-WORKER", objective: "Revise bounded worker execution",
-      intent: "BUILD", topology: "MULTI",
-      runtime: { provider: "configured-provider", api: "configured-api", model: "configured-model", thinking_level: "configured", context_window: 65_536 },
-    });
-    const abort = new AbortController();
-    (host as unknown as { workerJob: unknown }).workerJob = {
-      id: "WORKER-JOB-ACTIVE-INPUT", aborts: [abort], state: "RUNNING", workerCount: 1,
-      startedAtMs: 10_000, result: null, error: null, completion: new Promise<void>(() => undefined),
-    };
-
-    await host.dispatch("active_goal_input", { text: "Also preserve the adjacent parser." });
-
-    expect(abort.signal.aborted).toBe(true);
-    host.close();
-  });
 
   it("carries a material active-Goal change through the public Host flow", async () => {
     const { cwd, options } = fixture();
@@ -803,7 +879,7 @@ describe("Coding Harness Host runtime", () => {
     const host = new CodingHarnessHostRuntime(options);
     await host.dispatch("enter", {
       cwd, session_id: "SESSION-HOST-PROVIDER-INTERLEAVED", objective: "Verify interleaved provider accounting",
-      intent: "BUILD", topology: "MULTI",
+      intent: "BUILD", topology: "SINGLE",
       runtime: {
         provider: "configured-provider", api: "configured-api", model: "configured-model",
         thinking_level: "configured", context_window: 65_536,

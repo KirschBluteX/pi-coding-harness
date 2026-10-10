@@ -7,6 +7,7 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadConfig } from "../config/load-config.js";
 import { closeAuthorityConnection, openAuthorityConnection, type AuthorityConnection } from "../authority/database.js";
 import { sqliteWalRuntimeSupport } from "../authority/sqlite-runtime.js";
 import { migrateExperimentStore } from "../authority/experiment-migrate.js";
@@ -65,7 +66,7 @@ const installMarkerName = "install.marker.json";
 
 export interface LifecycleOptions {
   readonly packageRoot: string;
-  readonly dataRoot: string;
+  readonly dataRoot?: string;
   readonly whatIf?: boolean;
   readonly exportPath?: string;
   readonly deleteData?: boolean;
@@ -381,7 +382,9 @@ export class LifecycleManager {
 
   constructor(private readonly options: LifecycleOptions) {
     this.packageRoot = resolve(options.packageRoot);
-    this.dataRoot = expandHome(options.dataRoot);
+    const configuredRoot = options.dataRoot ?? loadConfig(join(this.packageRoot, "config", "default.json")).data?.root
+      ?? "~/.pi/agent/coding-harness";
+    this.dataRoot = expandHome(configuredRoot);
     this.now = options.now ?? (() => new Date());
     this.operationId = options.operationId ?? `LIFECYCLE-${this.now().toISOString().replace(/[^0-9]/gu, "")}`;
   }
@@ -533,13 +536,13 @@ function parseCli(argv: readonly string[]): { readonly operation: LifecycleOpera
   const packageRoot = values.get("--package-root");
   const dataRoot = values.get("--data-root");
   const reportPath = values.get("--report");
-  if (!packageRoot || !dataRoot || !reportPath) throw new TypeError("--package-root, --data-root and --report are required");
+  if (!packageRoot || !reportPath) throw new TypeError("--package-root and --report are required");
   const exportPath = values.get("--export");
   const operationId = values.get("--operation-id");
   return {
     operation: operation as LifecycleOperation, reportPath: resolve(reportPath),
     options: {
-      packageRoot, dataRoot, whatIf: switches.has("--what-if"), deleteData: switches.has("--delete-data"),
+      packageRoot, ...(dataRoot ? { dataRoot } : {}), whatIf: switches.has("--what-if"), deleteData: switches.has("--delete-data"),
       ...(exportPath ? { exportPath } : {}), ...(operationId ? { operationId } : {}),
     },
   };

@@ -1,118 +1,60 @@
-<div align="center">
-
 # Pi Coding Harness
-
-### Reliable, recoverable execution for Pi Coding Agent
-
-An opt-in execution layer for durable task state, evidence-gated changes,
-recoverable workflows, and isolated multi-agent coordination.
 
 [![CI](https://github.com/KirschBluteX/pi-coding-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/KirschBluteX/pi-coding-harness/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-[Architecture](docs/ARCHITECTURE.md) ·
-[User guide](docs/USER-GUIDE.md) ·
-[Implementation blueprint](docs/PI-CODING-HARNESS-BLUEPRINT.md) ·
-[简体中文](README.zh-CN.md)
+PCH 1.3 is an opt-in **Single-agent** execution layer for Pi Coding Agent. It keeps the current Agent's work
+scoped, verifies changes with local evidence and restores the exact task after interruption.
 
-</div>
+[简体中文](README.zh-CN.md) · [User guide](docs/USER-GUIDE.md) · [Architecture](docs/ARCHITECTURE.md) ·
+[Validation](docs/VALIDATION.md) · [Implementation specification](docs/PI-CODING-HARNESS-BLUEPRINT.md)
 
-Pi Coding Harness (PCH) turns an explicitly activated Pi Coding Agent session
-into an auditable software-engineering runtime. It keeps small tasks direct,
-persists workflow authority in SQLite, isolates parallel workers, and accepts
-workspace changes only after scope, lease, preimage, and fresh-oracle checks.
+## What it does
 
-> **Status: research preview.** The local correctness, lifecycle, fault, and
-> integration surfaces are extensively tested. Provider-backed stress comparisons
-> and one live cold-restart recovery path remain explicitly outside the current
-> release claim; see [Evidence boundaries](#evidence-boundaries).
+- **Direct execution:** the current Pi Agent reads, edits and tests the real workspace. Small changes use one WorkCell.
+- **Verified completion:** scope, lease, preimage, readback and fresh test evidence gate a successful delivery.
+- **Recovery:** SQLite/CAS preserve the Goal, decisions, route, completed evidence and unresolved operations.
+- **Bounded overhead:** three managed tools, local deterministic checks, current-evidence reuse and background accounting.
+- **Passive until entered:** loading the extension starts no Host, opens no database and adds no model request.
 
-## Why PCH
+All model work stays in ordinary Pi turns using the user's provider, model and thinking level. PCH creates no extra
+planner, reviewer or Worker sessions. Multi execution has been removed from 1.3; old records remain readable.
 
-Coding agents are good at producing candidate changes. Long-running engineering
-work needs stronger guarantees around who owns state, what may be changed, what
-survives a restart, and which evidence is fresh enough to authorize integration.
+PCH is useful when a change needs explicit acceptance, interruption recovery or controlled scope. Those guarantees
+have overhead. This version does not claim that every tiny task uses fewer tokens or finishes faster than native Pi.
 
-PCH provides five concrete boundaries:
+## Requirements
 
-- **Durable authority** - SQLite WAL, immutable events and receipts, versioned
-  state machines, leases, fencing tokens, and CAS-backed artifacts.
-- **Safe multi-agent execution** - role-isolated, short-lived workers operate in
-  scoped mirrors and return untrusted PatchSets for serial verification.
-- **Recoverable workflows** - Goal, Route, WorkCell, Operation, and Evidence state
-  identifies a deterministic next action after interruption or Host restart.
-- **Evidence-gated mutation** - canonical workspace changes require matching
-  preimages, declared scope, current authority, and a fresh project oracle.
-- **Zero-cost inactive path** - PCH does not start its Host, open SQLite, inject
-  prompts, or add provider requests until the user explicitly enters `/coding`.
+This delivery was exercised on Windows with PowerShell 7 (`pwsh`), npm 11, Pi Coding Agent 0.82.1 and Node.js 24.19.0.
+The declared compatibility range is Pi `>=0.81.0 <=0.82.1` and Node.js `>=22.22.3 <23` or `>=24.15.0` with the SQLite
+WAL-reset fix. PCH checks the actual SQLite runtime fingerprint.
+Pi also needs Bash for local commands. If Git Bash is installed on a custom drive, set Pi's `shellPath` accordingly
+(for example, `"X:/Git/bin/bash.exe"` in Pi `settings.json`).
 
-## Architecture at a glance
+## Install
 
-```mermaid
-flowchart LR
-  U["User in Pi"] --> B["Passive extension bridge"]
-  B -->|"/coding"| H["Authenticated PCH Host"]
-  H --> T["Task Flow authority"]
-  H --> D["SQLite WAL + CAS"]
-  T --> S["Single: native workspace execution"]
-  T --> M["Multi: scoped worker mirrors"]
-  M --> P["Untrusted PatchSets"]
-  P --> V["Lease + scope + preimage + oracle gates"]
-  S --> D
-  V --> D
-```
-
-Single keeps strongly coupled work in the current Pi Agent and real workspace.
-Multi lowers only explicitly decomposed work into hash-bound TaskPackets for
-isolated `PLANNER`, `EXPLORER`, `IMPLEMENTER`, `VERIFIER`, and `INTEGRATOR`
-roles. Worker output never becomes authority by narration alone.
-
-## Implemented system surfaces
-
-| Surface | What is implemented |
-| --- | --- |
-| Task lifecycle | Intake, GoalContract, route revision, staged plans, operation prepare/observe/commit/reconcile, pause/resume/replan, final acceptance |
-| Authority | Forward-only SQLite schemas, immutable event chain, CAS, leases, fencing, idempotency, recovery projections |
-| Multi-agent | Dynamic topology proposal, scoped mirrors, bounded execution, durable integration journal, workload comparability gates |
-| Context | Input-context compiler, retained evidence, protected projections, compaction receipts, provider-turn ledger |
-| Memory | Encrypted vault, indexed retrieval, conflict handling, correction, expiration, forgetting, and deletion |
-| Verification | Unit, integration, fault-injection, lifecycle, performance-contract, source-closure, and arbitrary-CWD checks |
-
-## Quick start
-
-### Requirements
-
-- PowerShell 7 (`pwsh`)
-- Node.js `>=22.22.3 <23` or `>=24.15.0`
-- npm `11.x`
-- Pi Coding Agent `>=0.81.0 <=0.82.1`
-
-The selected Node.js runtime must include the SQLite WAL-reset fix. PCH checks
-the actual runtime fingerprint instead of trusting the Node version string alone.
-
-### Install from source
+Clone to the drive where you want the workspace, then run:
 
 ```powershell
 git clone https://github.com/KirschBluteX/pi-coding-harness.git
 cd pi-coding-harness
 npm ci
-
-# Preview installation without changing local Pi state.
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -WhatIf
-
-# Build, migrate local authority safely, and register the local Pi package.
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
-
-# Read-only health check.
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
 ```
 
-## Usage
+Runtime data defaults to `~/.pi/agent/coding-harness`. To keep it on another drive, set an absolute `data.root` in
+`config/default.json` before installation. A lifecycle `-DataRoot` argument overrides that invocation only.
+Build output is recreated from checked source so retired executables cannot survive an upgrade.
+
+## Use
 
 ```text
+/coding build fix the CSV parser and run its tests
+/coding plan review a staged refactor before implementation
 /coding
-/coding single build fix the parser boundary and run its tests
-/coding multi plan design a staged modular refactor
+/coding recover <goal-id>
 /coding status
 /coding pause
 /coding resume
@@ -120,60 +62,35 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/doctor.ps1
 /coding exit
 ```
 
-Single and Multi support Plan and Build, clarification, route correction,
-recovery, Memory, Input Context, Compaction, Output, cache telemetry, and
-performance gates. Provider, model, thinking level, and context window always
-come from the user's active Pi configuration.
+Build proposes a small Goal Contract for one user review, then freezes the route and executes. Plan stops for
+Build/Keep/Revise. The Widget carries routine progress. Existing `/coding single build ...` syntax still works.
+See the user guide for headless contract review, clarification and cancellation commands.
 
-## Development
+## Upgrade from 1.2
+
+Single tasks keep their existing authority and recovery state. The retired Worker config fields are ignored.
+SQL migrations and immutable historical records are preserved.
+
+An unfinished task that requested Multi fails recovery with `LEGACY_MULTI_UNAVAILABLE` before a new controller
+takes its lease. Reconcile and cancel it in PCH 1.2.1 before upgrading that workspace, or use a separate workspace.
+No old Multi task is silently converted into Single. See [upgrade details](docs/USER-GUIDE.md#upgrading-from-12).
+
+## Verification and limits
 
 ```powershell
-npm ci
-npm run compile
-npm run lint
-npm test
-npm run build
 npm run verify
 ```
 
-The full verification command also checks SQL/JSON/Markdown contracts,
-lifecycle behavior, arbitrary-CWD imports, performance contracts, and the
-self-contained source closure.
+Verification covers types, lint, tests, SQL/JSON/Markdown, install/upgrade/uninstall, arbitrary-cwd imports,
+performance and source closure. Current results are in [Validation](docs/VALIDATION.md) and
+[project state](PROJECT-STATUS.md). Paid provider tests use separate isolated workspaces and bounded stop conditions.
 
-## Evidence boundaries
+The Single functional checks pass. Local durable-write and Cache C1 accounting latency exceeded their budgets on
+the tested X-drive environment; performance qualification remains open. This code delivery does not create a Release.
 
-The repository separates observed evidence from claims:
+Cache remains C0 for unsupported provider contracts. Missing usage or unknown gateway pricing is reported as unknown.
+Natural compaction at a production-sized context window and broad comparative cost claims remain outside the
+demonstrated evidence. The old Multi/four-way benchmark is outside this edition's scope.
 
-- Automated correctness includes unit, integration, fault, lifecycle, schema,
-  and source-closure suites. The exact current count is recorded in
-  `manifests/PROJECT-STATE.json` after a release verification run.
-- The inactive path is tested for zero PCH Host starts, SQLite opens, RPCs,
-  prompt injections, and PCH-added model/provider requests.
-- Cache status remains `C0` unless a provider integration reports attributable
-  positive evidence; a zero cache-read value is treated as unknown, not a miss.
-- Natural compaction at the production context window, provider-backed stress,
-  and comparative Single/Multi model runs are not claimed until their deferred
-  experiments are executed.
-
-See [PROJECT-STATUS.md](PROJECT-STATUS.md) for the current development frontier
-and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the complete evidence model.
-
-## Security and privacy
-
-Runtime data defaults to `~/.pi/agent/coding-harness`. Worker mirrors exclude
-credentials, `.env`, Git internals, dependencies, build output, and operational
-state. Workers cannot authorize side effects; only the Host may integrate a
-verified proposal. Memory text is encrypted at rest, while telemetry stores
-bounded hashes, counts, and reason codes instead of raw provider payloads.
-
-Please report security issues through the process in [SECURITY.md](SECURITY.md).
-
-## Contributing
-
-Start with [CONTRIBUTING.md](CONTRIBUTING.md), the
-[review gates](docs/REVIEW-GATES.md), and the single normative
-[implementation blueprint](docs/PI-CODING-HARNESS-BLUEPRINT.md).
-
-Pi Coding Harness is licensed under Apache-2.0. Pi Coding Agent notices remain
-under their original MIT terms; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+API keys belong in Pi's credential configuration. Keep credentials and runtime databases out of Git.
+See [SECURITY.md](SECURITY.md) for reporting security issues and [LICENSE](LICENSE) for Apache-2.0 terms.

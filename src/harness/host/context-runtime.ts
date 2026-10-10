@@ -6,7 +6,7 @@ import { InputContextRuntime, type InputContextAddition } from "../../input-cont
 import type { TaskFlowSession } from "../../runtime/task-flow-session.js";
 import { idFromSha256 } from "../../foundation/ids.js";
 import { sha256Hex } from "../../foundation/crypto.js";
-import type { WorkerRuntimeSelection } from "../worker/executor.js";
+import type { PiRuntimeFingerprintInput } from "../runtime-fingerprint.js";
 import type { CacheV2ContextSeed } from "../../cache-v2/runtime.js";
 import type { RetainedContextDescriptor } from "../../input-context/retained-ledger.js";
 import type { ProviderTurnHistorySummary, ProviderUsage } from "../../input-context/provider-turn-ledger.js";
@@ -31,7 +31,7 @@ export interface HarnessTurnPreparation {
 
 export class HarnessContextRuntime {
   private readonly runtime: InputContextRuntime;
-  private currentRuntime: WorkerRuntimeSelection;
+  private currentRuntime: PiRuntimeFingerprintInput;
   private readonly prompts = new Map<string, string>();
   private lastCacheSeed: CacheV2ContextSeed | null = null;
   private readonly outputPolicy: HarnessOutputPolicy;
@@ -45,7 +45,7 @@ export class HarnessContextRuntime {
   constructor(private readonly options: {
     readonly session: TaskFlowSession;
     readonly config: CodingHarnessConfig;
-    readonly runtimeSelection: WorkerRuntimeSelection;
+    readonly runtimeSelection: PiRuntimeFingerprintInput;
     readonly sessionId: string;
   }) {
     const resources = options.session.resources();
@@ -58,7 +58,7 @@ export class HarnessContextRuntime {
     });
   }
 
-  updateRuntime(runtime: WorkerRuntimeSelection): void { this.currentRuntime = runtime; }
+  updateRuntime(runtime: PiRuntimeFingerprintInput): void { this.currentRuntime = runtime; }
 
   prepare(input: {
     readonly systemPromptSha256: string;

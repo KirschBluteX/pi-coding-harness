@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "product": "Pi Coding Harness",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "authority_schema": 35,
-  "status": "PASS",
-  "state_generation": 101,
-  "current_phase": "P12",
-  "current_stage": "PUBLIC_CORE_ONLY_RELEASE_CI_VERIFIED",
-  "updated_at": "2026-08-16T07:00:46.6027859-07:00",
-  "goal": "Qualify the core-only Pi Coding Harness runtime, its continuous authority schema, lifecycle, installed-package behavior and self-contained public source closure.",
+  "status": "VERIFYING",
+  "state_generation": 105,
+  "current_phase": "P13",
+  "current_stage": "SINGLE_CODE_VERIFIED_PERFORMANCE_OPEN",
+  "updated_at": "2026-10-10T04:45:38.1553738-07:00",
+  "goal": "Complete the supported Single edition of PCH: remove Multi execution, preserve historical authority, reduce unnecessary control overhead and verify the real Single lifecycle before updating GitHub. No GitHub Release is authorized for this delivery.",
   "completed_receipts": [
     {
       "id": "PCH-REC-CODE-BASELINE",
@@ -434,17 +434,52 @@
       "id": "PCH-REC-POWERSHELL-7-CI-20260816",
       "result": "PASS",
       "evidence": "Commit 536400365e17331037754aea7ce49c469e452f72 passed GitHub Actions run 31950875584 in 10m45s: compile, lint, 883 tests with 6 conditional skips, build, SQL 001-035, 78 JSON files and 50 schemas, 17 Markdown files and 12 Mermaid diagrams, state-update and self-contained closure. Local install, upgrade and uninstall lifecycle paths also passed on Node 24.18.0 with SQLite 3.53.1."
+    },
+    {
+      "id": "PCH-SINGLE-LIVE-20261010",
+      "result": "PASS",
+      "evidence": "Isolated Pi 0.82.1, Node 24.19.0/SQLite 3.53.3, authorized gateway CSV repair: single-live-1791629548425-fd359667 reached SUCCEEDED, 7/7 external holdout assertions passed, 9 assistant responses, 96415 ms. Earlier facet-binding and missing next-phase guidance failures stopped at the first actionable rejection and were repaired before new run IDs. Gateway dollar cost remains unknown."
+    },
+    {
+      "id": "PCH-SINGLE-DATA-ROOT-20261010",
+      "result": "PASS",
+      "evidence": "A failing lifecycle WhatIf first reproduced the home-directory override. Installation and doctor now honor an isolated configured X-drive root, WhatIf creates no root, and explicit -DataRoot still wins. Bridge and Host transition guidance regressions also passed after observed failures."
+    },
+    {
+      "id": "PCH-SINGLE-REGRESSION-CLOSURE",
+      "result": "PASS",
+      "evidence": "Full serial Vitest run plus whole-file replacements from host-guidance-tests.json (89 passed) and schema-upgrade-tests.json (36 passed): 105 files, 819 passed, 6 opt-in performance cases skipped, no remaining functional failures. Lifecycle install/upgrade/uninstall checks pass; real installed extension from an arbitrary cwd passes with a deterministic local SSE transport."
+    },
+    {
+      "id": "PCH-SINGLE-X-PERFORMANCE-INITIAL",
+      "result": "FAIL",
+      "evidence": "2026-10-10, WAL-safe Node v24.19.0 / SQLite 3.53.3, X-drive isolated epoch: phase-1 commit P95 63.8433 ms (20 ms budget), flush P95 63.1517 ms, transaction body P95 0.7983 ms; CAS 1 MiB P95 74.4372 ms (35 ms budget). Other performance files were not run after this first failing gate. Root cause is being bounded before any production change."
+    },
+    {
+      "id": "PCH-SINGLE-WORKTREE-CLOSURE",
+      "result": "PASS",
+      "evidence": "JSON validation initially rejected the worktree .git pointer. The validator now consumes package.json releaseExcludedFiles just like both source generators. Final JSON validation passed with 78 parsed files, 50 schemas and 24 validated instances. Runtime build removes retired generated executables. SQL 001-035 unchanged."
+    },
+    {
+      "id": "PCH-SINGLE-FINAL-STATIC",
+      "result": "PASS",
+      "evidence": "Compile, ESLint, runtime build, 35 SQL migrations, JSON, 18 Markdown files/4 Mermaid diagrams, state-updater checks, lifecycle and self-contained source closure passed. The current source manifest contains 479 files. Functional closure: 105 files, 819 passed, 6 opt-in performance cases skipped; see reports/single-validation-summary.json and docs/VALIDATION.md."
+    },
+    {
+      "id": "PCH-SINGLE-LOCAL-PERFORMANCE-LIMIT",
+      "result": "EXTERNAL_LIMIT",
+      "evidence": "Task Flow and Memory v3 gates passed. Phase-1 persistence and Cache C1 latency gates failed on X with budgets and WAL/FULL unchanged. P95: event commit 63.8433 ms, CAS 74.4372 ms, C1 round trip 154.9261 ms. A separate bare SQLite WAL/FULL commit was 111.2775 ms and fsync 50.1713 ms; this diagnoses the I/O boundary, not the exact environmental cause. No provider requests were issued. Failed gates remain failed."
     }
   ],
   "authoritative_artifacts": [
     {
       "path": "docs/PI-CODING-HARNESS-BLUEPRINT.md",
-      "sha256": "2C78278414447BA2625E27AEEC383D616E9D2655D88205708F5137A91C33B61D",
+      "sha256": "C91D4660DAA3E923C7E070EF67A655F536ADD6EE04251189D642EE427817249F",
       "role": "sole architecture authority"
     },
     {
       "path": "manifests/ACCEPTANCE-CONTRACT.json",
-      "sha256": "B4FF584379955C02F6AFFF7BBC793A909C64234F1B66DFC7651CE3285DAD7DE7",
+      "sha256": "37DD75D9C17CAF795755761516144C61F2ABA6C5226CA2C2FCC13F73875FE750",
       "role": "release acceptance contract"
     },
     {
@@ -454,13 +489,13 @@
     },
     {
       "path": "manifests/MIGRATION-MANIFEST.json",
-      "sha256": "BD80902CB4194DA71077FD08846A27C809E89DDB9D65E95A126005A5FD8448F5",
-      "role": "429-entry migration provenance"
+      "sha256": "750C23921B4884AA4A10FCC42D6070F124EC78B74E047355E93D023120EAAE81",
+      "role": "current source provenance manifest"
     },
     {
       "path": "manifests/SOURCE-HASHES.json",
-      "sha256": "27C8A7AA6077AF7990EE8B6D4534A75A850476B3520B110E974136A8D81B4C50",
-      "role": "421-file release source integrity"
+      "sha256": "A062822DAF56878797C870B27F0789CAB3DFACC705766C9E52FCD9B2942354B5",
+      "role": "current source integrity manifest"
     },
     {
       "path": "fixtures/memory-v3-capture-corpus.valid.json",
@@ -479,8 +514,8 @@
     },
     {
       "path": "reports/performance-summary.json",
-      "sha256": "71758E7ACD5D1B8A824C76DF46917C8F758742566BFA1B90106E3D3B8CE14097",
-      "role": "current local performance gate"
+      "sha256": "0F5A6F03DF7F379CBC8749ED1C44B1288FB66A9F243A4AD4E780A721482B703E",
+      "role": "current failed initial local performance gate; remaining dimensions are in the Single validation summary"
     },
     {
       "path": "reports/verification-summary-final.json",
@@ -489,8 +524,8 @@
     },
     {
       "path": "reports/self-contained.json",
-      "sha256": "1BEBE91C0C00B6DFA944E9D6EF1479C1784C109CD4D90FF91EF6003A6CF7CDBE",
-      "role": "prior self-contained release evidence"
+      "sha256": "C00ECE03D81E7CF3E4DC090093D8B748C4517C46BCB0C54358BA90633FA4C776",
+      "role": "current source closure evidence"
     },
     {
       "path": "reports/release-install.json",
@@ -579,7 +614,7 @@
     },
     {
       "path": "manifests/QUEUED-SCOPE-EXTENSIONS.json",
-      "sha256": "0BCD2981E4D268ACD3734BB7564BE98F8FCEE00D7724A012BC7F423CC2E0B5FA",
+      "sha256": "F1475492ED341015165268F7068EE05855A6C45EFACBD19D53B68A7099A9AAEB",
       "role": "DEVELOPMENT_SCOPE_DAG"
     },
     {
@@ -589,17 +624,17 @@
     },
     {
       "path": "src/acceptance-v2/domain.ts",
-      "sha256": "50e8d1d62befb0b0a9d55ab4739f9c413af6d028b871871ed55c9b1e32b5a18b",
+      "sha256": "50E8D1D62BEFB0B0A9D55AB4739F9C413AF6D028B871871ED55C9B1E32B5A18B",
       "role": "Acceptance V2 domain contract"
     },
     {
       "path": "src/acceptance-v2/finalize.ts",
-      "sha256": "f5d4012fd27cd7affa0d28d06f1cbe0e7ed72ab56114cb9b26255644012d6cf7",
+      "sha256": "F5D4012FD27CD7AFFA0D28D06F1CBE0E7ED72AB56114CB9B26255644012D6CF7",
       "role": "Host acceptance finalizer and integrity verifier"
     },
     {
       "path": "src/acceptance-v2/repository.ts",
-      "sha256": "78548996b6dd7f91214c6837ba2d4de442910d8ca886767be165a3d0247c46b2",
+      "sha256": "78548996B6DD7F91214C6837BA2D4DE442910D8CA886767BE165A3D0247C46B2",
       "role": "Acceptance Authority V2 repository"
     },
     {
@@ -609,12 +644,12 @@
     },
     {
       "path": "src/acceptance-v2/evidence-repository.ts",
-      "sha256": "A35C20D395EBD77B757BA5703EE0F7284DC4057C392C4C620C20F6A8F6D7D7EB",
+      "sha256": "204C8D559DEB37C2895869E242D2F403420689B11E6255F2B07D913533693C4A",
       "role": "Host-derived Acceptance evidence repository"
     },
     {
       "path": "src/acceptance-v2/completion-repository.ts",
-      "sha256": "C40649F408CA2A9A91B84F3C8F11592107CAEC2F3CED1D136D648F7470792014",
+      "sha256": "D330E0A9B5D1B67571D11F39DB202EFE8254D3211DF5ABCFB9F12A5FA0124AD7",
       "role": "Host-derived WorkCell completion repository"
     },
     {
@@ -629,12 +664,12 @@
     },
     {
       "path": "src/intake-v2/finalize.ts",
-      "sha256": "DC306D97E08FCF6F821C677C0221280CE2656A10B7DE1EA20C2EBA1187329220",
+      "sha256": "D86E2497D77C7C2E5C9FADA893405967D4749A905663EA9E45D2B9B1AACD2018",
       "role": "Host-owned Intake and Decision deterministic finalizers"
     },
     {
       "path": "src/intake-v2/repository.ts",
-      "sha256": "59148883E1150C3E867DF759C5EEBB1DE96D8C368BF4DF328C9C38ADE179A821",
+      "sha256": "EA622A4F1626D0A72B3E8951D2F6D2778780A0CAD624BB356562E19DC91AFF5E",
       "role": "Public transactional Intake authority repository"
     },
     {
@@ -644,7 +679,7 @@
     },
     {
       "path": "src/plan-v2/graph.ts",
-      "sha256": "fc9ff45e3fb645ae991dd330b2b9670ee76cd030eaac2c55244bbb7202291679",
+      "sha256": "FC9FF45E3FB645AE991DD330B2B9670EE76CD030EAAC2C55244BBB7202291679",
       "role": "Plan V2 typed dependency graph candidate"
     },
     {
@@ -664,7 +699,7 @@
     },
     {
       "path": "reports/lifecycle-validation.json",
-      "sha256": "1F01EF6EE62EFB06876511A7F6B1E1D302E8F3799C9238ABA2D33784FD057CCC",
+      "sha256": "49D2D75D3FCCE63FAE72A9324A6413FD4719F506796A8689A378D8A63709AC4A",
       "role": "install, upgrade and uninstall lifecycle validation"
     },
     {
@@ -694,12 +729,12 @@
     },
     {
       "path": "src/plan-v2/active-goal-input.ts",
-      "sha256": "1D36F5D6823E7215662B85199745B2A3BB45CEC90CD1D73CBE381C3AA87B326E",
+      "sha256": "03C33FD82B5F6282754A84A17D3E3412DF117FCEC19924315A110AA78ED363B8",
       "role": "Exact active Goal input and transition domain contract"
     },
     {
       "path": "src/plan-v2/repository.ts",
-      "sha256": "E3A4AFDFA3A95307DD791791C7D6BFA252A3B0EAFDE89DBF4912415CCB0089E8",
+      "sha256": "04C9CDA3812C12C82C87DB0BC51656C6E1A226C0084522955E681F9A813F57BC",
       "role": "Transactional Plan and active Goal change authority repository"
     },
     {
@@ -791,6 +826,16 @@
       "path": "reports/release-doctor-arbitrary-cwd.json",
       "sha256": "753BD8C067BAA71CB8B085D954B365CA4982F28F9418DF13F82CB1F27BBEF9E4",
       "role": "installed-package doctor receipt from an unrelated cwd"
+    },
+    {
+      "path": "docs/VALIDATION.md",
+      "sha256": "3101B65DEC44D75DBB32DC6A5910AC59A5FA03617511C10E739E1181BB4AD3D9",
+      "role": "Single 1.3 validation observations and limits"
+    },
+    {
+      "path": "reports/single-validation-summary.json",
+      "sha256": "9E221EB8198B14CB2BBA95C3ED16730E428A4FEA005F14A83A1FA03B83CE5962",
+      "role": "Single functional, installation, provider and performance composite receipt"
     }
   ],
   "decisions": [
@@ -945,11 +990,17 @@
     "An active Task Flow Goal created before schema 35 is discoverable as an UNBOUND candidate with a null binding receipt; discovery never invents a receipt and only Host enter may create its first EXPLICIT_ENTRY binding revision.",
     "Bridge and Host application contracts explicitly distinguish a legacy null binding receipt from a malformed non-null SHA-256 value.",
     "Core release closure excludes dependency trees, runtime state, reports and generated build output without hiding source Modules that share those directory names.",
-    "Release and lifecycle tooling requires PowerShell 7 (pwsh); Windows PowerShell 5.1 is no longer a supported execution path."
+    "Release and lifecycle tooling requires PowerShell 7 (pwsh); Windows PowerShell 5.1 is no longer a supported execution path.",
+    "PCH 1.3.0 is Single-only. Preserve schema 35 and immutable old records; do not silently convert a Multi Goal or launch any Worker.",
+    "Update GitHub after verification; do not create a GitHub Release or publish to npm in this task.",
+    "Use the existing current Pi Agent for all work and keep USER contract review, lease/fencing, readback, fresh acceptance and unknown-outcome reconciliation.",
+    "Deliver Single code to the authorized GitHub main branch without creating a Release or tag. Local performance qualification remains explicitly open.",
+    "Retain the existing performance budgets and durable-write guarantees; do not trade authority safety for a timing pass.",
+    "Count final functional assertions by whole-file replacement of affected reruns, preserving distinct parameterized cases without repeating the full suite."
   ],
   "latest_correction": {
-    "id": "PCH-COR-POWERSHELL-7-RELEASE-GATES",
-    "summary": "Release, lifecycle and developer entry points now require PowerShell 7 (pwsh), preventing nested fallback to Windows PowerShell 5.1 and restoring the state-update CI gate."
+    "id": "PCH-COR-WORKTREE-SOURCE-CLOSURE",
+    "summary": "The JSON source-closure walker now uses the declared excluded-file patterns, preventing a Git worktree .git pointer from being treated as missing product source. The final code and functional evidence are complete; durable-write performance qualification remains open."
   },
   "failed_routes": [
     {
@@ -1058,28 +1109,30 @@
     "Do not run release or full authority tests with an unverified shell Node; probe process.version and process.versions.sqlite, then use the pinned WAL-safe runtime.",
     "Do not reconstruct an immutable Decision closure from later resolutions or DueEventReceipts, and do not treat a historically valid but current-frontier-stale closure or Goal Fit review as current authority.",
     "Do not connect Host worker_start to Execution V2 until durable terminal graph state, per-node failure/requeue recovery, restart-safe PatchSet content and fresh Host oracle are represented and fault-tested.",
-    "Do not derive recoverable Goals only from schema-35 binding heads; pre-binding active Task Flow authority must remain discoverable without fabricating binding receipts."
+    "Do not derive recoverable Goals only from schema-35 binding heads; pre-binding active Task Flow authority must remain discoverable without fabricating binding receipts.",
+    "Do not rely on Pi before_agent_start to refresh phase guidance between tool cycles; return changed guidance with the current transition and preserve authority validation.",
+    "Do not assume prepending Node to PATH changes npm.ps1's colocated runtime. Invoke npm through the pinned Node CLI when verifying SQLite-backed commands.",
+    "Do not rerun the same failed X-drive persistence benchmark to fish for a pass; requalify after a relevant deployment-environment change and retain the failed samples."
   ],
   "open_risks": [
-    "The tested Pi Coding Agent 0.82.1 peer/dev package shrinkwrap contains brace-expansion 5.0.7 (high DoS advisory); bundled PCH runtime dependencies audit clean, project overrides cannot replace the dependency-owned shrinkwrap, and no newer tested Pi release is available.",
-    "WAL remains auto-checkpoint-disabled and can grow during a long Host lifetime; synchronous same-thread PASSIVE checkpoint is rejected until measured or moved behind a proven off-main-thread maintenance Module.",
-    "Natural Compaction at the production 272000-token context window remains unobserved; manual native Compaction and its restart frontier are provider-backed qualified.",
-    "The localhost provider endpoint depends on the Codex Desktop relay lifecycle and may become an external availability blocker.",
-    "The terminal-preservation, MUST-outcome and bounded formatter-batch corrections are locally verified but remain without a clean provider-backed Terraform STRESS receipt because that benchmark is user-deferred.",
-    "An unrestricted release claim still requires the user-deferred PCH Single Terraform STRESS, PCH Multi provider rerun and four-run comparison; the current receipt covers the complete non-benchmark release surface only."
+    "Local phase-1 durable-write and Cache C1 latency budgets are not met on the tested X-drive environment. Functional correctness is verified, but the full performance/release gate is not passed.",
+    "Historical unfinished requested/effective Multi Goals require 1.2.1 reconciliation/cancellation before workspace reuse; 1.3 preserves their authority but does not execute them.",
+    "The isolated real-model smoke does not establish matched native-Pi cost savings, production-length natural compaction or long-running reliability; gateway dollar pricing is unknown."
   ],
   "blockers": [],
-  "next_action": "Collect the first independent installation and usage feedback from the public repository while keeping the deferred provider-backed stress and four-run comparison gates explicit.",
+  "next_action": "Requalify the phase-1 persistence and Cache C1 gates on the intended data volume after a relevant storage-environment change. Keep Multi retired. Creating a Release requires a new user instruction and successful release gates.",
   "verification": {
-    "result": "PASS",
+    "result": "FAIL",
     "commands": [
-      "GitHub Actions run 31950875584: compile, lint, serial tests, build, SQL, JSON, Markdown, state update and self-contained closure",
-      "safe Node v24.18.0: npm test -- --no-file-parallelism --testTimeout=30000",
-      "safe Node v24.18.0 + PowerShell 7: npm run verify:lifecycle",
-      "PowerShell 7: npm run verify:self-contained"
+      "npm run compile; npm run lint; npm run build:runtime: PASS; final schema-fixture edit also passed compile and affected lint",
+      "vitest run --no-file-parallelism --testTimeout=30000 plus final Host/Bridge/protocol and schema-upgrade whole-file reruns: 819 passed, 0 remaining functional failures, 6 opt-in performance skips",
+      "npm run verify:sql; npm run verify:json; npm run verify:markdown; npm run verify:state-update; npm run verify:lifecycle; npm run verify:self-contained: PASS",
+      "Real pi install and unrelated-cwd installed-extension smoke with local deterministic SSE: PASS",
+      "Real Pi / authorized gateway single-WorkCell CSV smoke: PASS, 7 holdout assertions, 9 provider turns, 96415 ms",
+      "npm run verify:performance plus the remaining current performance files: Task Flow/Memory v3 PASS; phase-1 persistence/Cache C1 FAIL on the declared X-drive volume"
     ],
-    "tests_passed": 883,
+    "tests_passed": 819,
     "tests_skipped": 6,
-    "report_sha256": null
+    "report_sha256": "9E221EB8198B14CB2BBA95C3ED16730E428A4FEA005F14A83A1FA03B83CE5962"
   }
 }

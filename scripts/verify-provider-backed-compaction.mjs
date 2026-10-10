@@ -142,9 +142,7 @@ for (const path of [piEntry, extensionEntry, hostEntry]) {
   if (!existsSync(path)) throw new Error(`Required runtime entry is missing: ${path}`);
 }
 
-const localAppData = process.env.LOCALAPPDATA;
-if (!localAppData) throw new Error("LOCALAPPDATA is required");
-const runtimeParent = resolve(localAppData, "Temp", "pch-cp");
+const runtimeParent = resolve(valueAfter("--work-root") ?? resolve(projectRoot, ".tmp", "provider-backed-compaction"));
 const resolvedRecoveryPhasePath = recoveryPhasePath ? resolve(recoveryPhasePath) : null;
 const runtimeRoot = resolvedRecoveryPhasePath
   ? dirname(resolvedRecoveryPhasePath)
@@ -224,7 +222,7 @@ function piArguments() {
     "--mode", "rpc", "--no-session", "--offline", "--approve", "--no-extensions",
     "--extension", extensionEntry,
     "--no-skills", "--no-prompt-templates", "--no-context-files",
-    "--tools", "read,grep,find,ls,bash,coding_flow,coding_clarify,coding_context,coding_delegate",
+    "--tools", "read,grep,find,ls,bash,coding_flow,coding_clarify,coding_context",
     "--provider", providerId, "--model", modelId, "--thinking", thinkingLevel,
   ];
 }

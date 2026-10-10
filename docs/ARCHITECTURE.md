@@ -1,328 +1,132 @@
-# Pi Coding Harness Architecture
+# PCH 1.3 architecture
 
-> Reader-oriented architecture projection for reviewers and contributors. The
-> [implementation blueprint](PI-CODING-HARNESS-BLUEPRINT.md) remains the single normative authority.
-
-Pi Coding Harness (PCH) is an opt-in execution layer around Pi Coding Agent. It turns a normal Agent session into a
-durable software-engineering workflow without replacing Pi's configured provider, model, thinking level, context
-window, UI, or native tools.
+This document explains the Single implementation. The normative contract is
+[PI-CODING-HARNESS-BLUEPRINT.md](PI-CODING-HARNESS-BLUEPRINT.md); fresh evidence is in [VALIDATION.md](VALIDATION.md).
 
 ## Architecture promises
 
-| Promise | Architectural consequence |
+| Boundary | Behavior |
 |---|---|
-| Explicit entry | Before `/coding`, PCH starts no Host, opens no SQLite database, injects no prompt, sends no RPC, and adds no model/provider request. |
-| Durable authority | SQLite WAL, immutable events/receipts, leases, fencing tokens, and content-addressed storage decide what may mutate. |
-| Small-task efficiency | A narrow change stays in a `DIRECT_CELL`; Single creates no Worker topology or integration ceremony. |
-| Safe parallelism | Multi Workers operate in scoped mirrors. Their output is an untrusted proposal until serial integration passes fresh checks. |
-| Recoverability | Restart reconstructs the exact next authorized action and reconciles unknown effects before allowing new mutation. |
-| Honest optimization | Correctness and acceptance outrank speed. Provider-dependent savings are not claimed without provider evidence. |
+| Inactive | No Host, database, RPC, prompt addition or model request without explicit entry or a validated prior same-session binding |
+| Small task | One direct WorkCell in the current Pi Agent; no role selection, Worker or extra model session |
+| Authority | SQLite WAL, immutable receipts, CAS and lease/fencing checks own task state and effects |
+| Completion | Fresh local evidence must satisfy the current frozen acceptance requirements |
+| Recovery | Restore exact Goal identity and pending operations; never infer success from chat or rerun an unknown effect |
 
 ## System architecture
 
 ```mermaid
 flowchart LR
-  U["User"] --> PI["Pi UI and Agent"]
-
-  subgraph P["Pi main process"]
-    PI --> B["Passive Bridge Adapter"]
-    PI --> S["Single executor using native tools"]
-  end
-
-  subgraph H["Lazy PCH Host process"]
-    HD["Host dispatch Interface"]
-    TF["Task Flow Module"]
-    CX["Context Modules"]
-    MC["Multi Coordinator"]
-    AU["Authority Module"]
-    HD --> TF
-    HD --> CX
-    TF --> MC
-    TF --> AU
-    CX --> AU
-    MC --> AU
-  end
-
-  subgraph D["Durable local data"]
-    DB["SQLite WAL\nimmutable history and projections"]
-    CAS["CAS\nartifacts, preimages, journals"]
-  end
-
-  B -->|"/coding: authenticated bounded RPC"| HD
-  TF -->|"authorized WorkCell"| S
-  MC --> W1["Scoped Worker"]
-  MC --> W2["Scoped Worker"]
-  W1 --> PS["PatchSet queue"]
-  W2 --> PS
-  PS --> SI["Serial Integrator"]
-  SI --> AU
-  AU --> DB
-  AU --> CAS
+  U["User in Pi"] --> B["Passive Bridge: /coding"]
+  B <-->|"Authenticated local RPC"| H["PCH Host"]
+  H --> T["Task Flow and acceptance"]
+  H --> A["SQLite WAL + CAS"]
+  H --> C["Bounded context and telemetry"]
+  B --> P["Current Pi Agent"]
+  P -->|"native tools with preflight and readback"| W["Real workspace"]
+  W -->|"fresh oracle evidence"| T
 ```
 
-The Bridge is passive until entry. After entry it remains a narrow Adapter: it owns command/tool registration, lazy
-Host lifecycle, authenticated transport, and UI projection. Route decisions, SQL authority, Worker orchestration, and
-integration stay behind the Host Interface.
-
-### Process ownership
-
-| Process | Owns | Must not own |
-|---|---|---|
-| Pi main process | User session, UI, configured model, native provider request and native tools | Durable PCH authority |
-| Passive Bridge | `/coding`, Harness tool registration, Host lifecycle, compact hook transport | SQL, route authority, Worker integration |
-| PCH Host | Task Flow, context additions, authority, recovery, Worker orchestration, local telemetry | Provider/model mutation not explicitly configured by the user |
-| Worker session | One role and one hash-bound TaskPacket inside a scoped mirror | Canonical workspace, Supervisor chat history, private Memory, durable authority |
+The Bridge registers `coding_flow`, `coding_clarify` and `coding_context`, enabling them only during a managed task.
+It sends compact hook data to the Host. The Host owns validation and authority; the current Pi Agent owns all
+provider requests. Config is loaded lazily in the Host. An explicit Bridge data-root override wins; otherwise
+`config.data.root` supplies storage, including a non-system drive.
 
 ## Task Flow model
 
-PCH keeps one durable hierarchy from user intent to evidence. Planning expands only the current and near horizon;
-uncertain future work remains a typed deferred outcome.
-
-```mermaid
-flowchart LR
-  I["User intent"] --> GC["GoalContract"]
-  GC --> AL["Immutable AcceptanceLedger"]
-  GC --> RS["RouteSkeleton"]
-  RS --> WC["Current or near WorkCell"]
-  WC --> O["OperationAttempt"]
-  O --> E["Fresh oracle evidence"]
-  E --> D["Delivery and receipt"]
-  E -->|"route assumption disproved"| RR["RouteRevision"]
-  RR --> RS
-  O -->|"outcome unknown"| R["Reconcile"]
-  R --> O
+```text
+User source -> proposed Goal Contract -> USER review -> frozen contract
+  -> near-term route -> authorized WorkCell -> native tool operation
+  -> fresh evidence -> WorkCell completion -> Goal delivery
 ```
 
-The `GoalContract` freezes objective, lane, obligations, constraints, assumptions, non-goals, and user decisions. Each
-MUST obligation needs a decidable local oracle. The `AcceptanceLedger` binds those obligations to source spans and
-hashes so a chat summary cannot silently redefine completion.
+Acceptance facets refer to exact user source and obligations. Typed Goal Fit findings share the normal proposal
+turn; they do not create a critic call. Only a user decision can freeze the Goal Contract. Plan additionally asks
+Build/Keep/Revise before target writes. Material user changes are captured before any new mutation and invalidate
+only dependent authority/evidence; unchanged evidence requires a matching reuse closure.
 
-The route is a validated DAG of WorkCells with dependencies, read/write roots, budgets, risks, assumptions, and
-oracles. Four execution depths prevent planning overhead from becoming ceremonial:
+Pi prepares the system prompt once per user input. A transition that changes the phase or advances a WorkCell
+therefore returns its current guide in the existing tool result, including automatic advancement after validation.
+Unchanged guides are omitted. This uses no extra status RPC or provider request and does not expand command notices.
 
-| Lane | Intended use | Shape |
-|---|---|---|
-| `BYPASS` | Conversation or no project mutation | No managed Host run |
-| `DIRECT_CELL` | One narrow, low-risk change | Minimal contract and one WorkCell |
-| `ADAPTIVE_ROUTE` | Multi-file work or moderate uncertainty | One to three near WorkCells plus deferred outcomes |
-| `FULL` | High-risk migrations or broad product behavior | Detailed but still rolling route |
-
-### Route health and correction
-
-```mermaid
-stateDiagram-v2
-  [*] --> Contracting
-  Contracting --> Routing: contract valid
-  Routing --> Planning: Plan lane
-  Routing --> Building: Build lane
-  Planning --> Building: user chooses Build
-  Planning --> Routing: user chooses Revise
-  Planning --> Succeeded: user chooses Keep
-  Building --> Building: H0 continue or bounded H1 retry
-  Building --> Building: H2 local repair
-  Building --> Routing: H3 technical replan
-  Building --> Contracting: H4 material clarification
-  Building --> Reconciling: H5 unknown effect
-  Reconciling --> Building: readback resolves
-  Building --> Paused
-  Paused --> Building
-  Building --> Succeeded: all MUST evidence current
-```
-
-Repeated failure signatures cannot retry forever. H3, H4, and H5 revoke the previous mutation authorization and
-persist a new exact next action. Replanning transports only the changed horizon; unchanged typed route metadata is
-reconstructed and validated locally.
+`DIRECT_CELL` keeps a small change direct. `ADAPTIVE_ROUTE` expands only the near-term WorkCells and records distant
+outcomes as deferred. Repeated failures cause local repair, route correction, user clarification or reconciliation.
+No-progress governance refuses repeated unchanged routes instead of growing an endless tool/model loop.
 
 ## Single execution
 
-Single lets the current Pi Agent work in the real workspace with native tools. It creates no WorkShard, TaskPacket,
-WorkerRun, mirror, or PatchSet. Mutation still passes the same authority lifecycle.
+The Host checks the current ControlFrame, scope, lease and exact preimage before dispatch. Prepare and dispatch are
+atomic. Native Pi tools execute the effect; the Host reads back each target and records the observed outcome before
+commit. File content hashes are cached against filesystem metadata but revalidated across mutation boundaries.
+Lease renewal is threshold-based. A successful managed write can become fresh exact-source context without an
+extra Agent read.
 
-```mermaid
-sequenceDiagram
-  actor User
-  participant Pi as Pi Agent
-  participant Bridge
-  participant Host
-  participant DB as SQLite authority
-  participant WS as Real workspace
+Each frozen oracle command runs after the final write. Managed validation records evidence once. The last WorkCell
+stays open for preservation review; a later write invalidates stale validation. Explicit completion or the existing
+local Agent-settled hook closes only a ready WorkCell. No extra provider request is needed for this transition.
 
-  User->>Pi: request implementation
-  Pi->>Bridge: native tool call
-  Bridge->>Host: blocking tool preflight
-  Host->>DB: validate frame, scope, lease and fence
-  Host->>DB: append PREPARED and DISPATCHED atomically
-  DB-->>Host: durable receipt
-  Host-->>Bridge: permit plus new ControlFrame
-  Bridge-->>Pi: execute
-  Pi->>WS: native mutation
-  Pi->>Bridge: observed result
-  Bridge->>Host: bounded observation
-  Host->>WS: read back postimage
-  Host->>DB: commit, fail, or OUTCOME_UNKNOWN
-  Host-->>Pi: receipt and exact next action
-```
+## Retired Multi execution
 
-Blocking preflight closes the gap between authorization and tool start. Each write binds its lease generation,
-fencing token, input closure, idempotency key, result hash, and postimage. Read-only paths skip lifecycle RPC where no
-authority transition is required, and a committed write avoids a redundant tool-end call.
+The menu, delegation tool, Worker RPCs, executor, mirror and scheduler are removed. Single does not construct a DAG,
+collect Multi-comparability rollouts or sum Worker usage at every status update. The old implementation is in Git
+history, not behind a runtime flag.
 
-## Multi execution
-
-Multi is selected explicitly when independent work or role isolation is expected to justify startup, copy, and
-integration cost. Roles are capabilities, not mandatory ceremony.
-
-| Role | Canonical write access | Expected output |
-|---|---:|---|
-| `PLANNER` | No | Bounded route evidence |
-| `EXPLORER` | No | Source or API findings with locations |
-| `IMPLEMENTER` | No; mirror-only writes | PatchSet and concise summary |
-| `VERIFIER` | No | Independent oracle-evidence proposal; never self-certifies a patch |
-| `INTEGRATOR` | No; mirror-only writes | Conflict-resolution PatchSet when explicitly routed |
-
-```mermaid
-flowchart TB
-  TF["Authorized WorkCell DAG"] --> C["Multi Coordinator"]
-  C --> P["PLANNER or EXPLORER\nread-only evidence"]
-  C --> I1["IMPLEMENTER\nscoped mirror A"]
-  C --> I2["IMPLEMENTER\nscoped mirror B"]
-  C --> V["VERIFIER\nindependent evidence proposal"]
-  I1 --> Q["Hash-bound PatchSet queue"]
-  I2 --> Q
-  P --> C
-  V --> C
-  Q --> J["PatchTransaction journal and CAS preimages"]
-  J --> X["Serial Integrator"]
-  X --> F["Lease and fencing check around each real mutation"]
-  F --> O["Fresh canonical oracles"]
-  O --> IR["IntegrationReceipt"]
-```
-
-Each Worker receives one `TaskPacket`: Goal, Route and WorkCell hashes; one outcome; declared roots; oracle; budget;
-dependency artifact hashes; failure signatures; expiry; and a capability HMAC. It does not receive full Supervisor
-chat or private Memory.
-
-Worker mirrors exclude `.git`, `.pi`, `.coding-harness`, dependencies, build/cache output, credentials, and non-template
-`.env` files. Network, extensions, skills, prompt templates, context files, and persistent session history are disabled.
-Parallel write roots must be mutually exclusive. Integration is always serial and checks the current canonical
-preimage, lease, fencing token, postimage, and fresh canonical oracle before integration is accepted or
-WorkCell/Goal acceptance advances.
+Existing schema-35 Worker/graph/provider/integration records keep their immutable codecs and integrity checks.
+Recovery checks requested and effective topology before taking a lease and rejects unfinished Multi Goals. It does
+not activate the old executor or reinterpret a pending-admission Goal as Single. The old three Worker config keys
+are discarded before constructing the effective config. See [upgrade guidance](USER-GUIDE.md#upgrading-from-12).
 
 ## Durable authority and recovery
 
-| Authoritative | Projection or untrusted input |
-|---|---|
-| Immutable SQLite events, receipts, revisions, Operations, Worker transitions and measurements | Chat text and model narrative |
-| Current lease generation and fencing token | Widget and status Markdown |
-| CAS bytes verified by `pch-cas://sha256/<hex>` | Worker summary and PatchSet before integration |
-| Hash-bound IntegrationReceipt and fresh oracle evidence | Pi JSONL or tool text without an authority receipt |
+Migrations 001-035 remain ordered and hash-checked. Immutable events/receipts and CAS are authoritative; Markdown,
+Pi JSONL markers and Widget state are projections. Session markers only identify a candidate Goal. The Host checks
+the exact current binding, workspace and runtime-instance lease before attaching it.
 
-SQLite uses WAL with `synchronous=FULL`. Schema migrations are forward-only and hash-checked. The current schema 35
-spans core authority, Memory, Input Context, Task Flow, Single and Multi execution, Cache, Compaction, provider
-accounting, performance, acceptance, PatchTransaction, execution-lineage, and session-to-Goal binding history.
-
-Recovery follows a strict precedence:
-
-```mermaid
-flowchart LR
-  S["Host start"] --> V["Verify SQL, foreign keys and integrity"]
-  V --> L["Take or renew Goal lease"]
-  L --> H["Rebuild projection heads"]
-  H --> PT["Recover open PatchTransactions"]
-  PT --> OP["Reconcile pending Operations"]
-  OP --> W["Fence orphaned Workers"]
-  W --> G["Restore Goal, Route and subject"]
-  G --> C["Verify compaction frontier"]
-  C --> N["Authorize exactly one next action"]
-```
-
-An unresolved side effect outranks new execution. A completed receipt is reused only while its declared input closure
-still matches. Recovered OPEN clarifications are choice-first: no model/provider turn begins until the user resolves
-the durable choice, then one productive continuation is sent.
+Single restart rebuilds projections, reconciles unknown operations and validates the compaction frontier before
+new writes. A live controller cannot be replaced by an unexpired competitor. A terminal Goal cannot resume work.
+Historical Multi data is preserved without gaining new execution authority.
 
 ## Context and efficiency Modules
 
-| Module | Deep Interface | Cost control |
-|---|---|---|
-| Input Context | Demand, evidence, working set, compile receipt, projection delta | Search before exact reads; defer evidence until demanded; reuse valid receipts |
-| Memory v3 | Capture, retrieve, correct, forget and purge | Local guarded capture; bounded working set; batched/debounced indexing |
-| Compaction 2.1 | Prepare and verify an exact semantic capsule | Uses native compaction; no rewrite request |
-| Cache v2 | Provider-specific request/settle accounting | Unsupported integrations stay at `C0`; no warmup or padding request |
-| Output | Stable response contract and local UI projection | Tool phase is quiet; no additional rewrite request |
-| Performance | Target-project optimization trials with frozen workloads, paired samples, correctness oracles and verdicts | Runs only for a requested or evidenced hotspot |
+| Module | Purpose and fallback |
+|---|---|
+| Input Context | Current authority plus bounded evidence; exact deferred context is fetched only when needed |
+| Memory | Encrypted optional local memory with explicit lifecycle, guarded capture and validity checks |
+| Compaction | Pi-native compaction bracketed by durable before/after frontier checks |
+| Cache | Non-mutating C1 only for matching verified contracts; other runtimes use C0 |
+| Output | Widget for routine progress; concise final evidence; no rewrite model request |
+| Accounting | Ordered background attempt settlement; unknown usage and unknown prices stay unknown |
 
-Planning, route review, Memory, Output, status, and replanning do not receive independent model requests. They reuse
-the current Agent turn and deterministic local Modules. Provider accounting is ordered in the background and does not
-block the provider request. Performance gains never waive correctness, privacy, acceptance, or durable authority.
+Fewer tools and removed deterministic work lower particular overheads. They do not establish end-to-end token,
+time or financial savings across workloads. The same model, task and correctness standard are needed for a cost
+comparison. Scope snapshots are still refreshed where effect or acceptance correctness requires it.
 
 ## Source Module map
 
-| Module | Main implementation |
+| Owner | Location |
 |---|---|
-| Bridge Adapter | [`src/bridge/register.ts`](../src/bridge/register.ts) |
-| Host and authenticated protocol | [`src/harness/host`](../src/harness/host) |
-| Task Flow and planning | [`src/task-flow`](../src/task-flow), [`src/planning`](../src/planning), [`src/runtime/task-flow-session.ts`](../src/runtime/task-flow-session.ts) |
-| Authority, leases, repositories and migrations | [`src/authority`](../src/authority), [`schemas/sql`](../schemas/sql) |
-| Operation and patch integration | [`src/effects`](../src/effects), [`src/task-flow/operation-lifecycle.ts`](../src/task-flow/operation-lifecycle.ts) |
-| Multi domain and Worker execution | [`src/harness/domain.ts`](../src/harness/domain.ts), [`src/harness/repository.ts`](../src/harness/repository.ts), [`src/harness/worker`](../src/harness/worker) |
-| Input Context | [`src/input-context`](../src/input-context) |
-| Memory | [`src/memory`](../src/memory) |
-| Compaction, Cache and Output | [`src/context`](../src/context), [`src/cache-v2`](../src/cache-v2), [`src/output`](../src/output) |
-| Performance contracts and measurements | [`src/performance`](../src/performance) |
+| Public entry and native Pi hooks | `src/index.ts`, `src/bridge/register.ts` |
+| Authenticated Host and protocol registry | `src/harness/host` |
+| Task orchestration and operations | `src/runtime/task-flow-session.ts`, `src/task-flow` |
+| Authority and artifacts | `src/authority`, `src/artifacts`, `schemas/sql` |
+| Source-bound intake, plans and acceptance | `src/intake-v2`, `src/plan-v2`, `src/acceptance-v2` |
+| Optional context features | `src/input-context`, `src/memory`, `src/context`, `src/cache-v2` |
+| Historical execution/provider codecs | `src/harness/execution-v2`, `src/provider-v2`, `src/harness-v2` |
+| Build and lifecycle | `scripts/build-runtime.mjs`, `scripts/*lifecycle*`, `src/runtime/lifecycle.ts` |
 
 ## Security model
 
-- Bridge/Host newline-delimited JSON is authenticated with request IDs, nonces, and HMAC; replay, unknown fields,
-  oversized payloads, and mismatched responses fail closed.
-- Paths are canonical, workspace-contained, and checked against declared roots. Symlink/reparse traversal fails closed.
-- Worker narrative and patches are scanned for secret-like material before persistence.
-- Telemetry stores hashes, counts, and reason codes rather than raw provider prompts or credentials.
-- Provider, model, thinking level, and context window come only from the active Pi configuration or an explicitly
-  configured role profile; PCH does not silently downgrade them.
-- Destructive uninstall requires an installation marker, an explicit delete flag, and confirmation.
+Authenticated IPC rejects replay and malformed payloads. CAS content is hash-checked. Local paths, exact scope,
+leases, fencing and observed preimages guard effects. Untrusted model text cannot attest itself, approve a contract,
+grant a new topology or override pending-effect reconciliation. External or irreversible actions need the current
+explicit user decision required by their authority contract.
 
-## Current repository evidence — 2026-08-16
+The Host receives runtime identity, not Pi credentials. Runtime data, local configs containing credentials and test
+reports remain outside source control. Installed builds remove obsolete generated files and refuse to clean a
+linked output directory.
 
-The current core-only verification aggregate recorded in
-[`manifests/PROJECT-STATE.json`](../manifests/PROJECT-STATE.json) produced:
+## Current repository evidence
 
-| Gate | Result |
-|---|---|
-| Runtime | Node `24.18.0`, SQLite `3.53.1`, authority schema `35` |
-| Test aggregate | `883` passed, `6` contract-defined conditional skips, `0` failures |
-| Contracts and closure | SQL `001`–`035`, JSON, Markdown/Mermaid, state update, runtime build, and self-contained source closure passed |
-| Lifecycle | Install, upgrade, uninstall, arbitrary-cwd import, and installed-package doctor paths passed |
-| Public CI | [Runtime and release closure](https://github.com/KirschBluteX/pi-coding-harness/actions/runs/31951570773) passed on commit `fdbe142` |
-| Additional requests from the release gate | model `0`; provider `0` |
-
-Reproduce the aggregate gate from the repository root:
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-project.ps1
-```
-
-This command exercises the repository release closure. Environment-specific installed-Pi and provider-backed results
-remain separate receipts. Numeric contracts and measurement rules are documented in
-[`PERFORMANCE-BUDGET.md`](PERFORMANCE-BUDGET.md). Verification reports are intentionally excluded from Git; their
-SHA-256 receipts are preserved in project state.
-
-### Evidence boundaries
-
-- The provider exposed no monetary cost, so observed token/latency data is not converted into currency savings.
-- No provider-backed comparative measurement currently proves token, output, quality, or end-to-end latency
-  reduction.
-- A positive provider `cacheRead` value proves a hit; zero or missing usage remains unobservable rather than a miss.
-- Natural provider-driven compaction was not triggered in the recorded real run; deterministic compaction/recovery
-  tests pass.
-- WAL auto-checkpoint remains disabled. Any maintenance Module must first prove steady-state, concurrency, shutdown,
-  and crash behavior off the user hot path.
-- The public receipt covers the complete non-benchmark core release surface. An unrestricted comparison claim remains
-  gated on the deferred provider-backed PCH Single stress run, PCH Multi rerun, and four-run comparison.
-
-## Further reading
-
-- [Implementation blueprint](PI-CODING-HARNESS-BLUEPRINT.md) — normative behavior and acceptance matrix
-- [Performance budget](PERFORMANCE-BUDGET.md) — numeric gates and honest measurement rules
-- [User guide](USER-GUIDE.md) — commands, Single/Multi use, recovery, and lifecycle
-- [SQL schema map](../schemas/sql/README.md) — migrations 001 through 035
-- [Project state](../manifests/PROJECT-STATE.json) — hash-bound development receipts and evidence limits
+See [VALIDATION.md](VALIDATION.md) and [PROJECT-STATUS.md](../PROJECT-STATUS.md). Historical benchmark results are
+not rerun or relabeled to qualify a different scope. Multi benchmarks are outside 1.3; provider-specific cache,
+natural long-context compaction and comparative cost claims keep their explicit limits.
