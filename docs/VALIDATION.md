@@ -42,6 +42,11 @@ reproduced an orphaned validation descendant and missing direct-argument executi
 the existing bounded process-tree runner. After that change, both affected unit files passed (8 tests), the
 standalone Host integration file passed (2 tests), and TypeScript compile and ESLint passed. The 834-test full-suite
 count is from before this narrow final fix; these later checks are separate and are not added to that count.
+
+The first GitHub Windows CI run for this source found one test-fixture path error: its OS temporary directory was on
+C:, so the independent CLI correctly rejected that data root before the test could check URL credentials. The fixture
+now selects a repository-local `.tmp` path on the checkout drive. The focused entry test (2 cases), compile and lint
+passed after the correction; the previous CI run's 835 passes and one failure are not called a green full-suite run.
 The historical Memory v2/phase-6 performance cases were not enabled.
 
 Schema fixtures now build each migration prefix once, checkpoint it and copy it into an isolated database per case.

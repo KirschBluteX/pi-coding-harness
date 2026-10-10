@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { main } from "../../src/cli/index.js";
@@ -19,7 +18,7 @@ describe("standalone Single entry", () => {
   });
 
   it("rejects unsafe gateway URLs before creating the data root", async () => {
-    const dataRoot = resolve(tmpdir(), `pch-cli-rejected-${randomUUID()}`);
+    const dataRoot = resolve(root, ".tmp", `pch-cli-rejected-${randomUUID()}`);
     await expect(main([
       "run", "Edit a file", "--workspace", root, "--data-root", dataRoot,
       "--base-url", "https://user:password@example.invalid/v1", "--model", "fixture",

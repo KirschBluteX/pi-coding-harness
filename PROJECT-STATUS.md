@@ -8,8 +8,8 @@
 - State: VERIFYING
 - Current phase: P14
 - Current stage: INDEPENDENT_SINGLE_CODE_VERIFIED_PERFORMANCE_OPEN
-- State generation: 110
-- Updated: 2026-10-10T09:01:04.6540811-07:00
+- State generation: 111
+- Updated: 2026-10-10T09:16:38.6188794-07:00
 
 ## Goal
 
@@ -17,13 +17,13 @@ Implement a Pi-free PCH Single CLI, model adapter and controlled tool loop on th
 
 ## Evidence
 
-- Completed receipts: 98
+- Completed receipts: 99
 - Authoritative artifacts: 74
 - Verification: FAIL
 
 ## Latest correction
 
-PCH-COR-STANDALONE-SHELL-TREE: An independent CLI shell timeout or cancellation now terminates and waits for the whole process tree before the Host observes the result; an orphaned validation descendant was reproduced before the fix and eliminated after it.
+PCH-COR-CI-TEMP-VOLUME: A Windows GitHub runner put its default temp directory on C:, so the standalone-entry fixture tested the drive guard instead of unsafe URL rejection. The fixture now uses the checkout drive; the product guard remains unchanged.
 
 ## Do not repeat
 

@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/source-hashes.schema.json",
   "schema_version": 1,
-  "generated_at": "2026-10-10T08:58:59.0092866-07:00",
+  "generated_at": "2026-10-10T09:14:17.2423893-07:00",
   "algorithm": "SHA-256",
   "target_root": ".",
   "input_sources": [
@@ -80,7 +80,7 @@
     {
       "migration_id": "MIG-013",
       "source": "X:\\Codex\\pch-single\\docs\\VALIDATION.md",
-      "sha256": "4482CA0F2F4A6C4433D2E89703FD30AFB9156B8551DB511A856B3484C8C4B091",
+      "sha256": "3E00D79C0A676C76CA55B5E1ED080798732424689D01D920ABA7642F3DDBD3A8",
       "disposition": "COPIED"
     },
     {
@@ -2840,7 +2840,7 @@
     {
       "migration_id": "MIG-473",
       "source": "X:\\Codex\\pch-single\\tests\\unit\\standalone-entry.test.ts",
-      "sha256": "6992966634A7B5D7B71408C568EE0E8118C30E269090FA25F6F5DB61847D72C0",
+      "sha256": "B22E74CE947235F1CE6D0B744CF5C59938BFA5704A1D9D836B47BC0C3611DBD8",
       "disposition": "COPIED"
     },
     {
@@ -3003,8 +3003,8 @@
     },
     {
       "path": "docs/VALIDATION.md",
-      "sha256": "4482CA0F2F4A6C4433D2E89703FD30AFB9156B8551DB511A856B3484C8C4B091",
-      "bytes": 11121
+      "sha256": "3E00D79C0A676C76CA55B5E1ED080798732424689D01D920ABA7642F3DDBD3A8",
+      "bytes": 11591
     },
     {
       "path": "eslint.config.js",
@@ -3143,7 +3143,7 @@
     },
     {
       "path": "manifests/MIGRATION-MANIFEST.json",
-      "sha256": "511C59CE72705DC0D6A75D492B2A9F36D39E7DA75B83B0E30F5C5A44502F2A86",
+      "sha256": "F52F74515F20769AA59A9B98475D4BF558DFCFC62A0A6E6EAEA81A57166E5BCE",
       "bytes": 292664
     },
     {
@@ -5308,8 +5308,8 @@
     },
     {
       "path": "tests/unit/standalone-entry.test.ts",
-      "sha256": "6992966634A7B5D7B71408C568EE0E8118C30E269090FA25F6F5DB61847D72C0",
-      "bytes": 1395
+      "sha256": "B22E74CE947235F1CE6D0B744CF5C59938BFA5704A1D9D836B47BC0C3611DBD8",
+      "bytes": 1365
     },
     {
       "path": "tests/unit/standalone-history.test.ts",
